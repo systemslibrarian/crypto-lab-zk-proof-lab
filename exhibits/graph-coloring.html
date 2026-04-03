@@ -55,7 +55,7 @@
         <p>If those two touching nodes are different colors, that local check passes. Because the hidden colors are shuffled each round, the verifier never gets enough information to reconstruct the whole map, but repeated spot-checks still make cheating harder and harder.</p>
       </section>
 
-      <div class="trust-banner trust-conceptual"><strong>Rigor note:</strong> in full GMW-style protocols, each round commits to all vertex colors and opens only challenged edge endpoints with secure commitments and randomness. This museum version keeps that verifier interaction model while simplifying the commitment machinery for readability.</div>
+      <div class="trust-banner trust-conceptual"><strong>Rigor note:</strong> in full GMW-style protocols, each round commits to all vertex colors using a cryptographically binding commitment scheme (e.g., <code>H(color ‖ nonce)</code> with a collision-resistant hash). This exhibit replaces that with truncated base64 — enough to show the commit-then-reveal flow, but <em>not</em> binding or hiding in a cryptographic sense. The verifier interaction model and soundness amplification ((5/6)<sup>k</sup>) are preserved faithfully.</div>
 
       <div class="panel" style="margin-bottom:14px">
         <div class="ph">FULL GRAPH VIEW</div>
@@ -79,7 +79,7 @@
             <circle id="n4" cx="32" cy="82" r="15" fill="#131c2e" stroke="#1c2540" stroke-width="2"/>
             <text id="l4" x="32" y="86" text-anchor="middle" fill="#3a4a68" font-size="7" font-family="monospace">0x…</text>
           </svg>
-          <div style="font-size:10px;color:var(--tx3);margin-top:4px">Nodes show commitment hashes — colors hidden</div>
+          <div style="font-size:10px;color:var(--tx3);margin-top:4px">Nodes show simplified commitments (base64, not real hashes) — colors hidden</div>
         </div>
       </div>
 
@@ -90,7 +90,7 @@
             <div id="g-round-info" aria-live="polite" aria-atomic="true" style="font-size:11px;color:var(--tx2);margin-bottom:8px">Press "New Round" to commit.</div>
             <table class="commit-table" aria-label="Round commitments">
               <thead>
-                <tr><th>Node</th><th>Commitment Hash</th></tr>
+                <tr><th>Node</th><th>Commitment <span style="font-weight:400;color:var(--warn);font-size:10px">(simplified)</span></th></tr>
               </thead>
               <tbody id="g-commit-table">
                 <tr><td>0</td><td>0x…</td></tr>
@@ -122,8 +122,12 @@
         <button class="bs" id="g-btn-a">Run 10</button>
         <button class="bs" id="g-btn-x">Reset</button>
       </div>
-      <div class="vl"><strong>What the verifier learns:</strong> Only that the challenged endpoints differ. Random color permutation each round prevents accumulating a global coloring. The pedagogical simplification is in the commitment layer, not in the soundness argument: after k independent rounds, P(undetected cheat) = (5/6)^k.</div>
+      <div class="vl"><strong>What the verifier learns:</strong> Only that the challenged endpoints differ. Random color permutation each round prevents accumulating a global coloring. The pedagogical simplification is in the commitment layer (base64 encoding, not a binding hash), not in the soundness argument: after k independent rounds, P(undetected cheat) = (5/6)<sup>k</sup>. A production version would replace <code>simCommit</code> with <code>SHA-256(color ‖ nonce)</code> to guarantee binding and hiding.</div>
     </main>
+
+    <footer class="footer">
+      <a href="https://github.com/systemslibrarian/zk-proof-lab" target="_blank" rel="noopener noreferrer">View on GitHub</a> · <a href="../tests/logic-smoke.html">Run Tests</a> · v1.0 · ZK Proof Lab by <a href="https://github.com/systemslibrarian" target="_blank" rel="noopener noreferrer">systemslibrarian</a>
+    </footer>
   </div>
 
   <script type="module" src="../js/graph.js"></script>

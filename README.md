@@ -7,6 +7,14 @@ An interactive, static-first lab for understanding zero-knowledge proofs through
 
 This project is built to teach the intuition fast, stay honest about what is conceptual versus cryptographically real, and show production-minded engineering in a framework-free codebase.
 
+<p align="center">
+  <img src="docs/screenshots/lobby.png" alt="ZK Proof Lab lobby — exhibit selector with six protocol cards" width="720">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/schnorr.png" alt="Schnorr Identification exhibit with real modular arithmetic" width="720">
+</p>
+
 ## Why This Matters
 
 Zero-knowledge proofs sit at the center of modern privacy-preserving systems: authentication, blockchains, signatures, identity, and any workflow where something must be verified without exposing the underlying secret.
