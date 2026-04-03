@@ -1,5 +1,7 @@
 # ZK Protocol Lab
 
+Live demo: https://systemslibrarian.github.io/zk-proof-lab/
+
 ZK Protocol Lab is a pure static HTML/CSS/JS educational site that demonstrates four zero-knowledge protocol exhibits with interactive rounds, logs, confidence meters, and honest real-vs-conceptual labeling.
 
 The project is protocol-first, framework-free, and designed for instant loading and GitHub Pages deployment.
