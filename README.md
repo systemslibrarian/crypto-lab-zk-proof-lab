@@ -15,6 +15,11 @@ This project is built to teach the intuition fast, stay honest about what is con
   <img src="docs/screenshots/schnorr.png" alt="Schnorr Identification exhibit with real modular arithmetic" width="720">
 </p>
 
+<p align="center">
+  <img src="docs/screenshots/schnorr-demo.gif" alt="Schnorr protocol running — commitment, challenge, response, and verification with real values" width="720">
+  <br><em>Schnorr identification: 3 honest rounds then a cheat attempt, all with real modular arithmetic</em>
+</p>
+
 ## Why This Matters
 
 Zero-knowledge proofs sit at the center of modern privacy-preserving systems: authentication, blockchains, signatures, identity, and any workflow where something must be verified without exposing the underlying secret.
