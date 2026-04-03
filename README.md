@@ -156,10 +156,10 @@ That is why this project starts with the cave before moving into Schnorr. The le
 
 ## Future Improvements
 
-- Add field-aware transcript diff visualizations (highlighting exact JSON deltas and inferred protocol impact).
-- Add reproducible seeded scenarios for each exhibit so specific transcripts can be replayed deterministically.
-- Add richer browser accessibility audits (axe-core integration) alongside existing structural quality gates.
+- Upgrade transcript comparison with a dedicated side-by-side JSON delta view (field-level change highlighting beyond semantic summary lines).
 - Add optional video capture automation in CI in addition to screenshots/GIF summaries.
+- Add one-click seeded scenario presets in the UI (for interview/demo reproducibility without editing URLs manually).
+- Add protocol-specific invariant checks to quality gates (for example, Schnorr equation consistency and Fiat-Shamir challenge re-derivation checks in browser automation).
 
 ## Deployment
 
