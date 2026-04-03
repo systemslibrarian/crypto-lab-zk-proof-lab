@@ -9,6 +9,7 @@ function schnorrSetControls() {
   document.getElementById('s-cheat-btn').disabled = schnorrBusy;
   document.getElementById('s-reset-btn').disabled = schnorrBusy;
   document.getElementById('s-copy-btn').disabled = schnorrBusy || !lastSchnorrTranscript;
+  document.getElementById('s-replay-btn').disabled = schnorrBusy || !lastSchnorrTranscript;
 }
 
 function buildTranscript({ cheat, r, R, c, s, lhs, rhs, ok }) {
@@ -20,6 +21,10 @@ function buildTranscript({ cheat, r, R, c, s, lhs, rhs, ok }) {
     transcript: { r, R, c, s, lhs, rhs, verified: ok },
     note: 'Real browser-side modular arithmetic with intentionally tiny educational parameters.'
   };
+}
+
+function persistTranscript(transcript) {
+  localStorage.setItem('zkpl:last:schnorr', JSON.stringify(transcript));
 }
 
 export async function schnorrRun(cheat) {
@@ -66,6 +71,7 @@ export async function schnorrRun(cheat) {
       addLog('s-log', `CHEAT: g^s=${lhs} ≠ R·y^c=${rhs} → CAUGHT`, 'lerr');
     }
     lastSchnorrTranscript = buildTranscript({ cheat, r, R, c, s, lhs, rhs, ok });
+    persistTranscript(lastSchnorrTranscript);
   } finally {
     schnorrBusy = false;
     schnorrSetControls();
@@ -102,7 +108,16 @@ export async function schnorrCopyTranscript() {
   addLog('s-log', 'Transcript copied to clipboard', 'lacc');
 }
 
+export function schnorrReplayInLab() {
+  if (!lastSchnorrTranscript) {
+    return;
+  }
+  localStorage.setItem('zkpl:replay:left', JSON.stringify(lastSchnorrTranscript));
+  window.location.href = 'transcript-lab.html';
+}
+
 document.getElementById('s-btn').addEventListener('click', () => schnorrRun(false));
 document.getElementById('s-cheat-btn').addEventListener('click', () => schnorrRun(true));
 document.getElementById('s-copy-btn').addEventListener('click', schnorrCopyTranscript);
+document.getElementById('s-replay-btn').addEventListener('click', schnorrReplayInLab);
 document.getElementById('s-reset-btn').addEventListener('click', schnorrReset);

@@ -21,6 +21,7 @@
         <a class="nav-link" href="graph-coloring.html">02</a>
         <a class="nav-link active" href="schnorr.html">03</a>
         <a class="nav-link" href="commit-reveal.html">04</a>
+        <a class="nav-link" href="fiat-shamir.html">05</a>
       </nav>
     </header>
 
@@ -39,6 +40,7 @@
       <div class="resource-links" aria-label="Exhibit resources">
         <a class="resource-link" href="https://github.com/systemslibrarian/zk-proof-lab" target="_blank" rel="noopener noreferrer">Repository</a>
         <a class="resource-link" href="https://github.com/systemslibrarian/zk-proof-lab/blob/main/docs/zkp-primer.md" target="_blank" rel="noopener noreferrer">ZK Primer</a>
+        <a class="resource-link" href="transcript-lab.html">Replay Lab</a>
         <a class="resource-link" href="https://github.com/systemslibrarian/zk-proof-lab/blob/main/exhibits/schnorr.html" target="_blank" rel="noopener noreferrer">View Source</a>
       </div>
 
@@ -49,6 +51,23 @@
         <div class="param-box"><div class="hash-label">Generator g</div><div style="color:var(--tx);font-size:14px">5</div></div>
         <div class="param-box"><div class="hash-label">Secret x (hidden)</div><div style="color:var(--err);font-size:14px">17</div></div>
         <div class="param-box"><div class="hash-label">Public key y = g^x mod p</div><div style="color:var(--ok);font-size:14px">375</div></div>
+      </div>
+
+      <div class="panel" style="margin-bottom:14px">
+        <div class="ph">Toy vs Production Parameters</div>
+        <div class="pb">
+          <table class="commit-table" aria-label="Toy versus production Schnorr parameters">
+            <thead>
+              <tr><th>Dimension</th><th>This Exhibit</th><th>Production Expectation</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Group size</td><td>p = 2053 (tiny)</td><td>~256-bit security groups/curves</td></tr>
+              <tr><td>Challenge size</td><td>1..50</td><td>128-256 bit challenge domain</td></tr>
+              <tr><td>Threat model</td><td>Educational verifier</td><td>Adversarial network + side-channel resistance</td></tr>
+              <tr><td>Implementation</td><td>Readable browser arithmetic</td><td>Audited constant-time cryptographic libraries</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <section class="prose">
@@ -103,6 +122,7 @@
         <button class="bp" id="s-btn">▶ Run Protocol</button>
         <button class="bd" id="s-cheat-btn">Simulate Cheat</button>
         <button class="bs" id="s-copy-btn" disabled>Copy Transcript</button>
+        <button class="bs" id="s-replay-btn" disabled>Replay In Lab</button>
         <button class="bs" id="s-reset-btn">Reset</button>
       </div>
       <div class="vl"><strong>What the verifier learns:</strong> Only that the prover knows x. The response s = r + c x changes every round because r is freshly random. Even knowing s and c, computing x requires solving the discrete logarithm — infeasible for large primes. Production Schnorr uses 256-bit parameters (secp256k1, Bitcoin signatures).</div>

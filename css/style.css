@@ -92,6 +92,8 @@ button{font-family:var(--mono);font-size:12px;padding:10px 15px;border-radius:6p
 .commit-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
 .commit-table th,.commit-table td{padding:6px 8px;border-bottom:1px solid var(--bord);text-align:left}
 .commit-table th{font-size:11px;letter-spacing:.08em;color:var(--tx2);text-transform:uppercase}
+.txa{width:100%;min-height:130px;resize:vertical;background:var(--bg);border:1px solid var(--bord);border-radius:6px;padding:10px;color:var(--tx);font-family:var(--mono);font-size:12px;line-height:1.5}
+.replay-card{white-space:pre-line;background:var(--bg);border:1px solid var(--bord);border-radius:6px;padding:10px;margin-top:10px;color:var(--tx2);font-size:12px}
 .footer{margin-top:24px;color:var(--tx2);font-size:12px;border-top:1px solid var(--bord);padding-top:12px}
 .big-svg{width:100%;height:auto;max-height:360px}
 .back-link{display:inline-flex;align-items:center;gap:7px;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--tx);border:1px solid var(--bord);padding:11px 12px;border-radius:999px;min-height:44px;text-decoration:none}

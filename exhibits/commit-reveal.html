@@ -21,6 +21,7 @@
         <a class="nav-link" href="graph-coloring.html">02</a>
         <a class="nav-link" href="schnorr.html">03</a>
         <a class="nav-link active" href="commit-reveal.html">04</a>
+        <a class="nav-link" href="fiat-shamir.html">05</a>
       </nav>
     </header>
 
@@ -38,6 +39,7 @@
       <div class="resource-links" aria-label="Exhibit resources">
         <a class="resource-link" href="https://github.com/systemslibrarian/zk-proof-lab" target="_blank" rel="noopener noreferrer">Repository</a>
         <a class="resource-link" href="https://github.com/systemslibrarian/zk-proof-lab/blob/main/docs/zkp-primer.md" target="_blank" rel="noopener noreferrer">ZK Primer</a>
+        <a class="resource-link" href="transcript-lab.html">Replay Lab</a>
         <a class="resource-link" href="https://github.com/systemslibrarian/zk-proof-lab/blob/main/exhibits/commit-reveal.html" target="_blank" rel="noopener noreferrer">View Source</a>
       </div>
 
@@ -49,6 +51,23 @@
       </section>
 
       <div class="trust-banner trust-real"><strong>Real hash, educational scenario:</strong> the commitment digest is computed via window.crypto.subtle and can be independently recomputed from the revealed bid and nonce.</div>
+
+      <div class="panel" style="margin-bottom:14px">
+        <div class="ph">Toy vs Production Parameters</div>
+        <div class="pb">
+          <table class="commit-table" aria-label="Toy versus production commitment parameters">
+            <thead>
+              <tr><th>Dimension</th><th>This Exhibit</th><th>Production Expectation</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Commitment primitive</td><td>SHA-256 digest (real)</td><td>Hash + protocol-specific domain separation</td></tr>
+              <tr><td>Nonce source</td><td>32-byte browser RNG</td><td>Strict entropy controls + protocol audits</td></tr>
+              <tr><td>Application model</td><td>Two bidder educational flow</td><td>Authenticated multi-party protocol with dispute handling</td></tr>
+              <tr><td>Security envelope</td><td>Inspectable demo UI</td><td>Formal protocol proofs + hardened backend integration</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       <div class="demo-grid">
         <div class="panel">
@@ -85,6 +104,7 @@
         <button class="bp" id="c-btn-reveal" disabled>Reveal Bids</button>
         <button class="bd" id="c-btn-cheat" disabled>Bidder A Cheats</button>
         <button class="bs" id="c-btn-copy" disabled>Copy Transcript</button>
+        <button class="bs" id="c-btn-replay" disabled>Replay In Lab</button>
         <button class="bs" id="c-btn-reset">Reset</button>
       </div>
       <div class="vl"><strong>Real SHA-256 runs in your browser</strong> via window.crypto.subtle.digest(). <strong>Binding:</strong> changing even one character produces a completely different 256-bit hash. <strong>Hiding:</strong> the hash reveals nothing about the bid value.</div>

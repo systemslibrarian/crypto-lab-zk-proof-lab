@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#070b12">
+  <title>ZK Proof Lab · Quality Gates</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="site-shell wrap" style="padding-top:20px">
+    <h1 class="brand-title" style="font-size:28px">Quality Gates</h1>
+    <p class="brand-sub" style="margin-bottom:12px">No-dependency checks for accessibility structure and visual-token regression.</p>
+    <div class="controls">
+      <button class="bp" id="run-qg-btn">▶ Run Quality Gates</button>
+      <a class="resource-link" href="logic-smoke.html">Logic Smoke Tests</a>
+      <a class="resource-link" href="../index.html">Back to Lobby</a>
+    </div>
+    <div class="log" id="qg-log" role="log" aria-live="polite" aria-relevant="additions" style="max-height:none"><span class="le">— quality log —</span></div>
+    <div id="qg-result" class="vl" style="margin-top:12px">Waiting to run checks.</div>
+  </div>
+  <script type="module" src="quality-gates.js"></script>
+</body>
+</html>

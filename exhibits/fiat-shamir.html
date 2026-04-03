@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Interactive Fiat-Shamir exhibit demonstrating non-interactive proof generation with real browser-side hashing and modular arithmetic.">
+  <meta name="theme-color" content="#070b12">
+  <title>Exhibit 05 · Fiat-Shamir · ZK Proof Lab</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="site-shell wrap">
+    <header class="site-header">
+      <div>
+        <a class="back-link" href="../index.html">← Back to Lobby</a>
+        <div class="brand-kicker" style="margin-top:10px">ZK Proof Lab</div>
+        <h1 class="brand-title">Exhibit 05 · Fiat-Shamir Transformation</h1>
+      </div>
+      <nav class="top-nav" aria-label="Exhibits">
+        <a class="nav-link" href="cave.html">01</a>
+        <a class="nav-link" href="graph-coloring.html">02</a>
+        <a class="nav-link" href="schnorr.html">03</a>
+        <a class="nav-link" href="commit-reveal.html">04</a>
+        <a class="nav-link active" href="fiat-shamir.html">05</a>
+      </nav>
+    </header>
+
+    <main class="exhibit">
+      <div class="ex-header">
+        <div class="ex-row"><span class="ex-num">EXHIBIT 05</span><span class="badge badge-real">● REAL HASH-DERIVED CHALLENGE</span></div>
+        <div class="ex-title">Fiat-Shamir (Non-Interactive Proof)</div>
+        <div class="ex-sub">Turn interactive challenge-response into a single hash-bound proof transcript</div>
+      </div>
+      <div class="props">
+        <span class="prop prop-c">✓ Completeness</span>
+        <span class="prop prop-s">✓ Soundness (ROM model)</span>
+        <span class="prop prop-z">✓ Practical NIZK pattern</span>
+      </div>
+
+      <div class="resource-links" aria-label="Exhibit resources">
+        <a class="resource-link" href="https://github.com/systemslibrarian/zk-proof-lab" target="_blank" rel="noopener noreferrer">Repository</a>
+        <a class="resource-link" href="https://github.com/systemslibrarian/zk-proof-lab/blob/main/docs/zkp-primer.md" target="_blank" rel="noopener noreferrer">ZK Primer</a>
+        <a class="resource-link" href="transcript-lab.html">Replay Lab</a>
+        <a class="resource-link" href="https://github.com/systemslibrarian/zk-proof-lab/blob/main/exhibits/fiat-shamir.html" target="_blank" rel="noopener noreferrer">View Source</a>
+      </div>
+
+      <div class="trust-banner trust-real global-honesty"><strong>Cryptographic honesty:</strong> challenge generation is real SHA-256 over transcript inputs and verification is real modular arithmetic. Parameters are intentionally small for readability.</div>
+
+      <section class="prose">
+        <p>In Schnorr, the verifier sends a random challenge c. In Fiat-Shamir, we remove that verifier message and derive c by hashing public transcript data. This turns an interactive proof into a single self-contained proof object.</p>
+        <p>That "hash as verifier" pattern is the bridge from educational Sigma protocols toward many modern signature and proof systems used in production.</p>
+      </section>
+
+      <div class="panel" style="margin-bottom:14px">
+        <div class="ph">Toy vs Production Parameters</div>
+        <div class="pb">
+          <table class="commit-table" aria-label="Toy versus production Fiat-Shamir parameters">
+            <thead>
+              <tr><th>Dimension</th><th>This Exhibit</th><th>Production Expectation</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Hash input</td><td>R || y || message</td><td>Domain separated transcript with context binding</td></tr>
+              <tr><td>Challenge range</td><td>1..50</td><td>Large scalar field challenge</td></tr>
+              <tr><td>Math domain</td><td>Small prime modulus</td><td>Secure elliptic curves or large finite fields</td></tr>
+              <tr><td>Security model</td><td>Didactic random-oracle intuition</td><td>Audited proofs and protocol-specific assumptions</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="demo-grid">
+        <div class="panel">
+          <div class="ph">PROVER OUTPUT</div>
+          <div class="pb">
+            <div class="hash-label">Message</div>
+            <div class="hash-box" id="fs-msg">—</div>
+            <div class="hash-label" style="margin-top:8px">Nonce commitment R = g^r mod p</div>
+            <div class="hash-box" id="fs-R">—</div>
+            <div class="hash-label" style="margin-top:8px">Challenge c = H(R || y || message) mod 50 + 1</div>
+            <div class="hash-box" id="fs-c">—</div>
+            <div class="hash-label" style="margin-top:8px">Response s = r + c·x mod (p-1)</div>
+            <div class="hash-box" id="fs-s">—</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph">VERIFIER CHECK</div>
+          <div class="pb">
+            <div class="hash-label">g^s mod p</div>
+            <div class="hash-box" id="fs-lhs">—</div>
+            <div class="hash-label" style="margin-top:8px">R · y^c mod p</div>
+            <div class="hash-box" id="fs-rhs">—</div>
+            <div id="fs-result" aria-live="polite" aria-atomic="true" style="margin-top:10px;font-size:12px;color:var(--tx2)">Ready.</div>
+            <div class="log" id="fs-log" role="log" aria-live="polite" aria-relevant="additions" style="margin-top:10px;max-height:120px"><span class="le">— protocol log —</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="bp" id="fs-run-btn">▶ Generate Proof</button>
+        <button class="bd" id="fs-tamper-btn">Tamper Message</button>
+        <button class="bs" id="fs-copy-btn" disabled>Copy Transcript</button>
+        <button class="bs" id="fs-replay-btn" disabled>Replay In Lab</button>
+        <button class="bs" id="fs-reset-btn">Reset</button>
+      </div>
+
+      <div class="vl"><strong>What changes from Schnorr:</strong> the verifier's random challenge is replaced by a deterministic challenge derived from hashing transcript data. This gives a non-interactive proof object at the cost of relying on random-oracle style assumptions.</div>
+    </main>
+  </div>
+
+  <script type="module" src="../js/fiat-shamir.js"></script>
+</body>
+</html>

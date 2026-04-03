@@ -9,6 +9,7 @@ function commitSetControls() {
   document.getElementById('c-btn-reveal').disabled = commitBusy || cs.phase !== 'committed';
   document.getElementById('c-btn-cheat').disabled = commitBusy || cs.phase !== 'committed';
   document.getElementById('c-btn-copy').disabled = commitBusy || !lastCommitTranscript;
+  document.getElementById('c-btn-replay').disabled = commitBusy || !lastCommitTranscript;
   document.getElementById('c-btn-reset').disabled = commitBusy;
 }
 
@@ -21,6 +22,10 @@ function buildCommitTranscript(extra = {}) {
     bidderB: { bid: cs.bidB, nonce: cs.nB, hash: cs.hB },
     ...extra
   };
+}
+
+function persistCommitTranscript(transcript) {
+  localStorage.setItem('zkpl:last:commit', JSON.stringify(transcript));
 }
 
 export async function commitPhase() {
@@ -49,6 +54,7 @@ export async function commitPhase() {
     document.getElementById('commit-result').innerHTML = '<strong style="color:var(--ok)">Both commitments published.</strong> Neither bidder can see the other\'s bid. Neither can change their bid without detection.';
     cs.phase = 'committed';
     lastCommitTranscript = buildCommitTranscript({ note: 'Commitments published; bids intentionally still hidden in the UI.' });
+    persistCommitTranscript(lastCommitTranscript);
   } finally {
     commitBusy = false;
     commitSetControls();
@@ -76,6 +82,7 @@ export async function revealPhase() {
       ? `<strong style="color:var(--warn)">Tie — $${cs.bidA} = $${cs.bidB}.</strong> Both commitments verified.`
       : `<strong style="color:var(--ok)">Bidder ${winner} wins</strong> — $${winner === 'A' ? cs.bidA : cs.bidB} vs $${winner === 'A' ? cs.bidB : cs.bidA}. Both bids cryptographically verified.`;
     lastCommitTranscript = buildCommitTranscript({ verification: { bidderA: okA, bidderB: okB }, winner });
+    persistCommitTranscript(lastCommitTranscript);
   } finally {
     commitBusy = false;
     commitSetControls();
@@ -96,6 +103,7 @@ export async function cheatPhase() {
     document.getElementById('commit-result').innerHTML = '<strong style="color:var(--err)">Binding property holds.</strong> Bidder A\'s revised bid produces a completely different SHA-256 hash. Finding any (bid, nonce) pair that produces the same hash is computationally infeasible.';
     cs.phase = 'cheated';
     lastCommitTranscript = buildCommitTranscript({ cheatAttempt: { fakeBid: fake, fakeHash, detected: true } });
+    persistCommitTranscript(lastCommitTranscript);
   } finally {
     commitBusy = false;
     commitSetControls();
@@ -123,8 +131,17 @@ export async function commitCopyTranscript() {
   document.getElementById('commit-result').innerHTML = '<strong style="color:var(--acc2)">Transcript copied.</strong> You can paste the proof trace into notes, docs, or an interview walkthrough.';
 }
 
+export function commitReplayInLab() {
+  if (!lastCommitTranscript) {
+    return;
+  }
+  localStorage.setItem('zkpl:replay:left', JSON.stringify(lastCommitTranscript));
+  window.location.href = 'transcript-lab.html';
+}
+
 document.getElementById('c-btn-commit').addEventListener('click', commitPhase);
 document.getElementById('c-btn-reveal').addEventListener('click', revealPhase);
 document.getElementById('c-btn-cheat').addEventListener('click', cheatPhase);
 document.getElementById('c-btn-copy').addEventListener('click', commitCopyTranscript);
+document.getElementById('c-btn-replay').addEventListener('click', commitReplayInLab);
 document.getElementById('c-btn-reset').addEventListener('click', commitReset);

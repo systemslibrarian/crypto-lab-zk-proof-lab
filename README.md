@@ -1,9 +1,9 @@
-# ZK Protocol Lab
+# ZK Proof Lab
 
 [![Deploy GitHub Pages](https://github.com/systemslibrarian/zk-proof-lab/actions/workflows/pages.yml/badge.svg)](https://github.com/systemslibrarian/zk-proof-lab/actions/workflows/pages.yml)
 [Live Demo](https://systemslibrarian.github.io/zk-proof-lab/)
 
-An interactive, static-first lab for understanding zero-knowledge proofs through four exhibits, from the Ali Baba cave thought experiment to real browser-side Schnorr verification and SHA-256 commitments.
+An interactive, static-first lab for understanding zero-knowledge proofs through five exhibits, from the Ali Baba cave thought experiment to non-interactive Fiat-Shamir proofs, real browser-side Schnorr verification, and SHA-256 commitments.
 
 This project is built to teach the intuition fast, stay honest about what is conceptual versus cryptographically real, and show production-minded engineering in a framework-free codebase.
 
@@ -36,6 +36,7 @@ Most explanations either stay too abstract or jump straight into algebra. This p
 | 02 | Graph 3-Coloring ZKP | Commitments Simplified | Prove a map is colored correctly without revealing the whole answer |
 | 03 | Schnorr Identification | Real modular arithmetic | Prove you know a secret number without revealing the number |
 | 04 | Hash Commit-Reveal | Real SHA-256 | Lock in a hidden choice now and prove later that you did not change it |
+| 05 | Fiat-Shamir Transformation | Real hash-derived challenge | Turn interactive challenge-response into a single non-interactive proof |
 
 ## Architecture
 
@@ -48,14 +49,24 @@ zk-proof-lab/
 │   ├── cave.html              # conceptual ZKP thought experiment
 │   ├── graph-coloring.html    # selective reveal + simplified commitments
 │   ├── schnorr.html           # real browser-side modular arithmetic
-│   └── commit-reveal.html     # real browser-side SHA-256 commitment flow
+│   ├── fiat-shamir.html       # non-interactive hash-derived challenge demo
+│   ├── commit-reveal.html     # real browser-side SHA-256 commitment flow
+│   └── transcript-lab.html    # replay and compare proof transcripts
 ├── css/
 │   └── style.css              # shared visual system, mobile, accessibility
 ├── js/
 │   ├── cave.js                # animation, soundness tracking, bluff mode
 │   ├── graph.js               # challenge flow, permutations, commitment table
 │   ├── schnorr.js             # BigInt modpow and transcript verification
-│   └── commit.js              # Web Crypto SHA-256 and commit/reveal logic
+│   ├── commit.js              # Web Crypto SHA-256 and commit/reveal logic
+│   ├── fiat-shamir.js         # hash-derived challenge and NIZK verification
+│   ├── transcript-lab.js      # transcript replay/compare controller
+│   └── shared.js              # reusable protocol helpers
+├── tests/
+│   ├── logic-smoke.html       # no-dependency logic checks
+│   ├── logic-smoke.js         # Schnorr/hash/probability smoke tests
+│   ├── quality-gates.html     # accessibility + visual-token checks
+│   └── quality-gates.js       # quality gate runner
 └── docs/
     └── zkp-primer.md          # protocol property mapping and accuracy notes
 ```
@@ -75,6 +86,11 @@ python -m http.server 8000
 ```
 
 Then open `http://localhost:8000`.
+
+Optional no-dependency checks:
+
+- `http://localhost:8000/tests/logic-smoke.html`
+- `http://localhost:8000/tests/quality-gates.html`
 
 Or use the live deployment: [https://systemslibrarian.github.io/zk-proof-lab/](https://systemslibrarian.github.io/zk-proof-lab/)
 
@@ -135,10 +151,10 @@ That is why this project starts with the cave before moving into Schnorr. The le
 
 ## Future Improvements
 
-- Add transcript export and replay so proofs can be compared side by side.
-- Add a fifth exhibit for zk-SNARK or Fiat-Shamir transformation to connect the intuition to modern systems.
-- Add automated accessibility checks and visual regression coverage.
-- Add side-by-side “toy parameters vs production parameters” views for protocol realism.
+- Add screenshot/GIF capture automation so visual regression can compare rendered artifacts, not only token-level style gates.
+- Add stronger transcript diffing (field-level semantic diffs, challenge re-derivation checks, and tamper proof timelines).
+- Add a zk-SNARK-focused sixth exhibit that bridges Fiat-Shamir intuition to modern proving systems.
+- Add CI automation to execute browser quality gates on pull requests.
 
 ## Deployment
 

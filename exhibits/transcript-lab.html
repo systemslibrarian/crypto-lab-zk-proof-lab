@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Transcript replay and side-by-side comparison lab for ZK Proof Lab exhibits.">
+  <meta name="theme-color" content="#070b12">
+  <title>Transcript Replay Lab · ZK Proof Lab</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="site-shell wrap">
+    <header class="site-header">
+      <div>
+        <a class="back-link" href="../index.html">← Back to Lobby</a>
+        <div class="brand-kicker" style="margin-top:10px">ZK Proof Lab</div>
+        <h1 class="brand-title">Transcript Replay Lab</h1>
+      </div>
+      <nav class="top-nav" aria-label="Exhibits">
+        <a class="nav-link" href="cave.html">01</a>
+        <a class="nav-link" href="graph-coloring.html">02</a>
+        <a class="nav-link" href="schnorr.html">03</a>
+        <a class="nav-link" href="commit-reveal.html">04</a>
+        <a class="nav-link" href="fiat-shamir.html">05</a>
+      </nav>
+    </header>
+
+    <main class="exhibit">
+      <div class="ex-header">
+        <div class="ex-row"><span class="ex-num">REPLAY LAB</span><span class="badge badge-real">● TRANSCRIPT COMPARISON</span></div>
+        <div class="ex-title">Replay and Compare Proof Traces</div>
+        <div class="ex-sub">Paste transcripts or pull from local storage to inspect proof objects side by side.</div>
+      </div>
+
+      <div class="resource-links" aria-label="Replay resources">
+        <a class="resource-link" href="https://github.com/systemslibrarian/zk-proof-lab/blob/main/exhibits/transcript-lab.html" target="_blank" rel="noopener noreferrer">View Source</a>
+        <a class="resource-link" href="../tests/logic-smoke.html">Logic Smoke Tests</a>
+        <a class="resource-link" href="../tests/quality-gates.html">Quality Gates</a>
+      </div>
+
+      <div class="trust-banner trust-real global-honesty"><strong>How to use:</strong> load the latest transcript from an exhibit or paste JSON manually, then compare transcript semantics and verifier outcomes side by side.</div>
+
+      <div class="demo-grid">
+        <div class="panel">
+          <div class="ph">LEFT TRANSCRIPT</div>
+          <div class="pb">
+            <textarea id="left-input" class="txa" aria-label="Left transcript JSON" placeholder="Paste transcript JSON"></textarea>
+            <div class="controls" style="margin-top:10px">
+              <button class="bs" id="left-load-schnorr">Load Last Schnorr</button>
+              <button class="bs" id="left-load-commit">Load Last Commit</button>
+              <button class="bs" id="left-load-fs">Load Last Fiat-Shamir</button>
+            </div>
+            <div id="left-view" class="replay-card">No transcript loaded.</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph">RIGHT TRANSCRIPT</div>
+          <div class="pb">
+            <textarea id="right-input" class="txa" aria-label="Right transcript JSON" placeholder="Paste transcript JSON"></textarea>
+            <div class="controls" style="margin-top:10px">
+              <button class="bs" id="right-load-schnorr">Load Last Schnorr</button>
+              <button class="bs" id="right-load-commit">Load Last Commit</button>
+              <button class="bs" id="right-load-fs">Load Last Fiat-Shamir</button>
+            </div>
+            <div id="right-view" class="replay-card">No transcript loaded.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="bp" id="compare-btn">▶ Compare Transcripts</button>
+        <button class="bs" id="swap-btn">Swap Left/Right</button>
+        <button class="bs" id="clear-btn">Clear</button>
+      </div>
+
+      <div id="compare-result" class="vl">Comparison output will appear here.</div>
+    </main>
+  </div>
+
+  <script type="module" src="../js/transcript-lab.js"></script>
+</body>
+</html>
