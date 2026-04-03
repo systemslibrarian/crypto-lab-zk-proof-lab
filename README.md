@@ -4,6 +4,8 @@ Live demo: https://systemslibrarian.github.io/zk-proof-lab/
 
 ZK Protocol Lab is a pure static HTML/CSS/JS educational site that demonstrates four zero-knowledge protocol exhibits with interactive rounds, logs, confidence meters, and honest real-vs-conceptual labeling.
 
+ZK stands for zero-knowledge. A zero-knowledge proof lets one party prove a statement is true or that they know a secret without revealing the secret itself. These protocols are used in modern cryptography for identity systems, privacy-preserving authentication, blockchains, digital signatures, and any setting where verification matters but disclosure is undesirable.
+
 The project is protocol-first, framework-free, and designed for instant loading and GitHub Pages deployment.
 
 The opening cave exhibit uses the classic hidden-door secret phrase thought experiment: the prover convinces the verifier that they know the phrase that opens the door without ever revealing the phrase itself.
