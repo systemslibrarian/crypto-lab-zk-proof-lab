@@ -35,8 +35,8 @@
       </div>
 
       <section class="prose">
-        <p>The prover starts with a valid 3-coloring and commits to each node using a fresh random permutation of colors every round. Because the permutation is rerolled each time, a reveal on one challenged edge does not leak the full coloring.</p>
-        <p>The verifier challenges one random edge and checks only that its endpoints open to different colors. A dishonest prover lacking a valid coloring is caught whenever the challenged edge is bad, giving undetected cheating probability (5/6)^k after k rounds for this 6-edge graph.</p>
+        <p>Think of this as proving a map has been colored correctly without handing over the whole answer key. The prover hides every node's color, then the verifier points to just one connecting line and asks to see only the two colors at its ends.</p>
+        <p>If those two touching nodes are different colors, that local check passes. Because the hidden colors are shuffled each round, the verifier never gets enough information to reconstruct the whole map, but repeated spot-checks still make cheating harder and harder.</p>
       </section>
 
       <div class="panel" style="margin-bottom:14px">

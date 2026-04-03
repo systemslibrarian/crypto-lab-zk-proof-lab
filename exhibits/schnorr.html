@@ -26,7 +26,7 @@
       <div class="ex-header">
         <div class="ex-row"><span class="ex-num">EXHIBIT 03</span><span class="badge badge-real">● REAL MODULAR ARITHMETIC</span></div>
         <div class="ex-title">Schnorr Identification Protocol</div>
-        <div class="ex-sub">A sigma protocol — proving knowledge of a discrete logarithm · Claus Schnorr 1989</div>
+        <div class="ex-sub">A classic math-based proof of knowing a secret number without revealing the number · Claus Schnorr 1989</div>
       </div>
       <div class="props">
         <span class="prop prop-c">✓ Completeness</span>
@@ -42,8 +42,8 @@
       </div>
 
       <section class="prose">
-        <p>The prover never transmits x directly. Instead, each round picks fresh randomness r, publishes R = g^r mod p, answers challenge c with s = r + c x mod (p−1), and passes only if g^s = R y^c mod p.</p>
-        <p>For realistic groups, recovering x from transcripts is tied to the discrete log problem. Production Schnorr-style systems operate over large groups such as secp256k1 where brute force is infeasible, while this exhibit uses small numbers for transparency.</p>
+        <p>This exhibit turns the cave intuition into actual arithmetic. The prover has a hidden secret number, the verifier sends a surprise challenge, and the prover responds in a way that only works if they truly know the secret.</p>
+        <p>The verifier can check the math and gain confidence, but the secret itself never gets revealed. Real-world versions use much larger numbers, but this smaller example lets you watch every step of the proof happen in the open.</p>
       </section>
 
       <div class="demo-grid">

@@ -30,10 +30,10 @@ Each exhibit follows a concept-to-protocol-to-interaction path and ends with wha
 
 | Exhibit | Protocol | Real vs Simulated | Key Concept |
 |---|---|---|---|
-| 01 | Ali Baba Cave | Conceptual | Challenge-response soundness amplification: (1/2)^n |
-| 02 | Graph 3-Coloring ZKP | Commitments Simplified | Prove local edge consistency while hiding full coloring |
-| 03 | Schnorr Identification | Real modular arithmetic | Knowledge of discrete log via g^s = R*y^c mod p |
-| 04 | Hash Commit-Reveal | Real SHA-256 via window.crypto.subtle | Binding and hiding for sealed bids |
+| 01 | Ali Baba Cave | Conceptual | Show you know the secret door word without saying the word out loud |
+| 02 | Graph 3-Coloring ZKP | Commitments Simplified | Show the map is colored correctly without revealing every color |
+| 03 | Schnorr Identification | Real modular arithmetic | Show you know a secret number without revealing the number |
+| 04 | Hash Commit-Reveal | Real SHA-256 via window.crypto.subtle | Lock in a hidden choice now and prove later that you did not change it |
 
 ## Project Structure
 

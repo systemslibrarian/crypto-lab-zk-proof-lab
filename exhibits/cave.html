@@ -35,8 +35,8 @@
       </div>
 
       <section class="prose">
-        <p>Completeness means an honest prover who truly knows the secret phrase for the hidden door can always satisfy the verifier's requested exit side. Soundness means a bluffing prover who cannot use the door can only guess correctly each round with probability 1/2, so repeated rounds drive cheating success down exponentially.</p>
-        <p>Zero-knowledge means the verifier learns no secret phrase and no private path history: the verifier only sees successful exits on demanded sides. The transcript is challenge-response behavior, not transfer of the secret itself.</p>
+        <p>This is the easiest zero-knowledge story to understand: a person goes into a cave, the verifier calls out which side they should come back from, and only someone who knows the secret door word can always do it. If they know the word, they can pass every round.</p>
+        <p>If they are bluffing, they are just guessing and will be wrong about half the time. The verifier also never learns the secret word, because all they ever see is whether the prover came out on the requested side.</p>
       </section>
 
       <div class="demo-grid">

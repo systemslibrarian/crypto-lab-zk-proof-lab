@@ -26,7 +26,7 @@
       <div class="ex-header">
         <div class="ex-row"><span class="ex-num">EXHIBIT 04</span><span class="badge badge-real">● REAL SHA-256 · window.crypto.subtle</span></div>
         <div class="ex-title">Hash Commitment Scheme</div>
-        <div class="ex-sub">Binding and hiding via cryptographic hash — sealed-bid auction scenario</div>
+        <div class="ex-sub">A way to lock in a hidden choice now and prove later that you did not change it</div>
       </div>
       <div class="props">
         <span class="prop prop-c">✓ Binding</span>
@@ -34,8 +34,8 @@
       </div>
 
       <section class="prose">
-        <p>Commitment is done by hashing bid and nonce together: SHA-256(bid || nonce). The nonce hides the bid from brute-force lookup and the commitment binds the bidder to one exact opening.</p>
-        <p>On reveal, each bidder discloses bid and nonce, and anyone recomputes the 64-hex digest to verify integrity. This commit-then-open structure appears in auctions, fair ordering protocols, and blockchain systems that need precommitment before disclosure.</p>
+        <p>This is like sealing your answer in an envelope before anyone is allowed to open it. You commit first, which locks in your choice, and then you reveal it later so everyone can check that you did not swap it out.</p>
+        <p>Here the digital envelope is a real SHA-256 hash. Once the bid and secret nonce are revealed, anyone can recompute the hash and confirm that the original commitment was honest and unchanged.</p>
       </section>
 
       <div class="demo-grid">
