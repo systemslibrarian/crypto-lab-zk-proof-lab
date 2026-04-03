@@ -43,6 +43,11 @@ jobs:
           ZKPL_BASE_URL: http://127.0.0.1:8000
         run: node tests/capture-visuals.mjs
 
+      - name: Capture scenario videos
+        env:
+          ZKPL_BASE_URL: http://127.0.0.1:8000
+        run: node tests/capture-videos.mjs
+
       - name: Build GIF preview (best effort)
         run: |
           chmod +x tests/make-visual-gif.sh

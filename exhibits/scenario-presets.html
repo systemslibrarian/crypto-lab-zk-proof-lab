@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Deterministic scenario presets for consistent demos, interviews, and replayable protocol walkthroughs.">
+  <meta name="theme-color" content="#070b12">
+  <title>Scenario Presets · ZK Proof Lab</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="site-shell wrap">
+    <header class="site-header">
+      <div>
+        <a class="back-link" href="../index.html">← Back to Lab</a>
+        <div class="brand-kicker" style="margin-top:10px">ZK Proof Lab</div>
+        <h1 class="brand-title">Scenario Presets</h1>
+      </div>
+      <nav class="top-nav" aria-label="Exhibits">
+        <a class="nav-link" href="cave.html">01</a>
+        <a class="nav-link" href="graph-coloring.html">02</a>
+        <a class="nav-link" href="schnorr.html">03</a>
+        <a class="nav-link" href="commit-reveal.html">04</a>
+        <a class="nav-link" href="fiat-shamir.html">05</a>
+        <a class="nav-link" href="snark.html">06</a>
+      </nav>
+    </header>
+
+    <main class="exhibit">
+      <div class="ex-header">
+        <div class="ex-row"><span class="ex-num">PRESET HUB</span><span class="badge badge-real">● DETERMINISTIC DEMOS</span></div>
+        <div class="ex-title">One-Click Reproducible Walkthroughs</div>
+        <div class="ex-sub">Use named seeds and mode flags so interview demos and team walkthroughs always produce the same sequence.</div>
+      </div>
+
+      <div class="trust-banner trust-real global-honesty"><strong>Preset contract:</strong> each URL captures seed + behavior mode + optional auto-run. Same URL means same flow, making debugging and demos repeatable.</div>
+
+      <div class="panel" style="margin-bottom:14px">
+        <div class="ph">How URL Presets Work</div>
+        <div class="pb">
+          <div class="replay-card">seed=interview-1 → deterministic random stream per exhibit
+mode=...       → behavior path (cheat / tamper / reveal / bluff)
+auto=1         → auto-run on load</div>
+        </div>
+      </div>
+
+      <section class="lobby-grid" aria-label="Preset selector">
+        <a class="card" href="cave.html?seed=interview-1&auto=1">
+          <div class="ex-row"><span class="ex-num">EXHIBIT 01</span><span class="badge badge-sim">⬡ HONEST</span></div>
+          <h2 class="card-title">Cave Honest 10</h2>
+          <p class="card-desc">Runs ten deterministic rounds to show confidence growth.</p>
+        </a>
+
+        <a class="card" href="cave.html?seed=interview-1&mode=bluff&auto=1">
+          <div class="ex-row"><span class="ex-num">EXHIBIT 01</span><span class="badge badge-sim">⬡ BLUFF</span></div>
+          <h2 class="card-title">Cave Bluff Trap</h2>
+          <p class="card-desc">Deterministic bluff scenario designed to trigger detection.</p>
+        </a>
+
+        <a class="card" href="schnorr.html?seed=interview-1&auto=1">
+          <div class="ex-row"><span class="ex-num">EXHIBIT 03</span><span class="badge badge-real">● HONEST</span></div>
+          <h2 class="card-title">Schnorr Honest Proof</h2>
+          <p class="card-desc">One deterministic valid Schnorr transcript.</p>
+        </a>
+
+        <a class="card" href="schnorr.html?seed=interview-1&mode=cheat&auto=1">
+          <div class="ex-row"><span class="ex-num">EXHIBIT 03</span><span class="badge badge-real">● CHEAT</span></div>
+          <h2 class="card-title">Schnorr Cheat Attempt</h2>
+          <p class="card-desc">Deterministic failing transcript for soundness discussion.</p>
+        </a>
+
+        <a class="card" href="commit-reveal.html?seed=interview-1&mode=reveal&auto=1">
+          <div class="ex-row"><span class="ex-num">EXHIBIT 04</span><span class="badge badge-real">● HONEST</span></div>
+          <h2 class="card-title">Commit-Reveal Honest</h2>
+          <p class="card-desc">Commit then reveal with both commitments verified.</p>
+        </a>
+
+        <a class="card" href="commit-reveal.html?seed=interview-1&mode=cheat&auto=1">
+          <div class="ex-row"><span class="ex-num">EXHIBIT 04</span><span class="badge badge-real">● TAMPER</span></div>
+          <h2 class="card-title">Commit-Reveal Cheat Caught</h2>
+          <p class="card-desc">Deterministic tamper attempt showing binding failure.</p>
+        </a>
+
+        <a class="card" href="fiat-shamir.html?seed=interview-1&auto=1">
+          <div class="ex-row"><span class="ex-num">EXHIBIT 05</span><span class="badge badge-real">● HONEST</span></div>
+          <h2 class="card-title">Fiat-Shamir Honest</h2>
+          <p class="card-desc">Deterministic NIZK-style transcript with derived challenge.</p>
+        </a>
+
+        <a class="card" href="snark.html?seed=interview-1&mode=tamper&auto=1">
+          <div class="ex-row"><span class="ex-num">EXHIBIT 06</span><span class="badge badge-sim">⬡ TAMPER</span></div>
+          <h2 class="card-title">SNARK Tamper Rejection</h2>
+          <p class="card-desc">Deterministic rejected tamper path for verifier pipeline discussion.</p>
+        </a>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

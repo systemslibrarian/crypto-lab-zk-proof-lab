@@ -212,12 +212,14 @@ function clearAll() {
 }
 
 async function copyReport() {
-  const text = document.getElementById('compare-result').textContent.trim();
-  if (!text || text === 'Comparison output will appear here.') {
+  const summary = document.getElementById('compare-result').textContent.trim();
+  const delta = document.getElementById('delta-view').textContent.trim();
+  if (!summary || summary === 'Comparison output will appear here.') {
     return;
   }
+  const payload = `Transcript Comparison Summary\n${summary}\n\nJSON Delta\n${delta || 'No delta output.'}`;
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    await navigator.clipboard.writeText(text);
+    await navigator.clipboard.writeText(payload);
     document.getElementById('compare-result').innerHTML += '<br><strong>Report copied to clipboard.</strong>';
   }
 }
