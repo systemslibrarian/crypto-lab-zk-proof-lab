@@ -3,7 +3,7 @@
 [![Deploy GitHub Pages](https://github.com/systemslibrarian/zk-proof-lab/actions/workflows/pages.yml/badge.svg)](https://github.com/systemslibrarian/zk-proof-lab/actions/workflows/pages.yml)
 [Live Demo](https://systemslibrarian.github.io/zk-proof-lab/)
 
-An interactive, static-first lab for understanding zero-knowledge proofs through five exhibits, from the Ali Baba cave thought experiment to non-interactive Fiat-Shamir proofs, real browser-side Schnorr verification, and SHA-256 commitments.
+An interactive, static-first lab for understanding zero-knowledge proofs through six exhibits, from the Ali Baba cave thought experiment to non-interactive Fiat-Shamir proofs, a zk-SNARK intuition pipeline, real browser-side Schnorr verification, and SHA-256 commitments.
 
 This project is built to teach the intuition fast, stay honest about what is conceptual versus cryptographically real, and show production-minded engineering in a framework-free codebase.
 
@@ -37,6 +37,7 @@ Most explanations either stay too abstract or jump straight into algebra. This p
 | 03 | Schnorr Identification | Real modular arithmetic | Prove you know a secret number without revealing the number |
 | 04 | Hash Commit-Reveal | Real SHA-256 | Lock in a hidden choice now and prove later that you did not change it |
 | 05 | Fiat-Shamir Transformation | Real hash-derived challenge | Turn interactive challenge-response into a single non-interactive proof |
+| 06 | zk-SNARK Intuition | Pedagogical SNARK model | Understand setup/prove/verify and public/private input separation |
 
 ## Architecture
 
@@ -52,7 +53,8 @@ zk-proof-lab/
 │   ├── fiat-shamir.html       # non-interactive hash-derived challenge demo
 │   ├── commit-reveal.html     # real browser-side SHA-256 commitment flow
 │   ├── snark.html             # zk-SNARK pipeline intuition model
-│   └── transcript-lab.html    # replay and compare proof transcripts
+│   ├── transcript-lab.html    # replay and compare proof transcripts
+│   └── scenario-presets.html  # one-click deterministic demo routes
 ├── css/
 │   └── style.css              # shared visual system, mobile, accessibility
 ├── js/
@@ -63,6 +65,7 @@ zk-proof-lab/
 │   ├── fiat-shamir.js         # hash-derived challenge and NIZK verification
 │   ├── snark.js               # setup/prove/verify toy SNARK pipeline
 │   ├── transcript-lab.js      # transcript replay/compare controller
+│   ├── utils.js               # shared helper entrypoint
 │   └── shared.js              # reusable protocol helpers
 ├── tests/
 │   ├── logic-smoke.html       # no-dependency logic checks
@@ -70,7 +73,9 @@ zk-proof-lab/
 │   ├── quality-gates.html     # accessibility + visual-token checks
 │   ├── quality-gates.js       # quality gate runner
 │   ├── browser-quality.mjs    # Playwright browser quality checks
+│   ├── accessibility-audit.mjs # axe-core accessibility audit
 │   ├── capture-visuals.mjs    # screenshot capture automation
+│   ├── capture-videos.mjs     # Playwright video artifact capture
 │   └── make-visual-gif.sh     # best-effort GIF summary generation
 └── docs/
     └── zkp-primer.md          # protocol property mapping and accuracy notes
@@ -156,10 +161,7 @@ That is why this project starts with the cave before moving into Schnorr. The le
 
 ## Future Improvements
 
-- Upgrade transcript comparison with a dedicated side-by-side JSON delta view (field-level change highlighting beyond semantic summary lines).
-- Add optional video capture automation in CI in addition to screenshots/GIF summaries.
-- Add one-click seeded scenario presets in the UI (for interview/demo reproducibility without editing URLs manually).
-- Add protocol-specific invariant checks to quality gates (for example, Schnorr equation consistency and Fiat-Shamir challenge re-derivation checks in browser automation).
+Current roadmap backlog is cleared. The previously planned improvements (JSON delta comparison, CI video capture, one-click seeded scenario presets, and protocol invariant checks in browser automation) are implemented.
 
 ## Deployment
 
