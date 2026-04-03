@@ -10,7 +10,7 @@ import {
   seededHex,
   seededInt,
   sha256hex
-} from './shared.js';
+} from './utils.js';
 
 const fsParams = { p: 2053, g: 5, x: 17, y: 375 };
 let lastFiatShamirTranscript = null;

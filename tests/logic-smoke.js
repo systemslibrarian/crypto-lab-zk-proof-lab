@@ -1,4 +1,4 @@
-import { addLog, modpow, sha256hex, schnorrVerify, confidencePercent, cheatProbabilityPercent } from '../js/shared.js';
+import { addLog, modpow, sha256hex, schnorrVerify, confidencePercent, cheatProbabilityPercent } from '../js/utils.js';
 
 async function run() {
   const tests = [

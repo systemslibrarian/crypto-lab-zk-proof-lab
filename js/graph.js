@@ -1,4 +1,15 @@
-import { addLog, cheatProbabilityPercent, rHex, rInt, setConf, sleep } from './shared.js';
+import {
+  addLog,
+  cheatProbabilityPercent,
+  createSeededRng,
+  rHex,
+  rInt,
+  readSeedFromUrl,
+  seededHex,
+  seededInt,
+  setConf,
+  sleep
+} from './utils.js';
 
 const TRUTH = ['A', 'B', 'C', 'B', 'C'];
 const EDGES = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 0], [0, 2]];
@@ -10,6 +21,23 @@ const COLORS = {
 };
 
 let gState = { n: 0, phase: 'idle', perm: null, commits: null, auto: false };
+const scenarioSeed = readSeedFromUrl();
+const seededRng = scenarioSeed ? createSeededRng(`graph:${scenarioSeed}`) : null;
+let seedAnnounced = false;
+
+function nextInt(min, max) {
+  if (seededRng) {
+    return seededInt(seededRng, min, max);
+  }
+  return rInt(min, max);
+}
+
+function nextHex(bytes) {
+  if (seededRng) {
+    return seededHex(seededRng, bytes);
+  }
+  return rHex(bytes);
+}
 
 function graphSetControls() {
   const busy = gState.auto;
@@ -40,7 +68,7 @@ function simCommit(color, nonce) {
 function shuffleColors() {
   const perm = ['A', 'B', 'C'];
   for (let i = perm.length - 1; i > 0; i -= 1) {
-    const j = rInt(0, i);
+    const j = nextInt(0, i);
     [perm[i], perm[j]] = [perm[j], perm[i]];
   }
   return perm;
@@ -73,7 +101,7 @@ export function graphRound() {
   gState.perm = perm;
   gState.commits = TRUTH.map(color => {
     const permuted = perm['ABC'.indexOf(color)];
-    const nonce = rHex(4);
+    const nonce = nextHex(4);
     return { color: permuted, nonce, hash: simCommit(permuted, nonce) };
   });
   graphResetViz();
@@ -83,6 +111,10 @@ export function graphRound() {
   renderCommitTable();
   document.getElementById('g-round-info').textContent = `Round ${gState.n + 1}: prover re-colored and committed. Hashes published.`;
   document.getElementById('g-challenge').textContent = '';
+  if (scenarioSeed && !seedAnnounced) {
+    addLog('g-log', `Seeded run: ${scenarioSeed}`, 'lacc');
+    seedAnnounced = true;
+  }
   graphSetControls();
 }
 
@@ -91,7 +123,7 @@ export function graphChallenge() {
     return;
   }
   gState.phase = 'revealed';
-  const edgeIndex = rInt(0, 5);
+  const edgeIndex = nextInt(0, 5);
   const [a, b] = EDGES[edgeIndex];
   document.getElementById('g-challenge').textContent = `→ CHALLENGE: reveal edge ${a}–${b}`;
   document.getElementById(EIDS[edgeIndex]).setAttribute('stroke', '#fbbf24');
@@ -151,6 +183,7 @@ export function graphReset() {
   document.getElementById('g-cp').textContent = '100%';
   document.getElementById('g-log').innerHTML = '<span class="le">— protocol log —</span>';
   document.getElementById('g-commit-table').innerHTML = '<tr><td>0</td><td>0x…</td></tr><tr><td>1</td><td>0x…</td></tr><tr><td>2</td><td>0x…</td></tr><tr><td>3</td><td>0x…</td></tr><tr><td>4</td><td>0x…</td></tr>';
+  seedAnnounced = false;
   graphSetControls();
 }
 

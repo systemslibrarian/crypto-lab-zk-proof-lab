@@ -1,7 +1,25 @@
-import { addLog, cheatProbabilityPercent, setConf, sleep } from './shared.js';
+import {
+  addLog,
+  cheatProbabilityPercent,
+  createSeededRng,
+  readSeedFromUrl,
+  seededInt,
+  setConf,
+  sleep
+} from './utils.js';
 
 let caveState = { n: 0, running: false, auto: false };
 let cavePos = { x: 100, y: 20 };
+const scenarioSeed = readSeedFromUrl();
+const seededRng = scenarioSeed ? createSeededRng(`cave:${scenarioSeed}`) : null;
+let seedAnnounced = false;
+
+function nextBool() {
+  if (seededRng) {
+    return seededInt(seededRng, 0, 1) === 1;
+  }
+  return Math.random() < 0.5;
+}
 
 function caveSetControls() {
   const locked = caveState.running || caveState.auto;
@@ -43,7 +61,7 @@ function updateCaveProbability() {
 
 async function runCaveRound() {
   const bluffing = document.getElementById('bluff-tog').checked;
-  const wentLeft = Math.random() < 0.5;
+  const wentLeft = nextBool();
   setProverColor('#4f7bff');
   document.getElementById('cave-challenge').textContent = '';
   document.getElementById('cave-status').textContent = 'Prover enters cave…';
@@ -52,7 +70,7 @@ async function runCaveRound() {
   document.getElementById('cave-status').textContent = `Prover reaches fork — goes ${wentLeft ? 'LEFT' : 'RIGHT'} (unseen by verifier)`;
   await caveAnim(wentLeft ? 58 : 142, 170, 500);
   await sleep(500);
-  const challengeLeft = Math.random() < 0.5;
+  const challengeLeft = nextBool();
   document.getElementById('cave-challenge').textContent = `→ CHALLENGE: "Come out the ${challengeLeft ? 'LEFT' : 'RIGHT'} side!"`;
   await sleep(400);
   const success = bluffing ? wentLeft === challengeLeft : true;
@@ -66,6 +84,10 @@ async function runCaveRound() {
     setConf('cave-fill', 'cave-pct', caveState.n, 0.5);
     document.getElementById('cave-n').textContent = caveState.n;
     updateCaveProbability();
+    if (scenarioSeed && !seedAnnounced) {
+      addLog('cave-log', `Seeded run: ${scenarioSeed}`, 'lacc');
+      seedAnnounced = true;
+    }
   } else {
     setProverColor('#f87171');
     document.getElementById('cave-status').textContent = '✗ Wrong exit — CAUGHT bluffing!';
@@ -129,6 +151,7 @@ export function caveReset() {
   document.getElementById('cave-n').textContent = '0';
   document.getElementById('cave-cp').textContent = '100%';
   document.getElementById('cave-log').innerHTML = '<span class="le">— protocol log —</span>';
+  seedAnnounced = false;
   caveSetControls();
 }
 

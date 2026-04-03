@@ -8,7 +8,7 @@ import {
   seededHex,
   seededInt,
   sha256hex
-} from './shared.js';
+} from './utils.js';
 
 let snarkBusy = false;
 let lastSnarkTranscript = null;
