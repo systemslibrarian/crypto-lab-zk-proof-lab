@@ -1,6 +1,8 @@
 import {
   copyTextToClipboard,
   createSeededRng,
+  readAutoFromUrl,
+  readModeFromUrl,
   rHex,
   rInt,
   readSeedFromUrl,
@@ -13,6 +15,8 @@ let cs = { phase: 'idle', bidA: 0, bidB: 0, nA: '', nB: '', hA: '', hB: '' };
 let commitBusy = false;
 let lastCommitTranscript = null;
 const scenarioSeed = readSeedFromUrl();
+const scenarioMode = readModeFromUrl();
+const autoScenario = readAutoFromUrl();
 const seededRng = scenarioSeed ? createSeededRng(`commit:${scenarioSeed}`) : null;
 
 function nextInt(min, max) {
@@ -174,3 +178,15 @@ document.getElementById('c-btn-cheat').addEventListener('click', cheatPhase);
 document.getElementById('c-btn-copy').addEventListener('click', commitCopyTranscript);
 document.getElementById('c-btn-replay').addEventListener('click', commitReplayInLab);
 document.getElementById('c-btn-reset').addEventListener('click', commitReset);
+
+if (autoScenario) {
+  setTimeout(async () => {
+    await commitPhase();
+    if (scenarioMode === 'reveal') {
+      await revealPhase();
+    }
+    if (scenarioMode === 'cheat') {
+      await cheatPhase();
+    }
+  }, 0);
+}

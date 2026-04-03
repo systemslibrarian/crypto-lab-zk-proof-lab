@@ -2,6 +2,8 @@ import {
   addLog,
   copyTextToClipboard,
   createSeededRng,
+  readAutoFromUrl,
+  readModeFromUrl,
   rHex,
   rInt,
   readSeedFromUrl,
@@ -13,6 +15,8 @@ import {
 let snarkBusy = false;
 let lastSnarkTranscript = null;
 const scenarioSeed = readSeedFromUrl();
+const scenarioMode = readModeFromUrl();
+const autoScenario = readAutoFromUrl();
 const seededRng = scenarioSeed ? createSeededRng(`snark:${scenarioSeed}`) : null;
 
 function nextInt(min, max) {
@@ -155,3 +159,12 @@ document.getElementById('snark-copy-btn').addEventListener('click', copyTranscri
 document.getElementById('snark-replay-btn').addEventListener('click', replayInLab);
 document.getElementById('snark-reset-btn').addEventListener('click', reset);
 setControls();
+
+if (autoScenario) {
+  setTimeout(async () => {
+    await runPipeline();
+    if (scenarioMode === 'tamper') {
+      await tamperPublicInput();
+    }
+  }, 0);
+}

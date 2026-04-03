@@ -3,6 +3,8 @@ import {
   copyTextToClipboard,
   createSeededRng,
   modpow,
+  readAutoFromUrl,
+  readModeFromUrl,
   rHex,
   rInt,
   readSeedFromUrl,
@@ -16,6 +18,8 @@ const fsParams = { p: 2053, g: 5, x: 17, y: 375 };
 let lastFiatShamirTranscript = null;
 let fsBusy = false;
 const scenarioSeed = readSeedFromUrl();
+const scenarioMode = readModeFromUrl();
+const autoScenario = readAutoFromUrl();
 const seededRng = scenarioSeed ? createSeededRng(`fiat-shamir:${scenarioSeed}`) : null;
 
 function nextInt(min, max) {
@@ -161,3 +165,12 @@ document.getElementById('fs-copy-btn').addEventListener('click', copyTranscript)
 document.getElementById('fs-replay-btn').addEventListener('click', replayInLab);
 document.getElementById('fs-reset-btn').addEventListener('click', resetFiatShamir);
 setFsControls();
+
+if (autoScenario) {
+  setTimeout(async () => {
+    await generateProof();
+    if (scenarioMode === 'tamper') {
+      await tamperMessage();
+    }
+  }, 0);
+}

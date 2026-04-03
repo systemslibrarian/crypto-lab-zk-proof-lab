@@ -2,6 +2,7 @@ import {
   addLog,
   cheatProbabilityPercent,
   createSeededRng,
+  readAutoFromUrl,
   rHex,
   rInt,
   readSeedFromUrl,
@@ -22,6 +23,7 @@ const COLORS = {
 
 let gState = { n: 0, phase: 'idle', perm: null, commits: null, auto: false };
 const scenarioSeed = readSeedFromUrl();
+const autoScenario = readAutoFromUrl();
 const seededRng = scenarioSeed ? createSeededRng(`graph:${scenarioSeed}`) : null;
 let seedAnnounced = false;
 
@@ -191,3 +193,9 @@ document.getElementById('g-btn-r').addEventListener('click', graphRound);
 document.getElementById('g-btn-c').addEventListener('click', graphChallenge);
 document.getElementById('g-btn-a').addEventListener('click', graphAuto);
 document.getElementById('g-btn-x').addEventListener('click', graphReset);
+
+if (autoScenario) {
+  setTimeout(() => {
+    graphAuto();
+  }, 0);
+}

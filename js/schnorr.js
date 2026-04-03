@@ -2,6 +2,8 @@ import {
   addLog,
   copyTextToClipboard,
   createSeededRng,
+  readAutoFromUrl,
+  readModeFromUrl,
   rInt,
   readSeedFromUrl,
   schnorrVerify,
@@ -14,6 +16,8 @@ let schnorrN = 0;
 let schnorrBusy = false;
 let lastSchnorrTranscript = null;
 const scenarioSeed = readSeedFromUrl();
+const scenarioMode = readModeFromUrl();
+const autoScenario = readAutoFromUrl();
 const seededRng = scenarioSeed ? createSeededRng(`schnorr:${scenarioSeed}`) : null;
 
 function nextInt(min, max) {
@@ -144,3 +148,9 @@ document.getElementById('s-cheat-btn').addEventListener('click', () => schnorrRu
 document.getElementById('s-copy-btn').addEventListener('click', schnorrCopyTranscript);
 document.getElementById('s-replay-btn').addEventListener('click', schnorrReplayInLab);
 document.getElementById('s-reset-btn').addEventListener('click', schnorrReset);
+
+if (autoScenario) {
+  setTimeout(() => {
+    schnorrRun(scenarioMode === 'cheat');
+  }, 0);
+}

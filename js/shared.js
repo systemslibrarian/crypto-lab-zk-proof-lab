@@ -50,6 +50,28 @@ export function readSeedFromUrl() {
   }
 }
 
+export function readModeFromUrl() {
+  try {
+    const mode = new URLSearchParams(window.location.search).get('mode');
+    if (!mode) {
+      return null;
+    }
+    const normalized = mode.trim().toLowerCase();
+    return normalized.length > 0 ? normalized : null;
+  } catch {
+    return null;
+  }
+}
+
+export function readAutoFromUrl() {
+  try {
+    const value = new URLSearchParams(window.location.search).get('auto');
+    return value === '1' || value === 'true';
+  } catch {
+    return false;
+  }
+}
+
 export function createSeededRng(seedText) {
   let state = 2166136261 >>> 0;
   for (const char of seedText) {

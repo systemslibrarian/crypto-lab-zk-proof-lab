@@ -2,6 +2,8 @@ import {
   addLog,
   cheatProbabilityPercent,
   createSeededRng,
+  readAutoFromUrl,
+  readModeFromUrl,
   readSeedFromUrl,
   seededInt,
   setConf,
@@ -11,6 +13,8 @@ import {
 let caveState = { n: 0, running: false, auto: false };
 let cavePos = { x: 100, y: 20 };
 const scenarioSeed = readSeedFromUrl();
+const scenarioMode = readModeFromUrl();
+const autoScenario = readAutoFromUrl();
 const seededRng = scenarioSeed ? createSeededRng(`cave:${scenarioSeed}`) : null;
 let seedAnnounced = false;
 
@@ -159,3 +163,16 @@ document.getElementById('cave-btn').addEventListener('click', caveRound);
 document.getElementById('cave-auto-btn').addEventListener('click', caveAuto);
 document.getElementById('cave-reset-btn').addEventListener('click', caveReset);
 document.getElementById('bluff-tog').addEventListener('change', caveReset);
+
+if (scenarioMode === 'bluff') {
+  document.getElementById('bluff-tog').checked = true;
+}
+if (autoScenario) {
+  setTimeout(() => {
+    if (scenarioMode === 'bluff') {
+      caveRound();
+    } else {
+      caveAuto();
+    }
+  }, 0);
+}

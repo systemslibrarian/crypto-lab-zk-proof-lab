@@ -103,6 +103,46 @@ function render(side, transcript) {
   document.getElementById(`${side}-view`).textContent = formatView(transcript);
 }
 
+function flattenObject(value, prefix = '', out = {}) {
+  if (value === null || typeof value !== 'object') {
+    out[prefix || 'root'] = value;
+    return out;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => {
+      const key = prefix ? `${prefix}[${index}]` : `[${index}]`;
+      flattenObject(item, key, out);
+    });
+    return out;
+  }
+  for (const [key, child] of Object.entries(value)) {
+    const next = prefix ? `${prefix}.${key}` : key;
+    flattenObject(child, next, out);
+  }
+  return out;
+}
+
+function renderDelta(left, right) {
+  if (!left || !right) {
+    document.getElementById('delta-view').textContent = 'Delta output will appear here after comparison.';
+    return;
+  }
+  const leftFlat = flattenObject(left);
+  const rightFlat = flattenObject(right);
+  const keys = Array.from(new Set([...Object.keys(leftFlat), ...Object.keys(rightFlat)])).sort();
+  const diffs = [];
+  for (const key of keys) {
+    const l = leftFlat[key];
+    const r = rightFlat[key];
+    if (JSON.stringify(l) !== JSON.stringify(r)) {
+      diffs.push(`${key}\n  L: ${JSON.stringify(l)}\n  R: ${JSON.stringify(r)}`);
+    }
+  }
+  document.getElementById('delta-view').textContent = diffs.length > 0
+    ? diffs.join('\n\n')
+    : 'No field-level differences detected.';
+}
+
 function loadStored(key, targetId, side) {
   const raw = localStorage.getItem(key);
   if (!raw) {
@@ -131,6 +171,7 @@ async function compareTranscripts() {
   render('right', right);
   if (!left || !right) {
     document.getElementById('compare-result').innerHTML = '<strong style="color:var(--warn)">Comparison incomplete.</strong> Load both left and right transcripts.';
+    renderDelta(left, right);
     return;
   }
 
@@ -141,6 +182,7 @@ async function compareTranscripts() {
   lines.push(...tamperTimelineLines(right, 'Right'));
   lines.push('<strong>Tip:</strong> for Fiat-Shamir transcripts, challenge mismatches usually indicate message or commitment tampering.');
   document.getElementById('compare-result').innerHTML = lines.join('<br>');
+  renderDelta(left, right);
 }
 
 function swapSides() {
@@ -166,6 +208,7 @@ function clearAll() {
   document.getElementById('left-view').textContent = 'No transcript loaded.';
   document.getElementById('right-view').textContent = 'No transcript loaded.';
   document.getElementById('compare-result').textContent = 'Comparison output will appear here.';
+  document.getElementById('delta-view').textContent = 'Delta output will appear here after comparison.';
 }
 
 async function copyReport() {
