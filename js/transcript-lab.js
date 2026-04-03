@@ -168,13 +168,27 @@ function clearAll() {
   document.getElementById('compare-result').textContent = 'Comparison output will appear here.';
 }
 
+async function copyReport() {
+  const text = document.getElementById('compare-result').textContent.trim();
+  if (!text || text === 'Comparison output will appear here.') {
+    return;
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    await navigator.clipboard.writeText(text);
+    document.getElementById('compare-result').innerHTML += '<br><strong>Report copied to clipboard.</strong>';
+  }
+}
+
 document.getElementById('left-load-schnorr').addEventListener('click', () => loadStored('zkpl:last:schnorr', 'left-input', 'left'));
 document.getElementById('left-load-commit').addEventListener('click', () => loadStored('zkpl:last:commit', 'left-input', 'left'));
 document.getElementById('left-load-fs').addEventListener('click', () => loadStored('zkpl:last:fiat-shamir', 'left-input', 'left'));
+document.getElementById('left-load-snark').addEventListener('click', () => loadStored('zkpl:last:snark', 'left-input', 'left'));
 document.getElementById('right-load-schnorr').addEventListener('click', () => loadStored('zkpl:last:schnorr', 'right-input', 'right'));
 document.getElementById('right-load-commit').addEventListener('click', () => loadStored('zkpl:last:commit', 'right-input', 'right'));
 document.getElementById('right-load-fs').addEventListener('click', () => loadStored('zkpl:last:fiat-shamir', 'right-input', 'right'));
+document.getElementById('right-load-snark').addEventListener('click', () => loadStored('zkpl:last:snark', 'right-input', 'right'));
 document.getElementById('compare-btn').addEventListener('click', compareTranscripts);
+document.getElementById('copy-report-btn').addEventListener('click', copyReport);
 document.getElementById('swap-btn').addEventListener('click', swapSides);
 document.getElementById('clear-btn').addEventListener('click', clearAll);
 

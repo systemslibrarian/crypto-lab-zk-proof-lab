@@ -1,8 +1,36 @@
-import { addLog, copyTextToClipboard, modpow, rHex, rInt, schnorrVerify, sha256hex } from './shared.js';
+import {
+  addLog,
+  copyTextToClipboard,
+  createSeededRng,
+  modpow,
+  rHex,
+  rInt,
+  readSeedFromUrl,
+  schnorrVerify,
+  seededHex,
+  seededInt,
+  sha256hex
+} from './shared.js';
 
 const fsParams = { p: 2053, g: 5, x: 17, y: 375 };
 let lastFiatShamirTranscript = null;
 let fsBusy = false;
+const scenarioSeed = readSeedFromUrl();
+const seededRng = scenarioSeed ? createSeededRng(`fiat-shamir:${scenarioSeed}`) : null;
+
+function nextInt(min, max) {
+  if (seededRng) {
+    return seededInt(seededRng, min, max);
+  }
+  return rInt(min, max);
+}
+
+function nextHex(bytes) {
+  if (seededRng) {
+    return seededHex(seededRng, bytes);
+  }
+  return rHex(bytes);
+}
 
 function setFsControls() {
   document.getElementById('fs-run-btn').disabled = fsBusy;
@@ -41,15 +69,16 @@ async function generateProof() {
   fsBusy = true;
   setFsControls();
   try {
-    const r = rInt(1, 2051);
+    const r = nextInt(1, 2051);
     const R = modpow(fsParams.g, r, fsParams.p);
-    const message = `proof-note:${rHex(8)}`;
+    const message = `proof-note:${nextHex(8)}`;
     const { digest, c } = await deriveChallenge({ R, y: fsParams.y, message });
     const s = ((r + c * fsParams.x) % 2052 + 2052) % 2052;
     const { lhs, rhs, ok } = schnorrVerify({ g: fsParams.g, p: fsParams.p, y: fsParams.y, R, c, s });
     lastFiatShamirTranscript = {
       protocol: 'Fiat-Shamir (Schnorr-style)',
       educationalParameters: true,
+      seed: scenarioSeed,
       parameters: { p: fsParams.p, g: fsParams.g, y: fsParams.y },
       message,
       challengeDigest: digest,
@@ -59,6 +88,9 @@ async function generateProof() {
     persistTranscript(lastFiatShamirTranscript);
     renderTranscript(lastFiatShamirTranscript);
     addLog('fs-log', `Generated proof with c = H(R||y||m) = ${c}`, 'lok');
+    if (scenarioSeed) {
+      addLog('fs-log', `Seeded run: ${scenarioSeed}`, 'lacc');
+    }
   } finally {
     fsBusy = false;
     setFsControls();

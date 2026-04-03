@@ -37,6 +37,44 @@ export function rHex(bytes) {
   return Array.from(values).map(value => value.toString(16).padStart(2, '0')).join('');
 }
 
+export function readSeedFromUrl() {
+  try {
+    const seed = new URLSearchParams(window.location.search).get('seed');
+    if (!seed) {
+      return null;
+    }
+    const trimmed = seed.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function createSeededRng(seedText) {
+  let state = 2166136261 >>> 0;
+  for (const char of seedText) {
+    state ^= char.charCodeAt(0);
+    state = Math.imul(state, 16777619) >>> 0;
+  }
+  return () => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+}
+
+export function seededInt(rng, min, max) {
+  return min + Math.floor(rng() * (max - min + 1));
+}
+
+export function seededHex(rng, bytes) {
+  let out = '';
+  for (let i = 0; i < bytes; i += 1) {
+    const value = Math.floor(rng() * 256);
+    out += value.toString(16).padStart(2, '0');
+  }
+  return out;
+}
+
 export function modpow(base, exp, mod) {
   let result = 1n;
   let currentBase = BigInt(base) % BigInt(mod);

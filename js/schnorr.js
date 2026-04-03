@@ -1,8 +1,27 @@
-import { addLog, copyTextToClipboard, rInt, schnorrVerify, setConf, sleep } from './shared.js';
+import {
+  addLog,
+  copyTextToClipboard,
+  createSeededRng,
+  rInt,
+  readSeedFromUrl,
+  schnorrVerify,
+  seededInt,
+  setConf,
+  sleep
+} from './shared.js';
 
 let schnorrN = 0;
 let schnorrBusy = false;
 let lastSchnorrTranscript = null;
+const scenarioSeed = readSeedFromUrl();
+const seededRng = scenarioSeed ? createSeededRng(`schnorr:${scenarioSeed}`) : null;
+
+function nextInt(min, max) {
+  if (seededRng) {
+    return seededInt(seededRng, min, max);
+  }
+  return rInt(min, max);
+}
 
 function schnorrSetControls() {
   document.getElementById('s-btn').disabled = schnorrBusy;
@@ -18,6 +37,7 @@ function buildTranscript({ cheat, r, R, c, s, lhs, rhs, ok }) {
     mode: cheat ? 'cheat-simulation' : 'honest-proof',
     educationalParameters: true,
     parameters: { p: 2053, g: 5, y: 375 },
+    seed: scenarioSeed,
     transcript: { r, R, c, s, lhs, rhs, verified: ok },
     note: 'Real browser-side modular arithmetic with intentionally tiny educational parameters.'
   };
@@ -38,19 +58,19 @@ export async function schnorrRun(cheat) {
       document.getElementById(id).style.opacity = '.3';
     });
     document.getElementById('s-result').textContent = '';
-    const r = rInt(1, 2051);
+    const r = nextInt(1, 2051);
     const R = schnorrVerify({ g: 5, p: 2053, y: 1, R: 1, c: 0, s: r }).lhs;
     document.getElementById('s-r').textContent = r;
     document.getElementById('s-r2').textContent = r;
     document.getElementById('s-R').textContent = R;
     document.getElementById('s-r3').textContent = r;
     await sleep(350);
-    const c = rInt(1, 50);
+    const c = nextInt(1, 50);
     document.getElementById('s-c').textContent = c;
     document.getElementById('s-c2').textContent = c;
     document.getElementById('s2').style.opacity = '1';
     await sleep(350);
-    const s = cheat ? rInt(1, 2051) : ((r + c * 17) % 2052 + 2052) % 2052;
+    const s = cheat ? nextInt(1, 2051) : ((r + c * 17) % 2052 + 2052) % 2052;
     document.getElementById('s-s').textContent = s;
     document.getElementById('s3').style.opacity = '1';
     await sleep(350);
@@ -72,6 +92,9 @@ export async function schnorrRun(cheat) {
     }
     lastSchnorrTranscript = buildTranscript({ cheat, r, R, c, s, lhs, rhs, ok });
     persistTranscript(lastSchnorrTranscript);
+    if (scenarioSeed) {
+      addLog('s-log', `Seeded run: ${scenarioSeed}`, 'lacc');
+    }
   } finally {
     schnorrBusy = false;
     schnorrSetControls();

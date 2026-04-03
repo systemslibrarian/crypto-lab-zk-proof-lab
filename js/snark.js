@@ -1,7 +1,33 @@
-import { addLog, copyTextToClipboard, rHex, rInt, sha256hex } from './shared.js';
+import {
+  addLog,
+  copyTextToClipboard,
+  createSeededRng,
+  rHex,
+  rInt,
+  readSeedFromUrl,
+  seededHex,
+  seededInt,
+  sha256hex
+} from './shared.js';
 
 let snarkBusy = false;
 let lastSnarkTranscript = null;
+const scenarioSeed = readSeedFromUrl();
+const seededRng = scenarioSeed ? createSeededRng(`snark:${scenarioSeed}`) : null;
+
+function nextInt(min, max) {
+  if (seededRng) {
+    return seededInt(seededRng, min, max);
+  }
+  return rInt(min, max);
+}
+
+function nextHex(bytes) {
+  if (seededRng) {
+    return seededHex(seededRng, bytes);
+  }
+  return rHex(bytes);
+}
 
 function setControls() {
   document.getElementById('snark-run-btn').disabled = snarkBusy;
@@ -12,14 +38,15 @@ function setControls() {
 }
 
 async function buildProofTranscript() {
-  const witness = rInt(2, 40);
+  const witness = nextInt(2, 40);
   const publicInput = witness * witness + 3 * witness + 7;
-  const provingNonce = rHex(12);
+  const provingNonce = nextHex(12);
   const digest = await sha256hex(`${publicInput}|${provingNonce}`);
   return {
     protocol: 'zk-SNARK Intuition Model',
     mode: 'toy-pipeline',
     educationalParameters: true,
+    seed: scenarioSeed,
     publicInput,
     privateWitness: witness,
     provingNonce,
@@ -63,6 +90,9 @@ async function runPipeline() {
     render(lastSnarkTranscript);
     persist(lastSnarkTranscript);
     addLog('snark-log', 'Setup keypair assumed; proof generated for toy relation', 'lok');
+    if (scenarioSeed) {
+      addLog('snark-log', `Seeded run: ${scenarioSeed}`, 'lacc');
+    }
   } finally {
     snarkBusy = false;
     setControls();

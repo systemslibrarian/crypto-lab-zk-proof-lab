@@ -1,8 +1,33 @@
-import { copyTextToClipboard, rHex, rInt, sha256hex } from './shared.js';
+import {
+  copyTextToClipboard,
+  createSeededRng,
+  rHex,
+  rInt,
+  readSeedFromUrl,
+  seededHex,
+  seededInt,
+  sha256hex
+} from './shared.js';
 
 let cs = { phase: 'idle', bidA: 0, bidB: 0, nA: '', nB: '', hA: '', hB: '' };
 let commitBusy = false;
 let lastCommitTranscript = null;
+const scenarioSeed = readSeedFromUrl();
+const seededRng = scenarioSeed ? createSeededRng(`commit:${scenarioSeed}`) : null;
+
+function nextInt(min, max) {
+  if (seededRng) {
+    return seededInt(seededRng, min, max);
+  }
+  return rInt(min, max);
+}
+
+function nextHex(bytes) {
+  if (seededRng) {
+    return seededHex(seededRng, bytes);
+  }
+  return rHex(bytes);
+}
 
 function commitSetControls() {
   document.getElementById('c-btn-commit').disabled = commitBusy || cs.phase !== 'idle';
@@ -17,6 +42,7 @@ function buildCommitTranscript(extra = {}) {
   return {
     protocol: 'Hash Commit-Reveal',
     educationalScenario: 'sealed-bid auction',
+    seed: scenarioSeed,
     phase: cs.phase,
     bidderA: { bid: cs.bidA, nonce: cs.nA, hash: cs.hA },
     bidderB: { bid: cs.bidB, nonce: cs.nB, hash: cs.hB },
@@ -35,10 +61,10 @@ export async function commitPhase() {
   commitBusy = true;
   commitSetControls();
   try {
-    cs.bidA = rInt(100, 999);
-    cs.bidB = rInt(100, 999);
-    cs.nA = rHex(32);
-    cs.nB = rHex(32);
+    cs.bidA = nextInt(100, 999);
+    cs.bidB = nextInt(100, 999);
+    cs.nA = nextHex(32);
+    cs.nB = nextHex(32);
     document.getElementById('ca-bid').textContent = '*** (hidden)';
     document.getElementById('cb-bid').textContent = '*** (hidden)';
     document.getElementById('ca-nonce').textContent = cs.nA;
@@ -55,6 +81,9 @@ export async function commitPhase() {
     cs.phase = 'committed';
     lastCommitTranscript = buildCommitTranscript({ note: 'Commitments published; bids intentionally still hidden in the UI.' });
     persistCommitTranscript(lastCommitTranscript);
+    if (scenarioSeed) {
+      document.getElementById('commit-result').innerHTML += ` <br><span style="color:var(--acc2)">Seeded run: ${scenarioSeed}</span>`;
+    }
   } finally {
     commitBusy = false;
     commitSetControls();

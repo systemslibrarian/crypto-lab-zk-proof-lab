@@ -20,7 +20,7 @@ jobs:
 
       - name: Install Playwright
         run: |
-          npm install --no-save playwright
+          npm install --no-save playwright axe-core
           npx playwright install --with-deps chromium
 
       - name: Start static server
@@ -32,6 +32,11 @@ jobs:
         env:
           ZKPL_BASE_URL: http://127.0.0.1:8000
         run: node tests/browser-quality.mjs
+
+      - name: Run accessibility audit
+        env:
+          ZKPL_BASE_URL: http://127.0.0.1:8000
+        run: node tests/accessibility-audit.mjs
 
       - name: Capture screenshots
         env:
