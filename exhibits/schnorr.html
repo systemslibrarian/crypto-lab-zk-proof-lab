@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exhibit 03 · Schnorr · ZK Protocol Lab</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="site-shell wrap">
+    <header class="site-header">
+      <div>
+        <a class="back-link" href="../index.html">← Back to Lobby</a>
+        <div class="brand-kicker" style="margin-top:10px">ZK Protocol Lab</div>
+        <h1 class="brand-title">Exhibit 03 · Schnorr Identification Protocol</h1>
+      </div>
+      <nav class="top-nav" aria-label="Exhibits">
+        <a class="nav-link" href="cave.html">01</a>
+        <a class="nav-link" href="graph-coloring.html">02</a>
+        <a class="nav-link active" href="schnorr.html">03</a>
+        <a class="nav-link" href="commit-reveal.html">04</a>
+      </nav>
+    </header>
+
+    <main class="exhibit">
+      <div class="ex-header">
+        <div class="ex-row"><span class="ex-num">EXHIBIT 03</span><span class="badge badge-real">● REAL MODULAR ARITHMETIC</span></div>
+        <div class="ex-title">Schnorr Identification Protocol</div>
+        <div class="ex-sub">A sigma protocol — proving knowledge of a discrete logarithm · Claus Schnorr 1989</div>
+      </div>
+      <div class="props">
+        <span class="prop prop-c">✓ Completeness</span>
+        <span class="prop prop-s">✓ Soundness</span>
+        <span class="prop prop-z">✓ Honest-Verifier ZK</span>
+      </div>
+
+      <div class="params-grid">
+        <div class="param-box"><div class="hash-label">Prime p</div><div style="color:var(--tx);font-size:14px">2053</div></div>
+        <div class="param-box"><div class="hash-label">Generator g</div><div style="color:var(--tx);font-size:14px">5</div></div>
+        <div class="param-box"><div class="hash-label">Secret x (hidden)</div><div style="color:var(--err);font-size:14px">17</div></div>
+        <div class="param-box"><div class="hash-label">Public key y = g^x mod p</div><div style="color:var(--ok);font-size:14px">375</div></div>
+      </div>
+
+      <section class="prose">
+        <p>The prover never transmits x directly. Instead, each round picks fresh randomness r, publishes R = g^r mod p, answers challenge c with s = r + c x mod (p−1), and passes only if g^s = R y^c mod p.</p>
+        <p>For realistic groups, recovering x from transcripts is tied to the discrete log problem. Production Schnorr-style systems operate over large groups such as secp256k1 where brute force is infeasible, while this exhibit uses small numbers for transparency.</p>
+      </section>
+
+      <div class="demo-grid">
+        <div class="panel">
+          <div class="ph">PROVER (knows x = 17)</div>
+          <div class="pb">
+            <div class="step-card" id="s1">
+              <div class="step-label">STEP 1 — COMMITMENT</div>
+              <div class="step-eq">Pick random r = <span class="sv" id="s-r">?</span></div>
+              <div class="step-eq">R = g<sup id="s-r2">r</sup> mod p = <span class="sv" id="s-R">?</span></div>
+              <div class="hint">→ send R to verifier</div>
+            </div>
+            <div class="step-card" id="s3" style="opacity:.3">
+              <div class="step-label">STEP 3 — RESPONSE</div>
+              <div class="step-eq">s = (r + c·x) mod (p−1)</div>
+              <div class="step-eq">s = (<span id="s-r3">?</span> + <span id="s-c2">?</span>·17) mod 2052 = <span class="sv" id="s-s">?</span></div>
+              <div class="hint">→ send s to verifier</div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph">VERIFIER</div>
+          <div class="pb">
+            <div class="step-card" id="s2" style="opacity:.3">
+              <div class="step-label">STEP 2 — CHALLENGE</div>
+              <div class="step-eq">Pick random c = <span class="sv" id="s-c">?</span></div>
+              <div class="hint">← send c to prover</div>
+            </div>
+            <div class="step-card" id="s4" style="opacity:.3">
+              <div class="step-label">STEP 4 — VERIFY: g^s ≡ R·y^c (mod p)</div>
+              <div class="step-eq">g^s mod p = <span class="sv" id="s-lhs">?</span></div>
+              <div class="step-eq">R·y^c mod p = <span class="sv" id="s-rhs">?</span></div>
+              <div id="s-result" style="margin-top:8px"></div>
+            </div>
+            <div class="conf-wrap" style="margin-top:10px">
+              <div class="conf-label"><span>Confidence</span><span id="s-pct">0.00%</span></div>
+              <div class="conf-track"><div class="conf-fill" id="s-fill"></div></div>
+            </div>
+            <div class="log" id="s-log" style="max-height:100px"><span class="le">— protocol log —</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="bp" id="s-btn" onclick="schnorrRun(false)">▶ Run Protocol</button>
+        <button class="bd" id="s-cheat-btn" onclick="schnorrRun(true)">Simulate Cheat</button>
+        <button class="bs" id="s-reset-btn" onclick="schnorrReset()">Reset</button>
+      </div>
+      <div class="vl"><strong>What the verifier learns:</strong> Only that the prover knows x. The response s = r + c x changes every round because r is freshly random. Even knowing s and c, computing x requires solving the discrete logarithm — infeasible for large primes. Production Schnorr uses 256-bit parameters (secp256k1, Bitcoin signatures).</div>
+    </main>
+  </div>
+
+  <script src="../js/schnorr.js"></script>
+</body>
+</html>

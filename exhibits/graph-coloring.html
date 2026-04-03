@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exhibit 02 · Graph 3-Coloring · ZK Protocol Lab</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="site-shell wrap">
+    <header class="site-header">
+      <div>
+        <a class="back-link" href="../index.html">← Back to Lobby</a>
+        <div class="brand-kicker" style="margin-top:10px">ZK Protocol Lab</div>
+        <h1 class="brand-title">Exhibit 02 · Graph 3-Coloring ZKP</h1>
+      </div>
+      <nav class="top-nav" aria-label="Exhibits">
+        <a class="nav-link" href="cave.html">01</a>
+        <a class="nav-link active" href="graph-coloring.html">02</a>
+        <a class="nav-link" href="schnorr.html">03</a>
+        <a class="nav-link" href="commit-reveal.html">04</a>
+      </nav>
+    </header>
+
+    <main class="exhibit">
+      <div class="ex-header">
+        <div class="ex-row"><span class="ex-num">EXHIBIT 02</span><span class="badge badge-sim">⬡ COMMITMENTS SIMPLIFIED</span></div>
+        <div class="ex-title">Graph 3-Coloring ZKP</div>
+        <div class="ex-sub">Proving a valid coloring exists without revealing which colors go where · Goldreich, Micali, Wigderson 1986</div>
+      </div>
+      <div class="props">
+        <span class="prop prop-c">✓ Completeness</span>
+        <span class="prop prop-s">✓ Soundness</span>
+        <span class="prop prop-z">✓ Zero-Knowledge</span>
+      </div>
+
+      <section class="prose">
+        <p>The prover starts with a valid 3-coloring and commits to each node using a fresh random permutation of colors every round. Because the permutation is rerolled each time, a reveal on one challenged edge does not leak the full coloring.</p>
+        <p>The verifier challenges one random edge and checks only that its endpoints open to different colors. A dishonest prover lacking a valid coloring is caught whenever the challenged edge is bad, giving undetected cheating probability (5/6)^k after k rounds for this 6-edge graph.</p>
+      </section>
+
+      <div class="panel" style="margin-bottom:14px">
+        <div class="ph">FULL GRAPH VIEW</div>
+        <div class="pb" style="text-align:center">
+          <svg id="graph-svg" viewBox="0 0 220 210" class="big-svg" aria-label="Five node graph">
+            <rect width="220" height="210" fill="#0d1422"/>
+            <line id="e01" x1="110" y1="22" x2="188" y2="82" stroke="#1c2540" stroke-width="2"/>
+            <line id="e12" x1="188" y1="82" x2="158" y2="177" stroke="#1c2540" stroke-width="2"/>
+            <line id="e23" x1="158" y1="177" x2="62" y2="177" stroke="#1c2540" stroke-width="2"/>
+            <line id="e34" x1="62" y1="177" x2="32" y2="82" stroke="#1c2540" stroke-width="2"/>
+            <line id="e40" x1="32" y1="82" x2="110" y2="22" stroke="#1c2540" stroke-width="2"/>
+            <line id="e02" x1="110" y1="22" x2="158" y2="177" stroke="#1c2540" stroke-width="2"/>
+            <circle id="n0" cx="110" cy="22" r="15" fill="#131c2e" stroke="#1c2540" stroke-width="2"/>
+            <text id="l0" x="110" y="26" text-anchor="middle" fill="#3a4a68" font-size="7" font-family="monospace">0x…</text>
+            <circle id="n1" cx="188" cy="82" r="15" fill="#131c2e" stroke="#1c2540" stroke-width="2"/>
+            <text id="l1" x="188" y="86" text-anchor="middle" fill="#3a4a68" font-size="7" font-family="monospace">0x…</text>
+            <circle id="n2" cx="158" cy="177" r="15" fill="#131c2e" stroke="#1c2540" stroke-width="2"/>
+            <text id="l2" x="158" y="181" text-anchor="middle" fill="#3a4a68" font-size="7" font-family="monospace">0x…</text>
+            <circle id="n3" cx="62" cy="177" r="15" fill="#131c2e" stroke="#1c2540" stroke-width="2"/>
+            <text id="l3" x="62" y="181" text-anchor="middle" fill="#3a4a68" font-size="7" font-family="monospace">0x…</text>
+            <circle id="n4" cx="32" cy="82" r="15" fill="#131c2e" stroke="#1c2540" stroke-width="2"/>
+            <text id="l4" x="32" y="86" text-anchor="middle" fill="#3a4a68" font-size="7" font-family="monospace">0x…</text>
+          </svg>
+          <div style="font-size:10px;color:var(--tx3);margin-top:4px">Nodes show commitment hashes — colors hidden</div>
+        </div>
+      </div>
+
+      <div class="demo-grid">
+        <div class="panel">
+          <div class="ph">PROVER — committed coloring</div>
+          <div class="pb">
+            <div id="g-round-info" style="font-size:11px;color:var(--tx2);margin-bottom:8px">Press "New Round" to commit.</div>
+            <table class="commit-table" aria-label="Round commitments">
+              <thead>
+                <tr><th>Node</th><th>Commitment Hash</th></tr>
+              </thead>
+              <tbody id="g-commit-table">
+                <tr><td>0</td><td>0x…</td></tr>
+                <tr><td>1</td><td>0x…</td></tr>
+                <tr><td>2</td><td>0x…</td></tr>
+                <tr><td>3</td><td>0x…</td></tr>
+                <tr><td>4</td><td>0x…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph">VERIFIER — challenge & reveal</div>
+          <div class="pb">
+            <div id="g-challenge" style="font-size:12px;color:var(--warn);min-height:20px;margin-bottom:8px"></div>
+            <div class="conf-wrap">
+              <div class="conf-label"><span>Confidence</span><span id="g-pct">0.00%</span></div>
+              <div class="conf-track"><div class="conf-fill" id="g-fill"></div></div>
+              <div style="font-size:10px;color:var(--tx3);margin-top:4px">P(cheat) = (5/6)<sup id="g-n">0</sup> = <span id="g-cp">100%</span></div>
+            </div>
+            <div class="log" id="g-log"><span class="le">— protocol log —</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="bp" id="g-btn-r" onclick="graphRound()">▶ New Round</button>
+        <button class="bp" id="g-btn-c" onclick="graphChallenge()" disabled>Challenge Edge</button>
+        <button class="bs" id="g-btn-a" onclick="graphAuto()">Run 10</button>
+        <button class="bs" id="g-btn-x" onclick="graphReset()">Reset</button>
+      </div>
+      <div class="vl"><strong>What the verifier learns:</strong> Only that the two challenged nodes have different colors. Each round uses a random permutation of the coloring, so seeing one edge's colors reveals nothing about any other edge. After k rounds: P(undetected cheat) = (5/6)^k.</div>
+    </main>
+  </div>
+
+  <script src="../js/graph.js"></script>
+</body>
+</html>

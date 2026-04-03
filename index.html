@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZK Protocol Lab</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="site-shell">
+    <header class="site-header">
+      <div>
+        <div class="brand-kicker">Cipher Museum Style Protocol Gallery</div>
+        <h1 class="brand-title">ZK Protocol Lab</h1>
+        <p class="brand-sub">Interactive exhibits on proving knowledge without revealing secrets.</p>
+      </div>
+      <nav class="top-nav" aria-label="Primary">
+        <a class="nav-link active" href="index.html">Lobby</a>
+        <a class="nav-link" href="exhibits/cave.html">Exhibit 01</a>
+        <a class="nav-link" href="exhibits/graph-coloring.html">Exhibit 02</a>
+        <a class="nav-link" href="exhibits/schnorr.html">Exhibit 03</a>
+        <a class="nav-link" href="exhibits/commit-reveal.html">Exhibit 04</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="lobby-grid" aria-label="Exhibit selector">
+        <a class="card" href="exhibits/cave.html">
+          <div class="ex-row"><span class="ex-num">EXHIBIT 01</span><span class="badge badge-sim">⬡ CONCEPTUAL MODEL</span></div>
+          <h2 class="card-title">The Ali Baba Cave Protocol</h2>
+          <p class="card-desc">Challenge-response cave exits show knowledge of a secret without revealing the path.</p>
+        </a>
+
+        <a class="card" href="exhibits/graph-coloring.html">
+          <div class="ex-row"><span class="ex-num">EXHIBIT 02</span><span class="badge badge-sim">⬡ COMMITMENTS SIMPLIFIED</span></div>
+          <h2 class="card-title">Graph 3-Coloring ZKP</h2>
+          <p class="card-desc">Committed colors and selective edge reveals prove proper coloring while hiding assignments.</p>
+        </a>
+
+        <a class="card" href="exhibits/schnorr.html">
+          <div class="ex-row"><span class="ex-num">EXHIBIT 03</span><span class="badge badge-real">● REAL MODULAR ARITHMETIC</span></div>
+          <h2 class="card-title">Schnorr Identification Protocol</h2>
+          <p class="card-desc">A sigma protocol proves discrete-log knowledge through a verifiable algebraic transcript.</p>
+        </a>
+
+        <a class="card" href="exhibits/commit-reveal.html">
+          <div class="ex-row"><span class="ex-num">EXHIBIT 04</span><span class="badge badge-real">● REAL SHA-256 · window.crypto.subtle</span></div>
+          <h2 class="card-title">Hash Commit-Reveal</h2>
+          <p class="card-desc">Real SHA-256 commitments lock hidden bids until fair reveal and verification.</p>
+        </a>
+      </section>
+    </main>
+
+    <footer class="footer">
+      A protocol demonstration by systemslibrarian · github.com/systemslibrarian/zk-protocol-lab · 1 Corinthians 10:31
+    </footer>
+  </div>
+</body>
+</html>

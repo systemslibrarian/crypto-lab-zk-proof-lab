@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exhibit 04 · Commit-Reveal · ZK Protocol Lab</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="site-shell wrap">
+    <header class="site-header">
+      <div>
+        <a class="back-link" href="../index.html">← Back to Lobby</a>
+        <div class="brand-kicker" style="margin-top:10px">ZK Protocol Lab</div>
+        <h1 class="brand-title">Exhibit 04 · Hash Commitment Scheme</h1>
+      </div>
+      <nav class="top-nav" aria-label="Exhibits">
+        <a class="nav-link" href="cave.html">01</a>
+        <a class="nav-link" href="graph-coloring.html">02</a>
+        <a class="nav-link" href="schnorr.html">03</a>
+        <a class="nav-link active" href="commit-reveal.html">04</a>
+      </nav>
+    </header>
+
+    <main class="exhibit">
+      <div class="ex-header">
+        <div class="ex-row"><span class="ex-num">EXHIBIT 04</span><span class="badge badge-real">● REAL SHA-256 · window.crypto.subtle</span></div>
+        <div class="ex-title">Hash Commitment Scheme</div>
+        <div class="ex-sub">Binding and hiding via cryptographic hash — sealed-bid auction scenario</div>
+      </div>
+      <div class="props">
+        <span class="prop prop-c">✓ Binding</span>
+        <span class="prop prop-s">✓ Hiding</span>
+      </div>
+
+      <section class="prose">
+        <p>Commitment is done by hashing bid and nonce together: SHA-256(bid || nonce). The nonce hides the bid from brute-force lookup and the commitment binds the bidder to one exact opening.</p>
+        <p>On reveal, each bidder discloses bid and nonce, and anyone recomputes the 64-hex digest to verify integrity. This commit-then-open structure appears in auctions, fair ordering protocols, and blockchain systems that need precommitment before disclosure.</p>
+      </section>
+
+      <div class="demo-grid">
+        <div class="panel">
+          <div class="ph">BIDDER A</div>
+          <div class="pb">
+            <div class="hash-label">Secret bid</div>
+            <div class="hash-box" style="font-size:16px;color:var(--tx)" id="ca-bid">—</div>
+            <div class="hash-label" style="margin-top:8px">Random nonce (32 bytes)</div>
+            <div class="hash-box" style="font-size:10px" id="ca-nonce">—</div>
+            <div class="hash-label" style="margin-top:8px">SHA-256(bid ‖ nonce)</div>
+            <div class="hash-box" id="ca-hash">—</div>
+            <div id="ca-verify" style="font-size:11px;margin-top:6px"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph">BIDDER B</div>
+          <div class="pb">
+            <div class="hash-label">Secret bid</div>
+            <div class="hash-box" style="font-size:16px;color:var(--tx)" id="cb-bid">—</div>
+            <div class="hash-label" style="margin-top:8px">Random nonce (32 bytes)</div>
+            <div class="hash-box" style="font-size:10px" id="cb-nonce">—</div>
+            <div class="hash-label" style="margin-top:8px">SHA-256(bid ‖ nonce)</div>
+            <div class="hash-box" id="cb-hash">—</div>
+            <div id="cb-verify" style="font-size:11px;margin-top:6px"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="commit-result" style="background:var(--surf);border:1px solid var(--bord);border-radius:6px;padding:13px;margin:10px 0;font-size:11.5px;color:var(--tx2)">
+        Commitments lock bids before revelation — neither bidder can see or change the other's bid once committed.
+      </div>
+      <div class="controls">
+        <button class="bp" id="c-btn-commit" onclick="commitPhase()">▶ Submit Bids</button>
+        <button class="bp" id="c-btn-reveal" onclick="revealPhase()" disabled>Reveal Bids</button>
+        <button class="bd" id="c-btn-cheat" onclick="cheatPhase()" disabled>Bidder A Cheats</button>
+        <button class="bs" id="c-btn-reset" onclick="commitReset()">Reset</button>
+      </div>
+      <div class="vl"><strong>Real SHA-256 runs in your browser</strong> via window.crypto.subtle.digest(). <strong>Binding:</strong> changing even one character produces a completely different 256-bit hash. <strong>Hiding:</strong> the hash reveals nothing about the bid value.</div>
+    </main>
+  </div>
+
+  <script src="../js/commit.js"></script>
+</body>
+</html>
