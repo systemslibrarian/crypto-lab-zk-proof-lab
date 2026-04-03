@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Interactive commit-reveal exhibit using real SHA-256 in the browser to show binding and hiding.">
   <meta name="theme-color" content="#070b12">
-  <title>Exhibit 04 · Commit-Reveal · ZK Protocol Lab</title>
+  <title>Exhibit 04 · Commit-Reveal · ZK Proof Lab</title>
   <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
@@ -13,7 +13,7 @@
     <header class="site-header">
       <div>
         <a class="back-link" href="../index.html">← Back to Lobby</a>
-        <div class="brand-kicker" style="margin-top:10px">ZK Protocol Lab</div>
+        <div class="brand-kicker" style="margin-top:10px">ZK Proof Lab</div>
         <h1 class="brand-title">Exhibit 04 · Hash Commitment Scheme</h1>
       </div>
       <nav class="top-nav" aria-label="Exhibits">
@@ -35,12 +35,20 @@
         <span class="prop prop-s">✓ Hiding</span>
       </div>
 
+      <div class="resource-links" aria-label="Exhibit resources">
+        <a class="resource-link" href="https://github.com/systemslibrarian/zk-proof-lab" target="_blank" rel="noopener noreferrer">Repository</a>
+        <a class="resource-link" href="https://github.com/systemslibrarian/zk-proof-lab/blob/main/docs/zkp-primer.md" target="_blank" rel="noopener noreferrer">ZK Primer</a>
+        <a class="resource-link" href="https://github.com/systemslibrarian/zk-proof-lab/blob/main/exhibits/commit-reveal.html" target="_blank" rel="noopener noreferrer">View Source</a>
+      </div>
+
+      <div class="trust-banner trust-real global-honesty"><strong>Cryptographic honesty:</strong> SHA-256 is computed by the browser Web Crypto API. This scenario uses educational-scale values for clarity and speed, not a complete production auction protocol.</div>
+
       <section class="prose">
         <p>This is like sealing your answer in an envelope before anyone is allowed to open it. You commit first, which locks in your choice, and then you reveal it later so everyone can check that you did not swap it out.</p>
         <p>Here the digital envelope is a real SHA-256 hash. Once the bid and secret nonce are revealed, anyone can recompute the hash and confirm that the original commitment was honest and unchanged.</p>
       </section>
 
-      <div class="trust-banner trust-real"><strong>Real hash, educational scenario:</strong> the SHA-256 commitment is real browser-side cryptography. The sealed-bid auction story is there to make the binding and hiding properties intuitive.</div>
+      <div class="trust-banner trust-real"><strong>Real hash, educational scenario:</strong> the commitment digest is computed via window.crypto.subtle and can be independently recomputed from the revealed bid and nonce.</div>
 
       <div class="demo-grid">
         <div class="panel">

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Interactive graph coloring exhibit showing how zero-knowledge can reveal local checks without exposing the full answer.">
   <meta name="theme-color" content="#070b12">
-  <title>Exhibit 02 · Graph 3-Coloring · ZK Protocol Lab</title>
+  <title>Exhibit 02 · Graph 3-Coloring · ZK Proof Lab</title>
   <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
@@ -13,7 +13,7 @@
     <header class="site-header">
       <div>
         <a class="back-link" href="../index.html">← Back to Lobby</a>
-        <div class="brand-kicker" style="margin-top:10px">ZK Protocol Lab</div>
+        <div class="brand-kicker" style="margin-top:10px">ZK Proof Lab</div>
         <h1 class="brand-title">Exhibit 02 · Graph 3-Coloring ZKP</h1>
       </div>
       <nav class="top-nav" aria-label="Exhibits">
@@ -36,12 +36,20 @@
         <span class="prop prop-z">✓ Zero-Knowledge</span>
       </div>
 
+      <div class="resource-links" aria-label="Exhibit resources">
+        <a class="resource-link" href="https://github.com/systemslibrarian/zk-proof-lab" target="_blank" rel="noopener noreferrer">Repository</a>
+        <a class="resource-link" href="https://github.com/systemslibrarian/zk-proof-lab/blob/main/docs/zkp-primer.md" target="_blank" rel="noopener noreferrer">ZK Primer</a>
+        <a class="resource-link" href="https://github.com/systemslibrarian/zk-proof-lab/blob/main/exhibits/graph-coloring.html" target="_blank" rel="noopener noreferrer">View Source</a>
+      </div>
+
+      <div class="trust-banner trust-conceptual global-honesty"><strong>Cryptographic honesty:</strong> this graph exhibit preserves the challenge-reveal logic and soundness amplification of ZK coloring, but uses simplified commitments for pedagogy rather than a production-grade binding commitment scheme.</div>
+
       <section class="prose">
         <p>Think of this as proving a map has been colored correctly without handing over the whole answer key. The prover hides every node's color, then the verifier points to just one connecting line and asks to see only the two colors at its ends.</p>
         <p>If those two touching nodes are different colors, that local check passes. Because the hidden colors are shuffled each round, the verifier never gets enough information to reconstruct the whole map, but repeated spot-checks still make cheating harder and harder.</p>
       </section>
 
-      <div class="trust-banner trust-conceptual"><strong>Pedagogical commitments:</strong> this exhibit teaches selective reveal and soundness amplification. The commitment hashes are illustrative, not a production binding commitment scheme.</div>
+      <div class="trust-banner trust-conceptual"><strong>Rigor note:</strong> in full GMW-style protocols, each round commits to all vertex colors and opens only challenged edge endpoints with secure commitments and randomness. This museum version keeps that verifier interaction model while simplifying the commitment machinery for readability.</div>
 
       <div class="panel" style="margin-bottom:14px">
         <div class="ph">FULL GRAPH VIEW</div>
@@ -108,7 +116,7 @@
         <button class="bs" id="g-btn-a">Run 10</button>
         <button class="bs" id="g-btn-x">Reset</button>
       </div>
-      <div class="vl"><strong>What the verifier learns:</strong> Only that the two challenged nodes have different colors. Each round uses a random permutation of the coloring, so seeing one edge's colors reveals nothing about any other edge. After k rounds: P(undetected cheat) = (5/6)^k.</div>
+      <div class="vl"><strong>What the verifier learns:</strong> Only that the challenged endpoints differ. Random color permutation each round prevents accumulating a global coloring. The pedagogical simplification is in the commitment layer, not in the soundness argument: after k independent rounds, P(undetected cheat) = (5/6)^k.</div>
     </main>
   </div>
 

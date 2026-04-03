@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Interactive Schnorr identification exhibit with real browser-side modular arithmetic and step-by-step verification.">
   <meta name="theme-color" content="#070b12">
-  <title>Exhibit 03 · Schnorr · ZK Protocol Lab</title>
+  <title>Exhibit 03 · Schnorr · ZK Proof Lab</title>
   <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
@@ -13,7 +13,7 @@
     <header class="site-header">
       <div>
         <a class="back-link" href="../index.html">← Back to Lobby</a>
-        <div class="brand-kicker" style="margin-top:10px">ZK Protocol Lab</div>
+        <div class="brand-kicker" style="margin-top:10px">ZK Proof Lab</div>
         <h1 class="brand-title">Exhibit 03 · Schnorr Identification Protocol</h1>
       </div>
       <nav class="top-nav" aria-label="Exhibits">
@@ -36,6 +36,14 @@
         <span class="prop prop-z">✓ Honest-Verifier ZK</span>
       </div>
 
+      <div class="resource-links" aria-label="Exhibit resources">
+        <a class="resource-link" href="https://github.com/systemslibrarian/zk-proof-lab" target="_blank" rel="noopener noreferrer">Repository</a>
+        <a class="resource-link" href="https://github.com/systemslibrarian/zk-proof-lab/blob/main/docs/zkp-primer.md" target="_blank" rel="noopener noreferrer">ZK Primer</a>
+        <a class="resource-link" href="https://github.com/systemslibrarian/zk-proof-lab/blob/main/exhibits/schnorr.html" target="_blank" rel="noopener noreferrer">View Source</a>
+      </div>
+
+      <div class="trust-banner trust-real global-honesty"><strong>Cryptographic honesty:</strong> the verification equation and modular arithmetic are real. Parameters are deliberately tiny for human-readable walkthroughs and animation speed, not for deployment security.</div>
+
       <div class="params-grid">
         <div class="param-box"><div class="hash-label">Prime p</div><div style="color:var(--tx);font-size:14px">2053</div></div>
         <div class="param-box"><div class="hash-label">Generator g</div><div style="color:var(--tx);font-size:14px">5</div></div>
@@ -48,7 +56,7 @@
         <p>The verifier can check the math and gain confidence, but the secret itself never gets revealed. Real-world versions use much larger numbers, but this smaller example lets you watch every step of the proof happen in the open.</p>
       </section>
 
-      <div class="trust-banner trust-real"><strong>Real math, educational parameters:</strong> the verification equation is real browser-side modular arithmetic, but the numbers are intentionally tiny so a human can follow the proof.</div>
+      <div class="trust-banner trust-real"><strong>Real math, educational parameters:</strong> this is actual Schnorr-style verification flow in the browser. Production systems use large curves or groups and hardened implementations.</div>
 
       <div class="demo-grid">
         <div class="panel">
