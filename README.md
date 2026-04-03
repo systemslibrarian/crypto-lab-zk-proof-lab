@@ -51,6 +51,7 @@ zk-proof-lab/
 │   ├── schnorr.html           # real browser-side modular arithmetic
 │   ├── fiat-shamir.html       # non-interactive hash-derived challenge demo
 │   ├── commit-reveal.html     # real browser-side SHA-256 commitment flow
+│   ├── snark.html             # zk-SNARK pipeline intuition model
 │   └── transcript-lab.html    # replay and compare proof transcripts
 ├── css/
 │   └── style.css              # shared visual system, mobile, accessibility
@@ -60,13 +61,17 @@ zk-proof-lab/
 │   ├── schnorr.js             # BigInt modpow and transcript verification
 │   ├── commit.js              # Web Crypto SHA-256 and commit/reveal logic
 │   ├── fiat-shamir.js         # hash-derived challenge and NIZK verification
+│   ├── snark.js               # setup/prove/verify toy SNARK pipeline
 │   ├── transcript-lab.js      # transcript replay/compare controller
 │   └── shared.js              # reusable protocol helpers
 ├── tests/
 │   ├── logic-smoke.html       # no-dependency logic checks
 │   ├── logic-smoke.js         # Schnorr/hash/probability smoke tests
 │   ├── quality-gates.html     # accessibility + visual-token checks
-│   └── quality-gates.js       # quality gate runner
+│   ├── quality-gates.js       # quality gate runner
+│   ├── browser-quality.mjs    # Playwright browser quality checks
+│   ├── capture-visuals.mjs    # screenshot capture automation
+│   └── make-visual-gif.sh     # best-effort GIF summary generation
 └── docs/
     └── zkp-primer.md          # protocol property mapping and accuracy notes
 ```
@@ -151,10 +156,10 @@ That is why this project starts with the cave before moving into Schnorr. The le
 
 ## Future Improvements
 
-- Add screenshot/GIF capture automation so visual regression can compare rendered artifacts, not only token-level style gates.
-- Add stronger transcript diffing (field-level semantic diffs, challenge re-derivation checks, and tamper proof timelines).
-- Add a zk-SNARK-focused sixth exhibit that bridges Fiat-Shamir intuition to modern proving systems.
-- Add CI automation to execute browser quality gates on pull requests.
+- Add field-aware transcript diff visualizations (highlighting exact JSON deltas and inferred protocol impact).
+- Add reproducible seeded scenarios for each exhibit so specific transcripts can be replayed deterministically.
+- Add richer browser accessibility audits (axe-core integration) alongside existing structural quality gates.
+- Add optional video capture automation in CI in addition to screenshots/GIF summaries.
 
 ## Deployment
 

@@ -25,6 +25,80 @@ function formatView(transcript) {
   ].filter(Boolean).join('\n');
 }
 
+async function deriveChallengeFromDigestInput(R, y, message) {
+  const input = `${R}|${y}|${message}`;
+  const bytes = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  const hex = Array.from(new Uint8Array(digest)).map(v => v.toString(16).padStart(2, '0')).join('');
+  const c = parseInt(hex.slice(0, 8), 16) % 50 + 1;
+  return { hex, c };
+}
+
+function semanticDiffLines(left, right) {
+  const checks = [];
+  const leftProtocol = left.protocol || 'Unknown';
+  const rightProtocol = right.protocol || 'Unknown';
+  checks.push(`<strong>Protocol:</strong> ${leftProtocol} vs ${rightProtocol}`);
+
+  const leftMode = left.mode || left.phase || 'n/a';
+  const rightMode = right.mode || right.phase || 'n/a';
+  checks.push(`<strong>Mode/Phase:</strong> ${leftMode} vs ${rightMode}`);
+
+  const leftVerified = left.transcript && typeof left.transcript.verified === 'boolean'
+    ? left.transcript.verified
+    : left.verification && left.verification.bidderA !== undefined
+      ? left.verification.bidderA && left.verification.bidderB
+      : 'n/a';
+  const rightVerified = right.transcript && typeof right.transcript.verified === 'boolean'
+    ? right.transcript.verified
+    : right.verification && right.verification.bidderA !== undefined
+      ? right.verification.bidderA && right.verification.bidderB
+      : 'n/a';
+  checks.push(`<strong>Verification outcome:</strong> ${leftVerified} vs ${rightVerified}`);
+
+  if (left.transcript && right.transcript) {
+    const fields = ['R', 'c', 's', 'lhs', 'rhs'];
+    for (const field of fields) {
+      if (left.transcript[field] !== undefined || right.transcript[field] !== undefined) {
+        const lv = left.transcript[field] ?? 'n/a';
+        const rv = right.transcript[field] ?? 'n/a';
+        checks.push(`<strong>${field}:</strong> ${lv} vs ${rv}`);
+      }
+    }
+  }
+
+  return checks;
+}
+
+async function challengeRederivationLine(transcript, label) {
+  if (!transcript || !transcript.protocol || !String(transcript.protocol).includes('Fiat-Shamir')) {
+    return `<strong>${label} challenge re-derivation:</strong> n/a`;
+  }
+  if (!transcript.transcript || transcript.transcript.R === undefined || transcript.parameters?.y === undefined || transcript.message === undefined) {
+    return `<strong>${label} challenge re-derivation:</strong> insufficient fields`;
+  }
+  const { c } = await deriveChallengeFromDigestInput(transcript.transcript.R, transcript.parameters.y, transcript.message);
+  const matches = c === transcript.transcript.c;
+  return `<strong>${label} challenge re-derivation:</strong> computed ${c}, transcript ${transcript.transcript.c} (${matches ? 'match' : 'mismatch'})`;
+}
+
+function tamperTimelineLines(transcript, label) {
+  if (!transcript) {
+    return [`<strong>${label} tamper timeline:</strong> n/a`];
+  }
+  const out = [];
+  if (transcript.cheatAttempt) {
+    out.push(`<strong>${label} tamper timeline:</strong> commitment tamper attempt detected (${transcript.cheatAttempt.detected ? 'detected' : 'undetected'})`);
+  } else if (transcript.mode === 'cheat-simulation') {
+    out.push(`<strong>${label} tamper timeline:</strong> Schnorr cheat simulation present`);
+  } else if (transcript.note && String(transcript.note).toLowerCase().includes('tamper')) {
+    out.push(`<strong>${label} tamper timeline:</strong> note includes tamper path`);
+  } else {
+    out.push(`<strong>${label} tamper timeline:</strong> no tamper events recorded`);
+  }
+  return out;
+}
+
 function render(side, transcript) {
   document.getElementById(`${side}-view`).textContent = formatView(transcript);
 }
@@ -43,7 +117,7 @@ function loadStored(key, targetId, side) {
   }
 }
 
-function compareTranscripts() {
+async function compareTranscripts() {
   let left;
   let right;
   try {
@@ -60,28 +134,13 @@ function compareTranscripts() {
     return;
   }
 
-  const leftProtocol = left.protocol || 'Unknown';
-  const rightProtocol = right.protocol || 'Unknown';
-  const leftVerified = left.transcript && typeof left.transcript.verified === 'boolean'
-    ? left.transcript.verified
-    : left.verification && left.verification.bidderA !== undefined
-      ? left.verification.bidderA && left.verification.bidderB
-      : 'n/a';
-  const rightVerified = right.transcript && typeof right.transcript.verified === 'boolean'
-    ? right.transcript.verified
-    : right.verification && right.verification.bidderA !== undefined
-      ? right.verification.bidderA && right.verification.bidderB
-      : 'n/a';
-
-  const sameProtocol = leftProtocol === rightProtocol;
-  document.getElementById('compare-result').innerHTML = [
-    `<strong>Protocol A:</strong> ${leftProtocol}`,
-    `<strong>Protocol B:</strong> ${rightProtocol}`,
-    `<strong>Same protocol family:</strong> ${sameProtocol ? 'Yes' : 'No'}`,
-    `<strong>Verification outcome A:</strong> ${leftVerified}`,
-    `<strong>Verification outcome B:</strong> ${rightVerified}`,
-    '<strong>Tip:</strong> compare challenge generation, response structure, and whether verification still holds after tampering.'
-  ].join('<br>');
+  const lines = semanticDiffLines(left, right);
+  lines.push(await challengeRederivationLine(left, 'Left'));
+  lines.push(await challengeRederivationLine(right, 'Right'));
+  lines.push(...tamperTimelineLines(left, 'Left'));
+  lines.push(...tamperTimelineLines(right, 'Right'));
+  lines.push('<strong>Tip:</strong> for Fiat-Shamir transcripts, challenge mismatches usually indicate message or commitment tampering.');
+  document.getElementById('compare-result').innerHTML = lines.join('<br>');
 }
 
 function swapSides() {

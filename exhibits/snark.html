@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Interactive zk-SNARK intuition exhibit connecting Fiat-Shamir style transcripts to proving systems with setup, proving, and verification phases.">
+  <meta name="theme-color" content="#070b12">
+  <title>Exhibit 06 · zk-SNARK Intuition · ZK Proof Lab</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="site-shell wrap">
+    <header class="site-header">
+      <div>
+        <a class="back-link" href="../index.html">← Back to Lobby</a>
+        <div class="brand-kicker" style="margin-top:10px">ZK Proof Lab</div>
+        <h1 class="brand-title">Exhibit 06 · zk-SNARK Intuition</h1>
+      </div>
+      <nav class="top-nav" aria-label="Exhibits">
+        <a class="nav-link" href="cave.html">01</a>
+        <a class="nav-link" href="graph-coloring.html">02</a>
+        <a class="nav-link" href="schnorr.html">03</a>
+        <a class="nav-link" href="commit-reveal.html">04</a>
+        <a class="nav-link" href="fiat-shamir.html">05</a>
+        <a class="nav-link active" href="snark.html">06</a>
+      </nav>
+    </header>
+
+    <main class="exhibit">
+      <div class="ex-header">
+        <div class="ex-row"><span class="ex-num">EXHIBIT 06</span><span class="badge badge-sim">⬡ PEDAGOGICAL SNARK MODEL</span></div>
+        <div class="ex-title">zk-SNARK Pipeline (Setup → Prove → Verify)</div>
+        <div class="ex-sub">Bridge the Fiat-Shamir mental model to modern proving systems without pretending this is production cryptography.</div>
+      </div>
+      <div class="props">
+        <span class="prop prop-c">✓ Succinct verification shape</span>
+        <span class="prop prop-s">✓ Public vs private inputs</span>
+        <span class="prop prop-z">✓ Conceptual zero-knowledge flow</span>
+      </div>
+
+      <div class="resource-links" aria-label="Exhibit resources">
+        <a class="resource-link" href="https://github.com/systemslibrarian/zk-proof-lab" target="_blank" rel="noopener noreferrer">Repository</a>
+        <a class="resource-link" href="https://github.com/systemslibrarian/zk-proof-lab/blob/main/docs/zkp-primer.md" target="_blank" rel="noopener noreferrer">ZK Primer</a>
+        <a class="resource-link" href="https://github.com/systemslibrarian/zk-proof-lab/blob/main/exhibits/snark.html" target="_blank" rel="noopener noreferrer">View Source</a>
+      </div>
+
+      <div class="trust-banner trust-conceptual global-honesty"><strong>Cryptographic honesty:</strong> this exhibit teaches the architecture of zk-SNARK systems (setup/proving/verification and public/private split). It is intentionally not a real SNARK implementation or security parameterization.</div>
+
+      <section class="prose">
+        <p>Fiat-Shamir removed interaction by deriving a challenge from a hash. zk-SNARKs go further: they compile a computation into a proof system where the verifier checks a tiny proof against public inputs using a verification key.</p>
+        <p>This exhibit visualizes that pipeline with a toy arithmetic relation so you can map intuition to modern systems without confusing educational animation with deployable proving software.</p>
+      </section>
+
+      <div class="panel" style="margin-bottom:14px">
+        <div class="ph">Toy vs Production Parameters</div>
+        <div class="pb">
+          <table class="commit-table" aria-label="Toy versus production SNARK parameters">
+            <thead>
+              <tr><th>Dimension</th><th>This Exhibit</th><th>Production Expectation</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Circuit complexity</td><td>Tiny arithmetic relation</td><td>Large circuits (thousands to millions of constraints)</td></tr>
+              <tr><td>Setup model</td><td>Visual trusted setup simulation</td><td>Ceremony with strict toxic-waste handling</td></tr>
+              <tr><td>Proof object</td><td>Readable JSON envelope</td><td>Curve-based proof bytes with formal verification equations</td></tr>
+              <tr><td>Verifier environment</td><td>Browser pedagogy</td><td>Audited verifiers (on-chain/off-chain) with formal assumptions</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="demo-grid">
+        <div class="panel">
+          <div class="ph">PROVER PIPELINE</div>
+          <div class="pb">
+            <div class="hash-label">Private witness w</div>
+            <div class="hash-box" id="snark-w">—</div>
+            <div class="hash-label" style="margin-top:8px">Public input y</div>
+            <div class="hash-box" id="snark-y">—</div>
+            <div class="hash-label" style="margin-top:8px">Toy relation</div>
+            <div class="hash-box">y = w² + 3w + 7</div>
+            <div class="hash-label" style="margin-top:8px">Proof commitment digest</div>
+            <div class="hash-box" id="snark-digest">—</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph">VERIFIER PIPELINE</div>
+          <div class="pb">
+            <div class="hash-label">Verification equation check</div>
+            <div class="hash-box" id="snark-eq">—</div>
+            <div class="hash-label" style="margin-top:8px">Digest consistency</div>
+            <div class="hash-box" id="snark-consistency">—</div>
+            <div id="snark-result" aria-live="polite" aria-atomic="true" style="margin-top:8px;color:var(--tx2)">Ready.</div>
+            <div class="log" id="snark-log" role="log" aria-live="polite" aria-relevant="additions" style="margin-top:10px;max-height:120px"><span class="le">— protocol log —</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="bp" id="snark-run-btn">▶ Generate Toy Proof</button>
+        <button class="bd" id="snark-tamper-btn" disabled>Tamper Public Input</button>
+        <button class="bs" id="snark-copy-btn" disabled>Copy Transcript</button>
+        <button class="bs" id="snark-replay-btn" disabled>Replay In Lab</button>
+        <button class="bs" id="snark-reset-btn">Reset</button>
+      </div>
+
+      <div class="vl"><strong>What this teaches:</strong> SNARK systems separate private witness data from public claims, and let verifiers run small checks over proof objects and public inputs. Real systems add finite-field circuits, polynomial commitments, setup assumptions, and formal security proofs.</div>
+    </main>
+  </div>
+
+  <script type="module" src="../js/snark.js"></script>
+</body>
+</html>

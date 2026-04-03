@@ -1,0 +1,59 @@
+name: Browser Quality Gates
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  browser-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+
+      - name: Start static server
+        run: |
+          python3 -m http.server 8000 --bind 127.0.0.1 &
+          echo $! > /tmp/zkpl_server.pid
+
+      - name: Run browser quality checks
+        env:
+          ZKPL_BASE_URL: http://127.0.0.1:8000
+        run: node tests/browser-quality.mjs
+
+      - name: Capture screenshots
+        env:
+          ZKPL_BASE_URL: http://127.0.0.1:8000
+        run: node tests/capture-visuals.mjs
+
+      - name: Build GIF preview (best effort)
+        run: |
+          chmod +x tests/make-visual-gif.sh
+          ./tests/make-visual-gif.sh
+
+      - name: Stop static server
+        if: always()
+        run: |
+          if [[ -f /tmp/zkpl_server.pid ]]; then
+            kill "$(cat /tmp/zkpl_server.pid)" || true
+          fi
+
+      - name: Upload visual artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-capture
+          path: artifacts/
+          if-no-files-found: warn
