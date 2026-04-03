@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Interactive graph coloring exhibit showing how zero-knowledge can reveal local checks without exposing the full answer.">
+  <meta name="theme-color" content="#070b12">
   <title>Exhibit 02 · Graph 3-Coloring · ZK Protocol Lab</title>
   <link rel="stylesheet" href="../css/style.css">
 </head>
@@ -69,7 +71,7 @@
         <div class="panel">
           <div class="ph">PROVER — committed coloring</div>
           <div class="pb">
-            <div id="g-round-info" style="font-size:11px;color:var(--tx2);margin-bottom:8px">Press "New Round" to commit.</div>
+            <div id="g-round-info" aria-live="polite" aria-atomic="true" style="font-size:11px;color:var(--tx2);margin-bottom:8px">Press "New Round" to commit.</div>
             <table class="commit-table" aria-label="Round commitments">
               <thead>
                 <tr><th>Node</th><th>Commitment Hash</th></tr>
@@ -87,13 +89,13 @@
         <div class="panel">
           <div class="ph">VERIFIER — challenge & reveal</div>
           <div class="pb">
-            <div id="g-challenge" style="font-size:12px;color:var(--warn);min-height:20px;margin-bottom:8px"></div>
+            <div id="g-challenge" aria-live="polite" aria-atomic="true" style="font-size:12px;color:var(--warn);min-height:20px;margin-bottom:8px"></div>
             <div class="conf-wrap">
               <div class="conf-label"><span>Confidence</span><span id="g-pct">0.00%</span></div>
               <div class="conf-track"><div class="conf-fill" id="g-fill"></div></div>
               <div style="font-size:10px;color:var(--tx3);margin-top:4px">P(cheat) = (5/6)<sup id="g-n">0</sup> = <span id="g-cp">100%</span></div>
             </div>
-            <div class="log" id="g-log"><span class="le">— protocol log —</span></div>
+            <div class="log" id="g-log" role="log" aria-live="polite" aria-relevant="additions"><span class="le">— protocol log —</span></div>
           </div>
         </div>
       </div>

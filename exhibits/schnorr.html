@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Interactive Schnorr identification exhibit with real browser-side modular arithmetic and step-by-step verification.">
+  <meta name="theme-color" content="#070b12">
   <title>Exhibit 03 · Schnorr · ZK Protocol Lab</title>
   <link rel="stylesheet" href="../css/style.css">
 </head>
@@ -76,13 +78,13 @@
               <div class="step-label">STEP 4 — VERIFY: g^s ≡ R·y^c (mod p)</div>
               <div class="step-eq">g^s mod p = <span class="sv" id="s-lhs">?</span></div>
               <div class="step-eq">R·y^c mod p = <span class="sv" id="s-rhs">?</span></div>
-              <div id="s-result" style="margin-top:8px"></div>
+              <div id="s-result" aria-live="polite" aria-atomic="true" style="margin-top:8px"></div>
             </div>
             <div class="conf-wrap" style="margin-top:10px">
               <div class="conf-label"><span>Confidence</span><span id="s-pct">0.00%</span></div>
               <div class="conf-track"><div class="conf-fill" id="s-fill"></div></div>
             </div>
-            <div class="log" id="s-log" style="max-height:100px"><span class="le">— protocol log —</span></div>
+            <div class="log" id="s-log" role="log" aria-live="polite" aria-relevant="additions" style="max-height:100px"><span class="le">— protocol log —</span></div>
           </div>
         </div>
       </div>

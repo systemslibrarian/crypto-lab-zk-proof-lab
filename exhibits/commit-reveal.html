@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Interactive commit-reveal exhibit using real SHA-256 in the browser to show binding and hiding.">
+  <meta name="theme-color" content="#070b12">
   <title>Exhibit 04 · Commit-Reveal · ZK Protocol Lab</title>
   <link rel="stylesheet" href="../css/style.css">
 </head>
@@ -65,7 +67,7 @@
         </div>
       </div>
 
-      <div id="commit-result" style="background:var(--surf);border:1px solid var(--bord);border-radius:6px;padding:13px;margin:10px 0;font-size:11.5px;color:var(--tx2)">
+      <div id="commit-result" aria-live="polite" aria-atomic="true" style="background:var(--surf);border:1px solid var(--bord);border-radius:6px;padding:13px;margin:10px 0;font-size:11.5px;color:var(--tx2)">
         Commitments lock bids before revelation — neither bidder can see or change the other's bid once committed.
       </div>
       <div class="controls">

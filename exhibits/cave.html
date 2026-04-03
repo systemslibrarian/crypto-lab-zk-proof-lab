@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Interactive Ali Baba cave exhibit for understanding zero-knowledge proofs in plain English.">
+  <meta name="theme-color" content="#070b12">
   <title>Exhibit 01 · Ali Baba Cave · ZK Protocol Lab</title>
   <link rel="stylesheet" href="../css/style.css">
 </head>
@@ -65,19 +67,19 @@
                 <text x="0" y="4" text-anchor="middle" fill="white" font-size="8" font-family="monospace">P</text>
               </g>
             </svg>
-            <div id="cave-status" style="font-size:11px;color:var(--tx2);margin-top:6px;min-height:18px">Ready.</div>
+            <div id="cave-status" aria-live="polite" aria-atomic="true" style="font-size:11px;color:var(--tx2);margin-top:6px;min-height:18px">Ready.</div>
           </div>
         </div>
         <div class="panel">
           <div class="ph">VERIFIER (outside)</div>
           <div class="pb">
-            <div id="cave-challenge" style="font-size:12px;color:var(--warn);min-height:22px;margin-bottom:10px"></div>
+            <div id="cave-challenge" aria-live="polite" aria-atomic="true" style="font-size:12px;color:var(--warn);min-height:22px;margin-bottom:10px"></div>
             <div class="conf-wrap">
               <div class="conf-label"><span>Verifier confidence</span><span id="cave-pct">0.00%</span></div>
               <div class="conf-track"><div class="conf-fill" id="cave-fill"></div></div>
               <div style="font-size:10px;color:var(--tx3);margin-top:4px">P(cheater passes) = (1/2)<sup id="cave-n">0</sup> = <span id="cave-cp">100%</span></div>
             </div>
-            <div class="log" id="cave-log"><span class="le">— protocol log —</span></div>
+            <div class="log" id="cave-log" role="log" aria-live="polite" aria-relevant="additions"><span class="le">— protocol log —</span></div>
           </div>
         </div>
       </div>
