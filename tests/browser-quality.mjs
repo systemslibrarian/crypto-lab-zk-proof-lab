@@ -9,7 +9,8 @@ const pages = [
   '/exhibits/commit-reveal.html',
   '/exhibits/fiat-shamir.html',
   '/exhibits/snark.html',
-  '/exhibits/transcript-lab.html'
+  '/exhibits/transcript-lab.html',
+  '/exhibits/scenario-presets.html'
 ];
 
 const trustExpected = new Set([
@@ -20,7 +21,8 @@ const trustExpected = new Set([
   '/exhibits/commit-reveal.html',
   '/exhibits/fiat-shamir.html',
   '/exhibits/snark.html',
-  '/exhibits/transcript-lab.html'
+  '/exhibits/transcript-lab.html',
+  '/exhibits/scenario-presets.html'
 ]);
 
 let failures = 0;
@@ -103,6 +105,17 @@ async function runSnarkTamperCheck(page) {
   assertPass(Boolean(verdict && verdict.includes('rejected')), 'SNARK tamper scenario is rejected');
 }
 
+async function runScenarioPresetLinkCheck(page) {
+  await page.goto(`${baseUrl}/exhibits/scenario-presets.html`, { waitUntil: 'domcontentloaded' });
+  const links = await page.$$eval('section[aria-label="Preset selector"] a.card', nodes => nodes.map(node => node.getAttribute('href')).filter(Boolean));
+  assertPass(links.length >= 8, 'Scenario preset hub exposes expected number of preset routes');
+  for (const link of links) {
+    await page.goto(`${baseUrl}/exhibits/${link}`, { waitUntil: 'domcontentloaded' });
+    const title = await page.title();
+    assertPass(Boolean(title && title.trim()), `Preset route ${link} loads`);
+  }
+}
+
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ viewport: { width: 1366, height: 900 } });
 const page = await context.newPage();
@@ -146,6 +159,7 @@ await runSchnorrInvariantCheck(page);
 await runFiatShamirInvariantCheck(page);
 await runCommitInvariantCheck(page);
 await runSnarkTamperCheck(page);
+await runScenarioPresetLinkCheck(page);
 
 await browser.close();
 

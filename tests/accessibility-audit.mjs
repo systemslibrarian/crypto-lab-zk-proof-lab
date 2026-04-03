@@ -12,7 +12,8 @@ const pages = [
   '/exhibits/commit-reveal.html',
   '/exhibits/fiat-shamir.html',
   '/exhibits/snark.html',
-  '/exhibits/transcript-lab.html'
+  '/exhibits/transcript-lab.html',
+  '/exhibits/scenario-presets.html'
 ];
 
 const reportDir = path.resolve(process.cwd(), 'artifacts');

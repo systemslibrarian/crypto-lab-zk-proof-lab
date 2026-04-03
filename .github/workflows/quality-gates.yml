@@ -1,8 +1,15 @@
 name: Browser Quality Gates
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
   workflow_dispatch:
+
+concurrency:
+  group: quality-gates-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   browser-quality:

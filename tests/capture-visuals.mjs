@@ -13,7 +13,8 @@ const targets = [
   { route: '/exhibits/commit-reveal.html', name: 'exhibit-04-commit' },
   { route: '/exhibits/fiat-shamir.html', name: 'exhibit-05-fiat-shamir' },
   { route: '/exhibits/snark.html', name: 'exhibit-06-snark' },
-  { route: '/exhibits/transcript-lab.html', name: 'transcript-lab' }
+  { route: '/exhibits/transcript-lab.html', name: 'transcript-lab' },
+  { route: '/exhibits/scenario-presets.html', name: 'scenario-presets' }
 ];
 
 await fs.mkdir(outDir, { recursive: true });
