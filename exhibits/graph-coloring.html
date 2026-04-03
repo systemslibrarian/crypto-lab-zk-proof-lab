@@ -41,6 +41,8 @@
         <p>If those two touching nodes are different colors, that local check passes. Because the hidden colors are shuffled each round, the verifier never gets enough information to reconstruct the whole map, but repeated spot-checks still make cheating harder and harder.</p>
       </section>
 
+      <div class="trust-banner trust-conceptual"><strong>Pedagogical commitments:</strong> this exhibit teaches selective reveal and soundness amplification. The commitment hashes are illustrative, not a production binding commitment scheme.</div>
+
       <div class="panel" style="margin-bottom:14px">
         <div class="ph">FULL GRAPH VIEW</div>
         <div class="pb" style="text-align:center">
@@ -101,15 +103,15 @@
       </div>
 
       <div class="controls">
-        <button class="bp" id="g-btn-r" onclick="graphRound()">▶ New Round</button>
-        <button class="bp" id="g-btn-c" onclick="graphChallenge()" disabled>Challenge Edge</button>
-        <button class="bs" id="g-btn-a" onclick="graphAuto()">Run 10</button>
-        <button class="bs" id="g-btn-x" onclick="graphReset()">Reset</button>
+        <button class="bp" id="g-btn-r">▶ New Round</button>
+        <button class="bp" id="g-btn-c" disabled>Challenge Edge</button>
+        <button class="bs" id="g-btn-a">Run 10</button>
+        <button class="bs" id="g-btn-x">Reset</button>
       </div>
       <div class="vl"><strong>What the verifier learns:</strong> Only that the two challenged nodes have different colors. Each round uses a random permutation of the coloring, so seeing one edge's colors reveals nothing about any other edge. After k rounds: P(undetected cheat) = (5/6)^k.</div>
     </main>
   </div>
 
-  <script src="../js/graph.js"></script>
+  <script type="module" src="../js/graph.js"></script>
 </body>
 </html>

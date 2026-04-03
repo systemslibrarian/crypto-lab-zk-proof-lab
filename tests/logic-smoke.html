@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>ZK Protocol Lab · Logic Smoke Tests</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="site-shell wrap">
+    <header class="site-header">
+      <div>
+        <a class="back-link" href="../index.html">← Back to Lobby</a>
+        <div class="brand-kicker" style="margin-top:10px">ZK Protocol Lab</div>
+        <h1 class="brand-title">Logic Smoke Tests</h1>
+      </div>
+    </header>
+
+    <main class="exhibit">
+      <section class="prose">
+        <p>This page runs a no-dependency browser smoke test for the real math and hashing logic used in the lab. It is intended for development and reviewer confidence, not as a replacement for a full automated test pipeline.</p>
+      </section>
+
+      <div class="panel">
+        <div class="ph">TEST RESULTS</div>
+        <div class="pb">
+          <div class="log" id="test-log" role="log" aria-live="polite" aria-relevant="additions"><span class="le">— running tests —</span></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="./logic-smoke.js"></script>
+</body>
+</html>

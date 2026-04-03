@@ -1,11 +1,130 @@
-function rInt(a,b){const arr=new Uint32Array(1);crypto.getRandomValues(arr);return a+(arr[0]%(b-a+1))}
-function rHex(bytes){const arr=new Uint8Array(bytes);crypto.getRandomValues(arr);return Array.from(arr).map(b=>b.toString(16).padStart(2,'0')).join('')}
-async function sha256hex(msg){const buf=new TextEncoder().encode(msg);const hash=await crypto.subtle.digest('SHA-256',buf);return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('')}
+import { copyTextToClipboard, rHex, rInt, sha256hex } from './shared.js';
 
-let cs={phase:'idle',bidA:0,bidB:0,nA:'',nB:'',hA:'',hB:''};
-let commitBusy=false;
-function commitSetControls(){document.getElementById('c-btn-commit').disabled=commitBusy||cs.phase!=='idle';document.getElementById('c-btn-reveal').disabled=commitBusy||cs.phase!=='committed';document.getElementById('c-btn-cheat').disabled=commitBusy||cs.phase!=='committed';document.getElementById('c-btn-reset').disabled=commitBusy}
-async function commitPhase(){if(commitBusy||cs.phase!=='idle')return;commitBusy=true;commitSetControls();try{cs.bidA=rInt(100,999);cs.bidB=rInt(100,999);cs.nA=rHex(32);cs.nB=rHex(32);document.getElementById('ca-bid').textContent='*** (hidden)';document.getElementById('cb-bid').textContent='*** (hidden)';document.getElementById('ca-nonce').textContent=cs.nA;document.getElementById('cb-nonce').textContent=cs.nB;document.getElementById('ca-hash').textContent='Computing SHA-256…';document.getElementById('cb-hash').textContent='Computing SHA-256…';document.getElementById('ca-verify').textContent='';document.getElementById('cb-verify').textContent='';cs.hA=await sha256hex('$'+cs.bidA+'|'+cs.nA);cs.hB=await sha256hex('$'+cs.bidB+'|'+cs.nB);document.getElementById('ca-hash').textContent=cs.hA;document.getElementById('cb-hash').textContent=cs.hB;document.getElementById('commit-result').innerHTML='<strong style="color:var(--ok)">Both commitments published.</strong> Neither bidder can see the other\'s bid. Neither can change their bid without detection.';cs.phase='committed'}finally{commitBusy=false;commitSetControls()}}
-async function revealPhase(){if(commitBusy||cs.phase!=='committed')return;commitBusy=true;commitSetControls();try{cs.phase='revealed';document.getElementById('ca-bid').textContent='$'+cs.bidA;document.getElementById('cb-bid').textContent='$'+cs.bidB;const vA=await sha256hex('$'+cs.bidA+'|'+cs.nA);const vB=await sha256hex('$'+cs.bidB+'|'+cs.nB);const okA=vA===cs.hA,okB=vB===cs.hB;document.getElementById('ca-verify').innerHTML='SHA-256 recomputed: <span style="color:'+(okA?'var(--ok)':'var(--err)')+'">'+(okA?'✓ matches commitment':'✗ MISMATCH')+'</span>';document.getElementById('cb-verify').innerHTML='SHA-256 recomputed: <span style="color:'+(okB?'var(--ok)':'var(--err)')+'">'+(okB?'✓ matches commitment':'✗ MISMATCH')+'</span>';const w=cs.bidA>cs.bidB?'A':cs.bidB>cs.bidA?'B':'TIE';document.getElementById('commit-result').innerHTML=w==='TIE'?'<strong style="color:var(--warn)">Tie — $'+cs.bidA+' = $'+cs.bidB+'.</strong> Both commitments verified.':'<strong style="color:var(--ok)">Bidder '+w+' wins</strong> — $'+(w==='A'?cs.bidA:cs.bidB)+' vs $'+(w==='A'?cs.bidB:cs.bidA)+'. Both bids cryptographically verified.'}finally{commitBusy=false;commitSetControls()}}
-async function cheatPhase(){if(commitBusy||cs.phase!=='committed')return;commitBusy=true;commitSetControls();try{const fake=cs.bidA+100;document.getElementById('ca-bid').textContent='$'+fake+' ← changed!';const fakeHash=await sha256hex('$'+fake+'|'+cs.nA);document.getElementById('ca-verify').innerHTML='SHA-256($'+fake+' ‖ nonce) =<br><span style="color:var(--err);font-size:10px;word-break:break-all">'+fakeHash+'</span><br><strong style="color:var(--err)">✗ CAUGHT — hash does not match commitment!</strong>';document.getElementById('commit-result').innerHTML='<strong style="color:var(--err)">Binding property holds.</strong> Bidder A\'s revised bid produces a completely different SHA-256 hash. Finding any (bid, nonce) pair that produces the same hash is computationally infeasible.';cs.phase='cheated'}finally{commitBusy=false;commitSetControls()}}
-function commitReset(){if(commitBusy)return;cs={phase:'idle',bidA:0,bidB:0,nA:'',nB:'',hA:'',hB:''};['ca-bid','cb-bid','ca-nonce','cb-nonce','ca-hash','cb-hash','ca-verify','cb-verify'].forEach(id=>document.getElementById(id).textContent='—');document.getElementById('commit-result').textContent='Commitments lock bids before revelation — neither bidder can see or change the other\'s bid once committed.';commitSetControls()}
+let cs = { phase: 'idle', bidA: 0, bidB: 0, nA: '', nB: '', hA: '', hB: '' };
+let commitBusy = false;
+let lastCommitTranscript = null;
+
+function commitSetControls() {
+  document.getElementById('c-btn-commit').disabled = commitBusy || cs.phase !== 'idle';
+  document.getElementById('c-btn-reveal').disabled = commitBusy || cs.phase !== 'committed';
+  document.getElementById('c-btn-cheat').disabled = commitBusy || cs.phase !== 'committed';
+  document.getElementById('c-btn-copy').disabled = commitBusy || !lastCommitTranscript;
+  document.getElementById('c-btn-reset').disabled = commitBusy;
+}
+
+function buildCommitTranscript(extra = {}) {
+  return {
+    protocol: 'Hash Commit-Reveal',
+    educationalScenario: 'sealed-bid auction',
+    phase: cs.phase,
+    bidderA: { bid: cs.bidA, nonce: cs.nA, hash: cs.hA },
+    bidderB: { bid: cs.bidB, nonce: cs.nB, hash: cs.hB },
+    ...extra
+  };
+}
+
+export async function commitPhase() {
+  if (commitBusy || cs.phase !== 'idle') {
+    return;
+  }
+  commitBusy = true;
+  commitSetControls();
+  try {
+    cs.bidA = rInt(100, 999);
+    cs.bidB = rInt(100, 999);
+    cs.nA = rHex(32);
+    cs.nB = rHex(32);
+    document.getElementById('ca-bid').textContent = '*** (hidden)';
+    document.getElementById('cb-bid').textContent = '*** (hidden)';
+    document.getElementById('ca-nonce').textContent = cs.nA;
+    document.getElementById('cb-nonce').textContent = cs.nB;
+    document.getElementById('ca-hash').textContent = 'Computing SHA-256…';
+    document.getElementById('cb-hash').textContent = 'Computing SHA-256…';
+    document.getElementById('ca-verify').textContent = '';
+    document.getElementById('cb-verify').textContent = '';
+    cs.hA = await sha256hex(`$${cs.bidA}|${cs.nA}`);
+    cs.hB = await sha256hex(`$${cs.bidB}|${cs.nB}`);
+    document.getElementById('ca-hash').textContent = cs.hA;
+    document.getElementById('cb-hash').textContent = cs.hB;
+    document.getElementById('commit-result').innerHTML = '<strong style="color:var(--ok)">Both commitments published.</strong> Neither bidder can see the other\'s bid. Neither can change their bid without detection.';
+    cs.phase = 'committed';
+    lastCommitTranscript = buildCommitTranscript({ note: 'Commitments published; bids intentionally still hidden in the UI.' });
+  } finally {
+    commitBusy = false;
+    commitSetControls();
+  }
+}
+
+export async function revealPhase() {
+  if (commitBusy || cs.phase !== 'committed') {
+    return;
+  }
+  commitBusy = true;
+  commitSetControls();
+  try {
+    cs.phase = 'revealed';
+    document.getElementById('ca-bid').textContent = `$${cs.bidA}`;
+    document.getElementById('cb-bid').textContent = `$${cs.bidB}`;
+    const vA = await sha256hex(`$${cs.bidA}|${cs.nA}`);
+    const vB = await sha256hex(`$${cs.bidB}|${cs.nB}`);
+    const okA = vA === cs.hA;
+    const okB = vB === cs.hB;
+    document.getElementById('ca-verify').innerHTML = `SHA-256 recomputed: <span style="color:${okA ? 'var(--ok)' : 'var(--err)'}">${okA ? '✓ matches commitment' : '✗ MISMATCH'}</span>`;
+    document.getElementById('cb-verify').innerHTML = `SHA-256 recomputed: <span style="color:${okB ? 'var(--ok)' : 'var(--err)'}">${okB ? '✓ matches commitment' : '✗ MISMATCH'}</span>`;
+    const winner = cs.bidA > cs.bidB ? 'A' : cs.bidB > cs.bidA ? 'B' : 'TIE';
+    document.getElementById('commit-result').innerHTML = winner === 'TIE'
+      ? `<strong style="color:var(--warn)">Tie — $${cs.bidA} = $${cs.bidB}.</strong> Both commitments verified.`
+      : `<strong style="color:var(--ok)">Bidder ${winner} wins</strong> — $${winner === 'A' ? cs.bidA : cs.bidB} vs $${winner === 'A' ? cs.bidB : cs.bidA}. Both bids cryptographically verified.`;
+    lastCommitTranscript = buildCommitTranscript({ verification: { bidderA: okA, bidderB: okB }, winner });
+  } finally {
+    commitBusy = false;
+    commitSetControls();
+  }
+}
+
+export async function cheatPhase() {
+  if (commitBusy || cs.phase !== 'committed') {
+    return;
+  }
+  commitBusy = true;
+  commitSetControls();
+  try {
+    const fake = cs.bidA + 100;
+    document.getElementById('ca-bid').textContent = `$${fake} ← changed!`;
+    const fakeHash = await sha256hex(`$${fake}|${cs.nA}`);
+    document.getElementById('ca-verify').innerHTML = `SHA-256($${fake} ‖ nonce) =<br><span style="color:var(--err);font-size:10px;word-break:break-all">${fakeHash}</span><br><strong style="color:var(--err)">✗ CAUGHT — hash does not match commitment!</strong>`;
+    document.getElementById('commit-result').innerHTML = '<strong style="color:var(--err)">Binding property holds.</strong> Bidder A\'s revised bid produces a completely different SHA-256 hash. Finding any (bid, nonce) pair that produces the same hash is computationally infeasible.';
+    cs.phase = 'cheated';
+    lastCommitTranscript = buildCommitTranscript({ cheatAttempt: { fakeBid: fake, fakeHash, detected: true } });
+  } finally {
+    commitBusy = false;
+    commitSetControls();
+  }
+}
+
+export function commitReset() {
+  if (commitBusy) {
+    return;
+  }
+  cs = { phase: 'idle', bidA: 0, bidB: 0, nA: '', nB: '', hA: '', hB: '' };
+  lastCommitTranscript = null;
+  ['ca-bid', 'cb-bid', 'ca-nonce', 'cb-nonce', 'ca-hash', 'cb-hash', 'ca-verify', 'cb-verify'].forEach(id => {
+    document.getElementById(id).textContent = '—';
+  });
+  document.getElementById('commit-result').textContent = 'Commitments lock bids before revelation — neither bidder can see or change the other\'s bid once committed.';
+  commitSetControls();
+}
+
+export async function commitCopyTranscript() {
+  if (!lastCommitTranscript) {
+    return;
+  }
+  await copyTextToClipboard(JSON.stringify(lastCommitTranscript, null, 2));
+  document.getElementById('commit-result').innerHTML = '<strong style="color:var(--acc2)">Transcript copied.</strong> You can paste the proof trace into notes, docs, or an interview walkthrough.';
+}
+
+document.getElementById('c-btn-commit').addEventListener('click', commitPhase);
+document.getElementById('c-btn-reveal').addEventListener('click', revealPhase);
+document.getElementById('c-btn-cheat').addEventListener('click', cheatPhase);
+document.getElementById('c-btn-copy').addEventListener('click', commitCopyTranscript);
+document.getElementById('c-btn-reset').addEventListener('click', commitReset);

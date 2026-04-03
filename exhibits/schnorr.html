@@ -48,6 +48,8 @@
         <p>The verifier can check the math and gain confidence, but the secret itself never gets revealed. Real-world versions use much larger numbers, but this smaller example lets you watch every step of the proof happen in the open.</p>
       </section>
 
+      <div class="trust-banner trust-real"><strong>Real math, educational parameters:</strong> the verification equation is real browser-side modular arithmetic, but the numbers are intentionally tiny so a human can follow the proof.</div>
+
       <div class="demo-grid">
         <div class="panel">
           <div class="ph">PROVER (knows x = 17)</div>
@@ -90,14 +92,15 @@
       </div>
 
       <div class="controls">
-        <button class="bp" id="s-btn" onclick="schnorrRun(false)">▶ Run Protocol</button>
-        <button class="bd" id="s-cheat-btn" onclick="schnorrRun(true)">Simulate Cheat</button>
-        <button class="bs" id="s-reset-btn" onclick="schnorrReset()">Reset</button>
+        <button class="bp" id="s-btn">▶ Run Protocol</button>
+        <button class="bd" id="s-cheat-btn">Simulate Cheat</button>
+        <button class="bs" id="s-copy-btn" disabled>Copy Transcript</button>
+        <button class="bs" id="s-reset-btn">Reset</button>
       </div>
       <div class="vl"><strong>What the verifier learns:</strong> Only that the prover knows x. The response s = r + c x changes every round because r is freshly random. Even knowing s and c, computing x requires solving the discrete logarithm — infeasible for large primes. Production Schnorr uses 256-bit parameters (secp256k1, Bitcoin signatures).</div>
     </main>
   </div>
 
-  <script src="../js/schnorr.js"></script>
+  <script type="module" src="../js/schnorr.js"></script>
 </body>
 </html>

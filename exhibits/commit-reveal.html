@@ -40,6 +40,8 @@
         <p>Here the digital envelope is a real SHA-256 hash. Once the bid and secret nonce are revealed, anyone can recompute the hash and confirm that the original commitment was honest and unchanged.</p>
       </section>
 
+      <div class="trust-banner trust-real"><strong>Real hash, educational scenario:</strong> the SHA-256 commitment is real browser-side cryptography. The sealed-bid auction story is there to make the binding and hiding properties intuitive.</div>
+
       <div class="demo-grid">
         <div class="panel">
           <div class="ph">BIDDER A</div>
@@ -71,15 +73,16 @@
         Commitments lock bids before revelation — neither bidder can see or change the other's bid once committed.
       </div>
       <div class="controls">
-        <button class="bp" id="c-btn-commit" onclick="commitPhase()">▶ Submit Bids</button>
-        <button class="bp" id="c-btn-reveal" onclick="revealPhase()" disabled>Reveal Bids</button>
-        <button class="bd" id="c-btn-cheat" onclick="cheatPhase()" disabled>Bidder A Cheats</button>
-        <button class="bs" id="c-btn-reset" onclick="commitReset()">Reset</button>
+        <button class="bp" id="c-btn-commit">▶ Submit Bids</button>
+        <button class="bp" id="c-btn-reveal" disabled>Reveal Bids</button>
+        <button class="bd" id="c-btn-cheat" disabled>Bidder A Cheats</button>
+        <button class="bs" id="c-btn-copy" disabled>Copy Transcript</button>
+        <button class="bs" id="c-btn-reset">Reset</button>
       </div>
       <div class="vl"><strong>Real SHA-256 runs in your browser</strong> via window.crypto.subtle.digest(). <strong>Binding:</strong> changing even one character produces a completely different 256-bit hash. <strong>Hiding:</strong> the hash reveals nothing about the bid value.</div>
     </main>
   </div>
 
-  <script src="../js/commit.js"></script>
+  <script type="module" src="../js/commit.js"></script>
 </body>
 </html>
