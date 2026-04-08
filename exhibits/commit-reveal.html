@@ -6,6 +6,12 @@
   <meta name="description" content="Interactive commit-reveal exhibit using real SHA-256 in the browser to show binding and hiding.">
   <meta name="theme-color" content="#070b12">
   <title>Exhibit 04 · Commit-Reveal · ZK Proof Lab</title>
+  <script>
+    (function () {
+      const saved = localStorage.getItem('theme');
+      document.documentElement.setAttribute('data-theme', saved ?? 'dark');
+    })();
+  </script>
   <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
@@ -125,6 +131,7 @@
     </footer>
   </div>
 
+  <script type="module" src="../js/main.js"></script>
   <script type="module" src="../js/commit.js"></script>
 </body>
 </html>

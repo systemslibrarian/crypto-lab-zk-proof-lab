@@ -1,5 +1,13 @@
 {
+  "name": "crypto-lab-zk-proof-lab",
+  "private": true,
+  "scripts": {
+    "build": "vite build"
+  },
   "devDependencies": {
-    "playwright": "^1.59.1"
+    "@types/node": "^24.5.2",
+    "playwright": "^1.59.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.7"
   }
 }

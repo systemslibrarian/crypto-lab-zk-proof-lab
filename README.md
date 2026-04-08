@@ -3,183 +3,38 @@
 [![Deploy GitHub Pages](https://github.com/systemslibrarian/zk-proof-lab/actions/workflows/pages.yml/badge.svg)](https://github.com/systemslibrarian/zk-proof-lab/actions/workflows/pages.yml)
 [Live Demo](https://systemslibrarian.github.io/zk-proof-lab/)
 
-An interactive, static-first lab for understanding zero-knowledge proofs through six exhibits, from the Ali Baba cave thought experiment to non-interactive Fiat-Shamir proofs, a zk-SNARK intuition pipeline, real browser-side Schnorr verification, and SHA-256 commitments.
+## 1. What It Is
 
-This project is built to teach the intuition fast, stay honest about what is conceptual versus cryptographically real, and show production-minded engineering in a framework-free codebase.
+ZK Proof Lab is an interactive educational demo for zero-knowledge proof workflows, with conceptual exhibits (Ali Baba Cave, Graph 3-Coloring ZKP, zk-SNARK intuition) and cryptographically real primitives in the browser (`Schnorr Identification Protocol`, `Hash Commit-Reveal` with `window.crypto.subtle.digest('SHA-256', ...)`, and `Fiat-Shamir (Non-Interactive)`). It addresses the problem of proving knowledge or correctness without disclosing the secret witness. The security model shown in code is primarily honest-verifier ZK for the interactive proofs, plus hash-based binding/hiding for commitments, with explicit notes where the exhibit is pedagogical rather than production hardened. It is a teaching lab, not an audited cryptographic library. Parameters are intentionally small in the real-math exhibits for traceability and UI clarity.
 
-<p align="center">
-  <img src="docs/screenshots/lobby.png" alt="ZK Proof Lab lobby — exhibit selector with six protocol cards" width="720">
-</p>
+## 2. When to Use It
 
-<p align="center">
-  <img src="docs/screenshots/schnorr.png" alt="Schnorr Identification exhibit with real modular arithmetic" width="720">
-</p>
+- Use it for onboarding engineers to zero-knowledge protocol flow because the exhibits show the full transcript lifecycle (commitment, challenge, response, verification) with inspectable values.
+- Use it in interviews or classroom demos when you need concrete Schnorr and commit-reveal mechanics in a browser, since the implementation uses real BigInt modular arithmetic and Web Crypto SHA-256.
+- Use it for replayable protocol walkthroughs when deterministic scenarios matter, because the scenario preset and transcript lab pages let teams compare runs and reason about verifier outcomes.
+- Use it to explain why Fiat-Shamir removes interactivity, because the dedicated exhibit derives the challenge from hashing transcript inputs and verifies the resulting non-interactive proof.
+- Do not use it for production security decisions, because the project explicitly uses toy parameters and pedagogical models (especially cave/graph/snark intuition) rather than deployment-grade cryptographic hardening.
 
-<p align="center">
-  <img src="docs/screenshots/schnorr-demo.gif" alt="Schnorr protocol running — commitment, challenge, response, and verification with real values" width="720">
-  <br><em>Schnorr identification: 3 honest rounds then a cheat attempt, all with real modular arithmetic</em>
-</p>
+## 3. Live Demo
 
-## Why This Matters
+Live demo: https://systemslibrarian.github.io/zk-proof-lab/
 
-Zero-knowledge proofs sit at the center of modern privacy-preserving systems: authentication, blockchains, signatures, identity, and any workflow where something must be verified without exposing the underlying secret.
+The demo lets users run six exhibits, execute protocol rounds, simulate cheating behavior, and inspect verification outcomes and logs. It includes real `Run Protocol`, `Simulate Cheat`, `Submit Bids`, `Reveal Bids`, replay, and reset controls, plus explicit toy-vs-production parameter tables (for example `p = 2053`, `g = 5`, and challenge range in the Schnorr exhibit). The project does not provide encryption/decryption flows; it focuses on identification proofs, commitment verification, and transcript-based verification.
 
-Most explanations either stay too abstract or jump straight into algebra. This project bridges that gap. A learner starts with the cave, understands the idea in plain English, then graduates into actual arithmetic and real hashing in the browser.
+## 4. What Can Go Wrong
 
-## What This Demonstrates
+- Reusing Schnorr nonces (`r`) can leak the secret (`x`) from two transcripts, which breaks the core secrecy guarantee of identification proofs.
+- Using small or weak group parameters makes discrete-log attacks practical, so a verifier equation that passes in the toy demo would not imply real-world security.
+- Omitting transcript/domain separation details in Fiat-Shamir challenge derivation can enable replay or malleability across contexts, undermining non-interactive soundness assumptions.
+- Reusing or biasing commit-reveal nonces weakens hiding and can leak bid information before reveal, defeating fairness of the commit phase.
+- Failing to enforce reveal windows in commit-reveal protocols allows strategic non-reveal (griefing), which is a protocol-level failure even when hash checks are correct.
 
-- Applied cryptography: BigInt modular exponentiation, challenge-response protocols, and Web Crypto SHA-256.
-- Product thinking: concept-first learning flow, honest labeling, and interactive confidence-building UI.
-- Frontend engineering: pure static HTML/CSS/JS, no build step, no runtime dependencies, GitHub Pages deployment.
-- Systems judgment: deliberate separation between conceptual models and real cryptographic primitives.
-- Accessibility and UX: keyboard focus states, mobile-friendly layout, reduced-motion support, and live-region updates for dynamic protocol state.
+## 5. Real-World Usage
 
-## Use Cases
+- Bitcoin Taproot (BIP340): uses Schnorr signatures over secp256k1 for key-path spends and signature aggregation-friendly design.
+- MuSig2 and related multisignature constructions: build threshold/co-signing workflows on Schnorr-style signing equations and nonce commitments.
+- Zcash Sapling/Orchard proving systems: use Fiat-Shamir style transcripts to make zk proofs non-interactive in the random-oracle model.
+- PLONK-family proving systems (including Halo2-style transcript designs): derive verifier challenges via Fiat-Shamir hashing of commitments and transcript state.
+- Commit-reveal workflows in blockchain applications (sealed-bid auctions, name-registration schemes): use hash commitments first and delayed reveal to prevent premature disclosure and last-moment changes.
 
-- Teaching zero-knowledge proofs to students, teams, or interview candidates.
-- Demoing why verification without disclosure matters in privacy-preserving systems.
-- Showing recruiters and interviewers a project that combines cryptography, frontend execution, and clear technical communication.
-- Serving as a static foundation for a larger education product or protocol visualization platform.
-
-## Exhibits
-
-| Exhibit | Protocol | Real vs Simulated | What the user learns in plain English |
-|---|---|---|---|
-| 01 | Ali Baba Cave | Conceptual | Prove you know the secret door word without saying the word |
-| 02 | Graph 3-Coloring ZKP | Commitments Simplified | Prove a map is colored correctly without revealing the whole answer |
-| 03 | Schnorr Identification | Real modular arithmetic | Prove you know a secret number without revealing the number |
-| 04 | Hash Commit-Reveal | Real SHA-256 | Lock in a hidden choice now and prove later that you did not change it |
-| 05 | Fiat-Shamir Transformation | Real hash-derived challenge | Turn interactive challenge-response into a single non-interactive proof |
-| 06 | zk-SNARK Intuition | Pedagogical SNARK model | Understand setup/prove/verify and public/private input separation |
-
-## Architecture
-
-The site is intentionally simple at runtime and explicit in structure.
-
-```text
-zk-proof-lab/
-├── index.html                  # museum lobby / entry point
-├── exhibits/
-│   ├── cave.html              # conceptual ZKP thought experiment
-│   ├── graph-coloring.html    # selective reveal + simplified commitments
-│   ├── schnorr.html           # real browser-side modular arithmetic
-│   ├── fiat-shamir.html       # non-interactive hash-derived challenge demo
-│   ├── commit-reveal.html     # real browser-side SHA-256 commitment flow
-│   ├── snark.html             # zk-SNARK pipeline intuition model
-│   ├── transcript-lab.html    # replay and compare proof transcripts
-│   └── scenario-presets.html  # one-click deterministic demo routes
-├── css/
-│   └── style.css              # shared visual system, mobile, accessibility
-├── js/
-│   ├── cave.js                # animation, soundness tracking, bluff mode
-│   ├── graph.js               # challenge flow, permutations, commitment table
-│   ├── schnorr.js             # BigInt modpow and transcript verification
-│   ├── commit.js              # Web Crypto SHA-256 and commit/reveal logic
-│   ├── fiat-shamir.js         # hash-derived challenge and NIZK verification
-│   ├── snark.js               # setup/prove/verify toy SNARK pipeline
-│   ├── transcript-lab.js      # transcript replay/compare controller
-│   ├── utils.js               # shared helper entrypoint
-│   └── shared.js              # reusable protocol helpers
-├── tests/
-│   ├── logic-smoke.html       # no-dependency logic checks
-│   ├── logic-smoke.js         # Schnorr/hash/probability smoke tests
-│   ├── quality-gates.html     # accessibility + visual-token checks
-│   ├── quality-gates.js       # quality gate runner
-│   ├── browser-quality.mjs    # Playwright browser quality checks
-│   ├── accessibility-audit.mjs # axe-core accessibility audit
-│   ├── capture-visuals.mjs    # screenshot capture automation
-│   ├── capture-videos.mjs     # Playwright video artifact capture
-│   └── make-visual-gif.sh     # best-effort GIF summary generation
-└── docs/
-    └── zkp-primer.md          # protocol property mapping and accuracy notes
-```
-
-Design choices:
-
-- Static-first: instant load, no build pipeline, easy GitHub Pages hosting, easy offline use.
-- Shared styling, isolated exhibit logic: each protocol is independently understandable and debuggable.
-- Honest cryptographic boundaries: conceptual exhibits are labeled as such; real primitives are explicitly called out.
-
-## Quick Start
-
-No install. No framework. No build.
-
-```bash
-python -m http.server 8000
-```
-
-Then open `http://localhost:8000`.
-
-Optional no-dependency checks:
-
-- `http://localhost:8000/tests/logic-smoke.html`
-- `http://localhost:8000/tests/quality-gates.html`
-
-Or use the live deployment: [https://systemslibrarian.github.io/zk-proof-lab/](https://systemslibrarian.github.io/zk-proof-lab/)
-
-## Example Results
-
-- Cave: after 10 successful rounds, a bluffer's pass probability falls to $0.5^{10} = 0.0977\%$.
-- Graph coloring: after 10 rounds, undetected cheating falls to $(5/6)^{10} \approx 16.15\%$.
-- Schnorr: the verifier checks that $g^s \bmod p = R \cdot y^c \bmod p$ using real BigInt arithmetic in the browser.
-- Commit-reveal: changing Bidder A's bid after committing produces a different 64-character SHA-256 digest and fails verification immediately.
-
-## Technical Depth
-
-### 1. Real browser-side arithmetic where it matters
-
-The Schnorr exhibit does not fake the algebra. It uses BigInt modular exponentiation and verifies the actual identification equation in the browser. The parameters are intentionally small for readability, but the protocol mechanics are real.
-
-### 2. Real hashing where it matters
-
-The commit-reveal exhibit uses `window.crypto.subtle.digest('SHA-256', ...)` and cryptographically secure randomness from `crypto.getRandomValues`. This is not a toy string hash.
-
-### 3. Deliberate honesty in protocol presentation
-
-The cave and graph exhibits are labeled conceptual or simplified because they teach proof structure, not production commitment schemes. That honesty matters. It shows protocol understanding rather than cargo-cult crypto branding.
-
-### 4. Reviewer-friendly engineering choices
-
-- No framework overhead for a site that does not need it.
-- Small, isolated modules per exhibit.
-- Explicit control locking to avoid race conditions during async interactions.
-- Accessibility improvements for dynamic state changes and keyboard navigation.
-
-## Why Exhibit 1 Is The Cave
-
-The Ali Baba cave is the canonical ZKP thought experiment from Jean-Jacques Quisquater and Louis Guillou's 1989 paper, "How to Explain Zero-Knowledge Protocols to Your Children."
-
-It remains the best first explanation because it makes the three core properties intuitive without math:
-
-- Completeness: if you know the secret word, you always come out the requested side.
-- Soundness: if you are bluffing, you fail half the time.
-- Zero-knowledge: the verifier never sees which path you took.
-
-That is why this project starts with the cave before moving into Schnorr. The learner gets the mental model first, then the algebra.
-
-## Interview Hooks
-
-- Why keep the whole project static instead of reaching for React or a backend?
-- Why explicitly label some exhibits conceptual and others real?
-- What would change if Schnorr parameters were upgraded to production-grade curves?
-- How would you turn this from an educational demo into a reusable protocol playground?
-- What are the tradeoffs between teaching clarity and cryptographic completeness?
-
-## Limitations
-
-- The Schnorr parameters are intentionally tiny and educational, not secure for production use.
-- The graph coloring commitments are simplified for pedagogy, not a full commitment construction.
-- This is an educational frontend, not a cryptographic library or formal verifier.
-- Browser execution is convenient and inspectable, but it is not a substitute for audited production systems.
-
-## Future Improvements
-
-Current roadmap backlog is cleared. The previously planned improvements (JSON delta comparison, CI video capture, one-click seeded scenario presets, and protocol invariant checks in browser automation) are implemented.
-
-## Deployment
-
-GitHub Pages is configured through `.github/workflows/pages.yml` and deploys automatically on pushes to `main`.
-
-## Attribution
-
-systemslibrarian · 1 Corinthians 10:31
+*"So whether you eat or drink or whatever you do, do it all for the glory of God." — 1 Corinthians 10:31*

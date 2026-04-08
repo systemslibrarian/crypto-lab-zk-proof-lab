@@ -6,6 +6,12 @@
   <meta name="description" content="Interactive Schnorr identification exhibit with real browser-side modular arithmetic and step-by-step verification.">
   <meta name="theme-color" content="#070b12">
   <title>Exhibit 03 · Schnorr · ZK Proof Lab</title>
+  <script>
+    (function () {
+      const saved = localStorage.getItem('theme');
+      document.documentElement.setAttribute('data-theme', saved ?? 'dark');
+    })();
+  </script>
   <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
@@ -143,6 +149,7 @@
     </footer>
   </div>
 
+  <script type="module" src="../js/main.js"></script>
   <script type="module" src="../js/schnorr.js"></script>
 </body>
 </html>

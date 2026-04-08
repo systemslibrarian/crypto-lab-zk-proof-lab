@@ -6,6 +6,12 @@
   <meta name="description" content="Interactive zero-knowledge proof exhibits explaining the Ali Baba cave, graph coloring, Schnorr identification, and SHA-256 commit-reveal.">
   <meta name="theme-color" content="#070b12">
   <title>ZK Proof Lab</title>
+  <script>
+    (function () {
+      const saved = localStorage.getItem('theme');
+      document.documentElement.setAttribute('data-theme', saved ?? 'dark');
+    })();
+  </script>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -101,5 +107,7 @@
       <a href="https://github.com/systemslibrarian/zk-proof-lab" target="_blank" rel="noopener noreferrer">View on GitHub</a> · <a href="tests/logic-smoke.html">Run Tests</a> · v1.0 · ZK Proof Lab by <a href="https://github.com/systemslibrarian" target="_blank" rel="noopener noreferrer">systemslibrarian</a> · 1 Corinthians 10:31
     </footer>
   </div>
+
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>

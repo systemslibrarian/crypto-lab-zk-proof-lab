@@ -6,6 +6,12 @@
   <meta name="description" content="Interactive Fiat-Shamir exhibit demonstrating non-interactive proof generation with real browser-side hashing and modular arithmetic.">
   <meta name="theme-color" content="#070b12">
   <title>Exhibit 05 · Fiat-Shamir · ZK Proof Lab</title>
+  <script>
+    (function () {
+      const saved = localStorage.getItem('theme');
+      document.documentElement.setAttribute('data-theme', saved ?? 'dark');
+    })();
+  </script>
   <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
@@ -121,6 +127,7 @@
     </footer>
   </div>
 
+  <script type="module" src="../js/main.js"></script>
   <script type="module" src="../js/fiat-shamir.js"></script>
 </body>
 </html>

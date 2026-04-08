@@ -6,6 +6,12 @@
   <meta name="description" content="Interactive Ali Baba cave exhibit for understanding zero-knowledge proofs in plain English.">
   <meta name="theme-color" content="#070b12">
   <title>Exhibit 01 · Ali Baba Cave · ZK Proof Lab</title>
+  <script>
+    (function () {
+      const saved = localStorage.getItem('theme');
+      document.documentElement.setAttribute('data-theme', saved ?? 'dark');
+    })();
+  </script>
   <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
@@ -117,6 +123,7 @@
     </footer>
   </div>
 
+  <script type="module" src="../js/main.js"></script>
   <script type="module" src="../js/cave.js"></script>
 </body>
 </html>
