@@ -59,7 +59,7 @@ export async function schnorrRun(cheat) {
   schnorrSetControls();
   try {
     ['s2', 's3', 's4'].forEach(id => {
-      document.getElementById(id).style.opacity = '.3';
+      document.getElementById(id).style.display = 'none';
     });
     document.getElementById('s-result').textContent = '';
     const r = nextInt(1, 2051);
@@ -72,16 +72,16 @@ export async function schnorrRun(cheat) {
     const c = nextInt(1, 50);
     document.getElementById('s-c').textContent = c;
     document.getElementById('s-c2').textContent = c;
-    document.getElementById('s2').style.opacity = '1';
+    document.getElementById('s2').style.display = '';
     await sleep(350);
     const s = cheat ? nextInt(1, 2051) : ((r + c * 17) % 2052 + 2052) % 2052;
     document.getElementById('s-s').textContent = s;
-    document.getElementById('s3').style.opacity = '1';
+    document.getElementById('s3').style.display = '';
     await sleep(350);
     const { lhs, rhs, ok } = schnorrVerify({ g: 5, p: 2053, y: 375, R, c, s });
     document.getElementById('s-lhs').textContent = lhs;
     document.getElementById('s-rhs').textContent = rhs;
-    document.getElementById('s4').style.opacity = '1';
+    document.getElementById('s4').style.display = '';
     const result = document.getElementById('s-result');
     if (ok) {
       result.innerHTML = '<span style="color:var(--ok)">✓ VERIFIED — values match</span>';
@@ -119,7 +119,7 @@ export function schnorrReset() {
   });
   document.getElementById('s-result').textContent = '';
   ['s2', 's3', 's4'].forEach(id => {
-    document.getElementById(id).style.opacity = '.3';
+    document.getElementById(id).style.display = 'none';
   });
   document.getElementById('s-fill').style.width = '0%';
   document.getElementById('s-pct').textContent = '0.00%';

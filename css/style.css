@@ -1,7 +1,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#070b12;--surf:#0d1422;--elev:#131c2e;--bord:#1c2540;
-  --acc:#4f7bff;--acc2:#7fa3ff;--ok:#34d399;--err:#f87171;--warn:#fbbf24;
+  --acc:#3565d8;--acc2:#7fa3ff;--ok:#34d399;--err:#f87171;--warn:#fbbf24;
   --tx:#f4f8ff;--tx2:#cad8f0;--tx3:#93a8ca;
   --bg-spot-a:#17233d;--bg-spot-b:#102847;
   --mono:'Consolas','Fira Code','Courier New',monospace;

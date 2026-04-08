@@ -103,7 +103,7 @@
               <div class="step-eq">R = g<sup id="s-r2">r</sup> mod p = <span class="sv" id="s-R">?</span></div>
               <div class="hint">→ send R to verifier</div>
             </div>
-            <div class="step-card" id="s3" style="opacity:.3">
+            <div class="step-card" id="s3" style="display:none">
               <div class="step-label">STEP 3 — RESPONSE</div>
               <div class="step-eq">s = (r + c·x) mod (p−1)</div>
               <div class="step-eq">s = (<span id="s-r3">?</span> + <span id="s-c2">?</span>·17) mod 2052 = <span class="sv" id="s-s">?</span></div>
@@ -114,12 +114,12 @@
         <div class="panel">
           <div class="ph">VERIFIER</div>
           <div class="pb">
-            <div class="step-card" id="s2" style="opacity:.3">
+            <div class="step-card" id="s2" style="display:none">
               <div class="step-label">STEP 2 — CHALLENGE</div>
               <div class="step-eq">Pick random c = <span class="sv" id="s-c">?</span></div>
               <div class="hint">← send c to prover</div>
             </div>
-            <div class="step-card" id="s4" style="opacity:.3">
+            <div class="step-card" id="s4" style="display:none">
               <div class="step-label">STEP 4 — VERIFY: g^s ≡ R·y^c (mod p)</div>
               <div class="step-eq">g^s mod p = <span class="sv" id="s-lhs">?</span></div>
               <div class="step-eq">R·y^c mod p = <span class="sv" id="s-rhs">?</span></div>

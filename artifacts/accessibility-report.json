@@ -1,0 +1,51 @@
+{
+  "baseUrl": "http://127.0.0.1:8000",
+  "totalViolations": 0,
+  "summary": [
+    {
+      "route": "/",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/cave.html",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/graph-coloring.html",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/schnorr.html",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/commit-reveal.html",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/fiat-shamir.html",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/snark.html",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/transcript-lab.html",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/scenario-presets.html",
+      "violationCount": 0,
+      "violations": []
+    }
+  ]
+}
