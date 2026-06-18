@@ -104,6 +104,12 @@ button{font-family:var(--mono);font-size:12px;padding:10px 15px;border-radius:6p
 .tog input:checked+.tog-sl::after{transform:translateX(16px);background:#fff}
 .params-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:16px}
 .param-box{background:var(--surf);border:1px solid var(--bord);border-radius:4px;padding:10px 12px}
+.param-control{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 16px;font-size:12px;color:var(--tx2)}
+.param-control label{color:var(--tx)}
+.param-select{font-family:var(--mono);font-size:14px;min-height:44px;padding:8px 12px;border-radius:6px;border:1px solid var(--bord);background:var(--surf);color:var(--tx);cursor:pointer}
+.param-select:hover{border-color:var(--acc)}
+.narration{background:rgba(79,123,255,.08);border:1px solid rgba(79,123,255,.28);border-left:3px solid var(--acc);border-radius:6px;padding:12px 15px;margin:0 0 14px;font-size:13.5px;line-height:1.6;color:var(--tx);min-height:22px}
+.narration strong{color:var(--acc2);font-weight:600}
 .table-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
 .commit-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
 .commit-table th,.commit-table td{padding:6px 8px;border-bottom:1px solid var(--bord);text-align:left}

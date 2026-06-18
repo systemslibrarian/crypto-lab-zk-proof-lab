@@ -4,6 +4,7 @@ import {
   copyTextToClipboard,
   createSeededRng,
   flashFail,
+  modpow,
   readAutoFromUrl,
   readModeFromUrl,
   rInt,
@@ -18,6 +19,35 @@ let schnorrN = 0;
 let schnorrBusy = false;
 let lastSchnorrTranscript = null;
 let stepRun = null;
+let secretX = 17;
+let pubY = 375;
+
+const DEFAULT_NARRATION = 'Press <strong>Run Protocol</strong> for the full flow, or <strong>Step ▷</strong> to walk through one phase at a time.';
+const NARRATION = {
+  1: 'The prover picks a secret random <strong>r</strong> and sends only <strong>R = gʳ mod p</strong>. R commits to r without revealing the secret x.',
+  2: 'The verifier replies with a fresh random challenge <strong>c</strong> — unpredictable, so the prover cannot have prepared an answer in advance.',
+  3: 'The prover responds <strong>s = (r + c·x) mod (p−1)</strong>, blending the secret x with the random r so x never appears in the open.',
+  4: 'The verifier checks <strong>gˢ ≡ R·yᶜ (mod p)</strong>. It balances only if the prover truly knew x — yet x was never sent.'
+};
+
+function setNarration(html) {
+  const element = document.getElementById('s-narration');
+  if (element) {
+    element.innerHTML = html;
+  }
+}
+
+// Let the visitor change the secret and watch the public key recompute, so the
+// relationship y = g^x mod p becomes tangible rather than a fixed constant.
+function schnorrSetSecret() {
+  secretX = parseInt(document.getElementById('s-x-select').value, 10);
+  pubY = modpow(5, secretX, 2053);
+  document.getElementById('s-x-val').textContent = secretX;
+  document.getElementById('s-y-val').textContent = pubY;
+  document.getElementById('s-prover-x').textContent = secretX;
+  document.getElementById('s-x-f').textContent = secretX;
+  schnorrReset();
+}
 const scenarioSeed = readSeedFromUrl();
 const scenarioMode = readModeFromUrl();
 const autoScenario = readAutoFromUrl();
@@ -54,8 +84,8 @@ export function schnorrStep() {
     const r = nextInt(1, 2051);
     const R = schnorrVerify({ g: 5, p: 2053, y: 1, R: 1, c: 0, s: r }).lhs;
     const c = nextInt(1, 50);
-    const s = ((r + c * 17) % 2052 + 2052) % 2052;
-    const { lhs, rhs, ok } = schnorrVerify({ g: 5, p: 2053, y: 375, R, c, s });
+    const s = ((r + c * secretX) % 2052 + 2052) % 2052;
+    const { lhs, rhs, ok } = schnorrVerify({ g: 5, p: 2053, y: pubY, R, c, s });
     stepRun = { r, R, c, s, lhs, rhs, ok, phase: 0 };
     ['s2', 's3', 's4'].forEach(id => {
       document.getElementById(id).style.display = 'none';
@@ -63,6 +93,7 @@ export function schnorrStep() {
     document.getElementById('s-result').textContent = '';
   }
   stepRun.phase += 1;
+  setNarration(NARRATION[stepRun.phase]);
   if (stepRun.phase === 1) {
     document.getElementById('s-r').textContent = stepRun.r;
     document.getElementById('s-r2').textContent = stepRun.r;
@@ -99,7 +130,7 @@ function buildTranscript({ cheat, r, R, c, s, lhs, rhs, ok }) {
     protocol: 'Schnorr Identification',
     mode: cheat ? 'cheat-simulation' : 'honest-proof',
     educationalParameters: true,
-    parameters: { p: 2053, g: 5, y: 375 },
+    parameters: { p: 2053, g: 5, y: pubY },
     seed: scenarioSeed,
     transcript: { r, R, c, s, lhs, rhs, verified: ok },
     note: 'Real browser-side modular arithmetic with intentionally tiny educational parameters.'
@@ -129,17 +160,20 @@ export async function schnorrRun(cheat) {
     document.getElementById('s-r2').textContent = r;
     document.getElementById('s-R').textContent = R;
     document.getElementById('s-r3').textContent = r;
+    setNarration(NARRATION[1]);
     await sleep(350);
     const c = nextInt(1, 50);
     document.getElementById('s-c').textContent = c;
     document.getElementById('s-c2').textContent = c;
     document.getElementById('s2').style.display = '';
+    setNarration(NARRATION[2]);
     await sleep(350);
-    const s = cheat ? nextInt(1, 2051) : ((r + c * 17) % 2052 + 2052) % 2052;
+    const s = cheat ? nextInt(1, 2051) : ((r + c * secretX) % 2052 + 2052) % 2052;
     document.getElementById('s-s').textContent = s;
     document.getElementById('s3').style.display = '';
+    setNarration(cheat ? 'A cheating prover has no valid x, so it must guess a response <strong>s</strong> and hope the equation balances.' : NARRATION[3]);
     await sleep(350);
-    const { lhs, rhs, ok } = schnorrVerify({ g: 5, p: 2053, y: 375, R, c, s });
+    const { lhs, rhs, ok } = schnorrVerify({ g: 5, p: 2053, y: pubY, R, c, s });
     document.getElementById('s-lhs').textContent = lhs;
     document.getElementById('s-rhs').textContent = rhs;
     document.getElementById('s4').style.display = '';
@@ -152,10 +186,12 @@ export async function schnorrRun(cheat) {
         celebrate('s-result');
       }
       addLog('s-log', `g^${s} mod p = ${lhs} = R·y^c ✓`, 'lok');
+      setNarration(NARRATION[4]);
     } else {
       result.innerHTML = `<span style="color:var(--err)">✗ FAILED — ${lhs} ≠ ${rhs}</span>`;
       addLog('s-log', `CHEAT: g^s=${lhs} ≠ R·y^c=${rhs} → CAUGHT`, 'lerr');
       flashFail('s-result');
+      setNarration('Rejected: <strong>gˢ ≠ R·yᶜ</strong>. Without the real secret x the response cannot satisfy the verifier — soundness holds.');
     }
     lastSchnorrTranscript = buildTranscript({ cheat, r, R, c, s, lhs, rhs, ok });
     persistTranscript(lastSchnorrTranscript);
@@ -189,6 +225,7 @@ export function schnorrReset() {
   document.getElementById('s-fill').style.width = '0%';
   document.getElementById('s-pct').textContent = '0.00%';
   document.getElementById('s-log').innerHTML = '<span class="le">— protocol log —</span>';
+  setNarration(DEFAULT_NARRATION);
   schnorrSetControls();
 }
 
@@ -214,6 +251,7 @@ document.getElementById('s-cheat-btn').addEventListener('click', () => schnorrRu
 document.getElementById('s-copy-btn').addEventListener('click', schnorrCopyTranscript);
 document.getElementById('s-replay-btn').addEventListener('click', schnorrReplayInLab);
 document.getElementById('s-reset-btn').addEventListener('click', schnorrReset);
+document.getElementById('s-x-select').addEventListener('change', schnorrSetSecret);
 
 if (autoScenario) {
   setTimeout(() => {

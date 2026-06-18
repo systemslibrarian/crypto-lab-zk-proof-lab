@@ -65,8 +65,20 @@
       <div class="params-grid">
         <div class="param-box"><div class="hash-label">Prime p</div><div style="color:var(--tx);font-size:14px">2053</div></div>
         <div class="param-box"><div class="hash-label">Generator g</div><div style="color:var(--tx);font-size:14px">5</div></div>
-        <div class="param-box"><div class="hash-label">Secret x (hidden)</div><div style="color:var(--err);font-size:14px">17</div></div>
-        <div class="param-box"><div class="hash-label">Public key y = g^x mod p</div><div style="color:var(--ok);font-size:14px">375</div></div>
+        <div class="param-box"><div class="hash-label">Secret x (hidden)</div><div style="color:var(--err);font-size:14px" id="s-x-val">17</div></div>
+        <div class="param-box"><div class="hash-label">Public key y = g^x mod p</div><div style="color:var(--ok);font-size:14px" id="s-y-val">375</div></div>
+      </div>
+
+      <div class="param-control">
+        <label for="s-x-select">Try a different secret&nbsp;x:</label>
+        <select id="s-x-select" class="param-select">
+          <option value="7">7</option>
+          <option value="13">13</option>
+          <option value="17" selected>17</option>
+          <option value="23">23</option>
+          <option value="42">42</option>
+        </select>
+        <span class="hint">The public key y = g<sup>x</sup> mod p updates automatically.</span>
       </div>
 
       <div class="panel" style="margin-bottom:14px">
@@ -93,9 +105,11 @@
 
       <div class="trust-banner trust-real"><strong>Real math, educational parameters:</strong> this is actual Schnorr-style verification flow in the browser. Production systems use large curves or groups and hardened implementations.</div>
 
+      <div id="s-narration" class="narration" aria-live="polite">Press <strong>Run Protocol</strong> for the full flow, or <strong>Step ▷</strong> to walk through one phase at a time.</div>
+
       <div class="demo-grid">
         <div class="panel">
-          <div class="ph">PROVER (knows x = 17)</div>
+          <div class="ph">PROVER (knows x = <span id="s-prover-x">17</span>)</div>
           <div class="pb">
             <div class="step-card" id="s1">
               <div class="step-label">STEP 1 — COMMITMENT</div>
@@ -106,7 +120,7 @@
             <div class="step-card" id="s3" style="display:none">
               <div class="step-label">STEP 3 — RESPONSE</div>
               <div class="step-eq">s = (r + c·x) mod (p−1)</div>
-              <div class="step-eq">s = (<span id="s-r3">?</span> + <span id="s-c2">?</span>·17) mod 2052 = <span class="sv" id="s-s">?</span></div>
+              <div class="step-eq">s = (<span id="s-r3">?</span> + <span id="s-c2">?</span>·<span id="s-x-f">17</span>) mod 2052 = <span class="sv" id="s-s">?</span></div>
               <div class="hint">→ send s to verifier</div>
             </div>
           </div>
