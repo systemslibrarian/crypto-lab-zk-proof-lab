@@ -19,7 +19,11 @@ async function run() {
     ['SHA-256 matches known hash for abc', async () => (await sha256hex('abc')) === 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad']
   ];
 
-  document.getElementById('test-log').innerHTML = '<span class="le">— protocol test log —</span>';
+  if (typeof document !== 'undefined') {
+    document.getElementById('test-log').innerHTML = '<span class="le">— protocol test log —</span>';
+  } else {
+    console.log('— protocol test log —');
+  }
 
   let passed = 0;
   for (const [name, testFn] of tests) {
@@ -29,13 +33,26 @@ async function run() {
         throw new Error('assertion failed');
       }
       passed += 1;
-      addLog('test-log', `PASS: ${name}`, 'lok');
+      if (typeof document !== 'undefined') {
+        addLog('test-log', `PASS: ${name}`, 'lok');
+      } else {
+        console.log(`PASS: ${name}`);
+      }
     } catch (error) {
-      addLog('test-log', `FAIL: ${name} (${error.message})`, 'lerr');
+      if (typeof document !== 'undefined') {
+        addLog('test-log', `FAIL: ${name} (${error.message})`, 'lerr');
+      } else {
+        console.error(`FAIL: ${name} (${error.message})`);
+      }
     }
   }
 
-  addLog('test-log', `${passed}/${tests.length} tests passed`, passed === tests.length ? 'lok' : 'lacc');
+  if (typeof document !== 'undefined') {
+    addLog('test-log', `${passed}/${tests.length} tests passed`, passed === tests.length ? 'lok' : 'lacc');
+  } else {
+    console.log(`${passed}/${tests.length} tests passed`);
+    if (passed !== tests.length && typeof process !== 'undefined') process.exit(1);
+  }
 }
 
 run();

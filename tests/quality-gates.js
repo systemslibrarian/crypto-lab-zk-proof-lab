@@ -5,14 +5,20 @@ const pages = [
   '../exhibits/schnorr.html',
   '../exhibits/commit-reveal.html',
   '../exhibits/fiat-shamir.html',
-  '../exhibits/transcript-lab.html'
+  '../exhibits/snark.html',
+  '../exhibits/transcript-lab.html',
+  '../exhibits/scenario-presets.html'
 ];
 
 function addLine(text, cls = 'le') {
-  const line = document.createElement('div');
-  line.className = cls;
-  line.textContent = text;
-  document.getElementById('qg-log').appendChild(line);
+  if (typeof document !== 'undefined') {
+    const line = document.createElement('div');
+    line.className = cls;
+    line.textContent = text;
+    document.getElementById('qg-log').appendChild(line);
+  } else {
+    console.log(text);
+  }
 }
 
 function gate(ok, label) {
@@ -27,11 +33,27 @@ async function sha256(text) {
 }
 
 async function runChecks() {
-  document.getElementById('qg-log').innerHTML = '<span class="le">— quality log —</span>';
+  if (typeof document !== 'undefined') {
+    document.getElementById('qg-log').innerHTML = '<span class="le">— quality log —</span>';
+  } else {
+    console.log('— quality log —');
+  }
   let passed = 0;
   let total = 0;
 
-  const cssText = await fetch('../css/style.css').then(r => r.text());
+  const fs = typeof window === 'undefined' ? await import('fs') : null;
+  const path = typeof window === 'undefined' ? await import('path') : null;
+
+  async function fetchText(p) {
+    if (typeof fetch !== 'undefined' && typeof window !== 'undefined') {
+      return await fetch(p).then(r => r.text());
+    } else {
+      let resolvedPath = p.replace('../', '');
+      return fs.readFileSync(path.resolve(process.cwd(), resolvedPath), 'utf8');
+    }
+  }
+
+  const cssText = await fetchText('../css/style.css');
   total += 1;
   if (gate(cssText.includes(':focus-visible') && cssText.includes('.trust-banner') && cssText.includes('.resource-link'), 'Visual token baseline selectors exist')) {
     passed += 1;
@@ -41,7 +63,7 @@ async function runChecks() {
   addLine(`INFO: css/style.css sha256 = ${cssHash.slice(0, 24)}...`, 'lacc');
 
   for (const page of pages) {
-    const html = await fetch(page).then(r => r.text());
+    const html = await fetchText(page);
     total += 1;
     if (gate(html.includes('<title>') && html.includes('meta name="viewport"'), `${page} has title + viewport`)) {
       passed += 1;
@@ -59,9 +81,18 @@ async function runChecks() {
   }
 
   const ok = passed === total;
-  document.getElementById('qg-result').innerHTML = ok
-    ? `<strong style="color:var(--ok)">Quality gates passed.</strong> ${passed}/${total} checks succeeded.`
-    : `<strong style="color:var(--err)">Quality gates found issues.</strong> ${passed}/${total} checks succeeded.`;
+  if (typeof document !== 'undefined') {
+    document.getElementById('qg-result').innerHTML = ok
+      ? `<strong style="color:var(--ok)">Quality gates passed.</strong> ${passed}/${total} checks succeeded.`
+      : `<strong style="color:var(--err)">Quality gates found issues.</strong> ${passed}/${total} checks succeeded.`;
+  } else {
+    console.log(ok ? `Quality gates passed. ${passed}/${total} checks succeeded.` : `Quality gates found issues. ${passed}/${total} checks succeeded.`);
+    if (!ok && typeof process !== 'undefined') process.exit(1);
+  }
 }
 
-document.getElementById('run-qg-btn').addEventListener('click', runChecks);
+if (typeof document !== 'undefined') {
+  document.getElementById('run-qg-btn').addEventListener('click', runChecks);
+} else {
+  runChecks().catch(console.error);
+}

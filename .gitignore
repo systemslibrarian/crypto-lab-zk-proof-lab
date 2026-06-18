@@ -1,2 +1,4 @@
 node_modules/
 docs/screenshots/gif-frames/
+dist/
+test-results/

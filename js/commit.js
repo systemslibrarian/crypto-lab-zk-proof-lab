@@ -1,6 +1,8 @@
 import {
+  celebrate,
   copyTextToClipboard,
   createSeededRng,
+  flashFail,
   readAutoFromUrl,
   readModeFromUrl,
   rHex,
@@ -116,6 +118,9 @@ export async function revealPhase() {
       : `<strong style="color:var(--ok)">Bidder ${winner} wins</strong> — $${winner === 'A' ? cs.bidA : cs.bidB} vs $${winner === 'A' ? cs.bidB : cs.bidA}. Both bids cryptographically verified.`;
     lastCommitTranscript = buildCommitTranscript({ verification: { bidderA: okA, bidderB: okB }, winner });
     persistCommitTranscript(lastCommitTranscript);
+    if (okA && okB) {
+      celebrate('commit-result');
+    }
   } finally {
     commitBusy = false;
     commitSetControls();
@@ -137,6 +142,7 @@ export async function cheatPhase() {
     cs.phase = 'cheated';
     lastCommitTranscript = buildCommitTranscript({ cheatAttempt: { fakeBid: fake, fakeHash, detected: true } });
     persistCommitTranscript(lastCommitTranscript);
+    flashFail('commit-result');
   } finally {
     commitBusy = false;
     commitSetControls();

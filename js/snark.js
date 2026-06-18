@@ -1,7 +1,9 @@
 import {
   addLog,
+  celebrate,
   copyTextToClipboard,
   createSeededRng,
+  flashFail,
   readAutoFromUrl,
   readModeFromUrl,
   rHex,
@@ -78,9 +80,15 @@ function render(transcript) {
   document.getElementById('snark-consistency').textContent = transcript.verification.digestBound
     ? 'digest binds public input to proof envelope'
     : 'digest mismatch';
-  document.getElementById('snark-result').innerHTML = transcript.verification.equationHolds && transcript.verification.digestBound
+  const accepted = transcript.verification.equationHolds && transcript.verification.digestBound;
+  document.getElementById('snark-result').innerHTML = accepted
     ? '<span style="color:var(--ok)">✓ Toy proof accepted by verifier pipeline.</span>'
     : '<span style="color:var(--err)">✗ Toy proof rejected.</span>';
+  if (accepted) {
+    celebrate('snark-result');
+  } else {
+    flashFail('snark-result');
+  }
 }
 
 async function runPipeline() {

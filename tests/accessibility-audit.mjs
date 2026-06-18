@@ -20,38 +20,57 @@ const reportDir = path.resolve(process.cwd(), 'artifacts');
 await fs.mkdir(reportDir, { recursive: true });
 
 const browser = await chromium.launch({ headless: true });
-const context = await browser.newContext({ viewport: { width: 1366, height: 900 } });
-const page = await context.newPage();
+
+// Audit every page in both color schemes (mobile + desktop) so neither theme
+// nor breakpoint can regress accessibility silently.
+const viewports = [
+  { label: 'desktop', width: 1366, height: 900 },
+  { label: 'mobile', width: 375, height: 812 }
+];
+const colorSchemes = ['light', 'dark'];
 
 const summary = [];
 let totalViolations = 0;
 
-for (const route of pages) {
-  await page.goto(`${baseUrl}${route}`, { waitUntil: 'networkidle' });
-  await page.addScriptTag({ content: axe.source });
-  const result = await page.evaluate(async () => {
-    return window.axe.run(document, {
-      runOnly: {
-        type: 'tag',
-        values: ['wcag2a', 'wcag2aa']
-      }
+for (const colorScheme of colorSchemes) {
+  for (const viewport of viewports) {
+    const context = await browser.newContext({
+      viewport: { width: viewport.width, height: viewport.height },
+      colorScheme
     });
-  });
+    const page = await context.newPage();
 
-  const violations = result.violations.map(v => ({
-    id: v.id,
-    impact: v.impact,
-    help: v.help,
-    nodes: v.nodes.map(n => ({ target: n.target, failureSummary: n.failureSummary }))
-  }));
+    for (const route of pages) {
+      await page.goto(`${baseUrl}${route}`, { waitUntil: 'networkidle' });
+      await page.addScriptTag({ content: axe.source });
+      const result = await page.evaluate(async () => {
+        return window.axe.run(document, {
+          runOnly: {
+            type: 'tag',
+            values: ['wcag2a', 'wcag2aa']
+          }
+        });
+      });
 
-  totalViolations += violations.length;
-  summary.push({ route, violationCount: violations.length, violations });
+      const violations = result.violations.map(v => ({
+        id: v.id,
+        impact: v.impact,
+        help: v.help,
+        nodes: v.nodes.map(n => ({ target: n.target, failureSummary: n.failureSummary }))
+      }));
 
-  if (violations.length === 0) {
-    console.log(`PASS: ${route} accessibility audit`);
-  } else {
-    console.error(`FAIL: ${route} accessibility audit (${violations.length} issues)`);
+      const label = `${route} [${colorScheme}/${viewport.label}]`;
+      totalViolations += violations.length;
+      summary.push({ route, colorScheme, viewport: viewport.label, violationCount: violations.length, violations });
+
+      if (violations.length === 0) {
+        console.log(`PASS: ${label} accessibility audit`);
+      } else {
+        console.error(`FAIL: ${label} accessibility audit (${violations.length} issues)`);
+      }
+    }
+
+    await context.close();
   }
 }
 

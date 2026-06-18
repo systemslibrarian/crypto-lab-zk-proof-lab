@@ -1,7 +1,9 @@
 import {
   addLog,
+  celebrate,
   copyTextToClipboard,
   createSeededRng,
+  flashFail,
   readAutoFromUrl,
   readModeFromUrl,
   rInt,
@@ -88,11 +90,13 @@ export async function schnorrRun(cheat) {
       if (!cheat) {
         schnorrN += 1;
         setConf('s-fill', 's-pct', schnorrN, 1 / 50);
+        celebrate('s-result');
       }
       addLog('s-log', `g^${s} mod p = ${lhs} = R·y^c ✓`, 'lok');
     } else {
       result.innerHTML = `<span style="color:var(--err)">✗ FAILED — ${lhs} ≠ ${rhs}</span>`;
       addLog('s-log', `CHEAT: g^s=${lhs} ≠ R·y^c=${rhs} → CAUGHT`, 'lerr');
+      flashFail('s-result');
     }
     lastSchnorrTranscript = buildTranscript({ cheat, r, R, c, s, lhs, rhs, ok });
     persistTranscript(lastSchnorrTranscript);

@@ -1,7 +1,9 @@
 import {
   addLog,
+  celebrate,
   copyTextToClipboard,
   createSeededRng,
+  flashFail,
   modpow,
   readAutoFromUrl,
   readModeFromUrl,
@@ -64,6 +66,11 @@ function renderTranscript(transcript) {
   document.getElementById('fs-result').innerHTML = transcript.transcript.verified
     ? '<span style="color:var(--ok)">✓ VERIFIED — hash-derived challenge binds this proof transcript.</span>'
     : '<span style="color:var(--err)">✗ FAILED — transcript no longer verifies.</span>';
+  if (transcript.transcript.verified) {
+    celebrate('fs-result');
+  } else {
+    flashFail('fs-result');
+  }
 }
 
 async function generateProof() {
@@ -121,6 +128,9 @@ async function tamperMessage() {
     document.getElementById('fs-result').innerHTML = ok
       ? '<span style="color:var(--warn)">Unexpected pass after tamper; regenerate and inspect transcript.</span>'
       : '<span style="color:var(--err)">✗ Tamper detected — changing message changes challenge and breaks verification.</span>';
+    if (!ok) {
+      flashFail('fs-result');
+    }
     document.getElementById('fs-lhs').textContent = String(lhs);
     document.getElementById('fs-rhs').textContent = String(rhs);
     addLog('fs-log', `Tamper check with altered message produced c=${c}: verification failed as expected`, 'lerr');

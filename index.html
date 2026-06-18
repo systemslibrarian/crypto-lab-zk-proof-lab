@@ -9,7 +9,7 @@
   <script>
     (function () {
       const saved = localStorage.getItem('theme');
-      document.documentElement.setAttribute('data-theme', saved ?? 'dark');
+      document.documentElement.setAttribute('data-theme', saved ?? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'));
     })();
   </script>
   <link rel="stylesheet" href="css/style.css">

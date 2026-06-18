@@ -1,7 +1,9 @@
 import {
   addLog,
+  celebrate,
   cheatProbabilityPercent,
   createSeededRng,
+  flashFail,
   readAutoFromUrl,
   rHex,
   rInt,
@@ -143,8 +145,12 @@ export function graphChallenge() {
   gState.n += 1;
   if (ok) {
     addLog('g-log', `R${gState.n}: edge ${a}–${b} → ${COLORS[gState.commits[a].color].label} ≠ ${COLORS[gState.commits[b].color].label} ✓`, 'lok');
+    if (!gState.auto) {
+      celebrate('g-challenge');
+    }
   } else {
     addLog('g-log', `R${gState.n}: FAIL — same color ✗`, 'lerr');
+    flashFail('g-challenge');
   }
   setConf('g-fill', 'g-pct', gState.n, 5 / 6);
   document.getElementById('g-n').textContent = gState.n;

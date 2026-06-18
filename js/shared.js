@@ -124,6 +124,68 @@ export async function sha256hex(msg) {
   return Array.from(new Uint8Array(hash)).map(value => value.toString(16).padStart(2, '0')).join('');
 }
 
+export function prefersReducedMotion() {
+  return Boolean(globalThis.matchMedia && globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+
+function resolveElement(target) {
+  return typeof target === 'string' ? document.getElementById(target) : target;
+}
+
+// Celebrate a successful verification: a brief "pop" on the result element plus
+// a lightweight confetti burst. Motion is skipped for reduced-motion users; the
+// result text/colour still conveys the outcome, so no meaning is lost.
+export function celebrate(target) {
+  const element = resolveElement(target);
+  if (element) {
+    element.classList.remove('celebrate-pop');
+    void element.offsetWidth;
+    element.classList.add('celebrate-pop');
+  }
+  if (prefersReducedMotion()) {
+    return;
+  }
+  spawnConfetti(element);
+}
+
+// Signal a failed/caught outcome with a short shake on the result element.
+export function flashFail(target) {
+  const element = resolveElement(target);
+  if (!element || prefersReducedMotion()) {
+    return;
+  }
+  element.classList.remove('flash-fail');
+  void element.offsetWidth;
+  element.classList.add('flash-fail');
+}
+
+function spawnConfetti(anchor) {
+  const layer = document.createElement('div');
+  layer.className = 'confetti-layer';
+  layer.setAttribute('aria-hidden', 'true');
+  const rect = anchor && anchor.getBoundingClientRect ? anchor.getBoundingClientRect() : null;
+  const originX = rect ? rect.left + rect.width / 2 : globalThis.innerWidth / 2;
+  const originY = rect && rect.height ? rect.top + rect.height / 2 : globalThis.innerHeight / 3;
+  const palette = ['#3565d8', '#7fa3ff', '#34d399', '#fbbf24', '#f4f8ff'];
+  const count = 20;
+  for (let i = 0; i < count; i += 1) {
+    const piece = document.createElement('span');
+    piece.className = 'confetti-piece';
+    const angle = (Math.PI * 2 * i) / count + Math.random() * 0.6;
+    const distance = 70 + Math.random() * 80;
+    piece.style.left = `${originX}px`;
+    piece.style.top = `${originY}px`;
+    piece.style.background = palette[i % palette.length];
+    piece.style.setProperty('--dx', `${(Math.cos(angle) * distance).toFixed(1)}px`);
+    piece.style.setProperty('--dy', `${(Math.sin(angle) * distance - 40).toFixed(1)}px`);
+    piece.style.setProperty('--rot', `${(Math.random() * 600 - 300).toFixed(0)}deg`);
+    piece.style.animationDelay = `${(Math.random() * 80).toFixed(0)}ms`;
+    layer.appendChild(piece);
+  }
+  document.body.appendChild(layer);
+  globalThis.setTimeout(() => layer.remove(), 1200);
+}
+
 export async function copyTextToClipboard(text) {
   if (navigator.clipboard && navigator.clipboard.writeText) {
     await navigator.clipboard.writeText(text);

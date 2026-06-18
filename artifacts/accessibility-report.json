@@ -4,46 +4,253 @@
   "summary": [
     {
       "route": "/",
+      "colorScheme": "light",
+      "viewport": "desktop",
       "violationCount": 0,
       "violations": []
     },
     {
       "route": "/exhibits/cave.html",
+      "colorScheme": "light",
+      "viewport": "desktop",
       "violationCount": 0,
       "violations": []
     },
     {
       "route": "/exhibits/graph-coloring.html",
+      "colorScheme": "light",
+      "viewport": "desktop",
       "violationCount": 0,
       "violations": []
     },
     {
       "route": "/exhibits/schnorr.html",
+      "colorScheme": "light",
+      "viewport": "desktop",
       "violationCount": 0,
       "violations": []
     },
     {
       "route": "/exhibits/commit-reveal.html",
+      "colorScheme": "light",
+      "viewport": "desktop",
       "violationCount": 0,
       "violations": []
     },
     {
       "route": "/exhibits/fiat-shamir.html",
+      "colorScheme": "light",
+      "viewport": "desktop",
       "violationCount": 0,
       "violations": []
     },
     {
       "route": "/exhibits/snark.html",
+      "colorScheme": "light",
+      "viewport": "desktop",
       "violationCount": 0,
       "violations": []
     },
     {
       "route": "/exhibits/transcript-lab.html",
+      "colorScheme": "light",
+      "viewport": "desktop",
       "violationCount": 0,
       "violations": []
     },
     {
       "route": "/exhibits/scenario-presets.html",
+      "colorScheme": "light",
+      "viewport": "desktop",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/",
+      "colorScheme": "light",
+      "viewport": "mobile",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/cave.html",
+      "colorScheme": "light",
+      "viewport": "mobile",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/graph-coloring.html",
+      "colorScheme": "light",
+      "viewport": "mobile",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/schnorr.html",
+      "colorScheme": "light",
+      "viewport": "mobile",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/commit-reveal.html",
+      "colorScheme": "light",
+      "viewport": "mobile",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/fiat-shamir.html",
+      "colorScheme": "light",
+      "viewport": "mobile",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/snark.html",
+      "colorScheme": "light",
+      "viewport": "mobile",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/transcript-lab.html",
+      "colorScheme": "light",
+      "viewport": "mobile",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/scenario-presets.html",
+      "colorScheme": "light",
+      "viewport": "mobile",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/",
+      "colorScheme": "dark",
+      "viewport": "desktop",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/cave.html",
+      "colorScheme": "dark",
+      "viewport": "desktop",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/graph-coloring.html",
+      "colorScheme": "dark",
+      "viewport": "desktop",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/schnorr.html",
+      "colorScheme": "dark",
+      "viewport": "desktop",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/commit-reveal.html",
+      "colorScheme": "dark",
+      "viewport": "desktop",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/fiat-shamir.html",
+      "colorScheme": "dark",
+      "viewport": "desktop",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/snark.html",
+      "colorScheme": "dark",
+      "viewport": "desktop",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/transcript-lab.html",
+      "colorScheme": "dark",
+      "viewport": "desktop",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/scenario-presets.html",
+      "colorScheme": "dark",
+      "viewport": "desktop",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/",
+      "colorScheme": "dark",
+      "viewport": "mobile",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/cave.html",
+      "colorScheme": "dark",
+      "viewport": "mobile",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/graph-coloring.html",
+      "colorScheme": "dark",
+      "viewport": "mobile",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/schnorr.html",
+      "colorScheme": "dark",
+      "viewport": "mobile",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/commit-reveal.html",
+      "colorScheme": "dark",
+      "viewport": "mobile",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/fiat-shamir.html",
+      "colorScheme": "dark",
+      "viewport": "mobile",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/snark.html",
+      "colorScheme": "dark",
+      "viewport": "mobile",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/transcript-lab.html",
+      "colorScheme": "dark",
+      "viewport": "mobile",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/scenario-presets.html",
+      "colorScheme": "dark",
+      "viewport": "mobile",
       "violationCount": 0,
       "violations": []
     }

@@ -1,13 +1,18 @@
 {
   "name": "crypto-lab-zk-proof-lab",
   "private": true,
+  "type": "module",
   "scripts": {
-    "build": "vite build"
+    "build": "vite build",
+    "test": "node tests/browser-quality.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.5.2",
     "playwright": "^1.59.1",
     "typescript": "^5.9.3",
     "vite": "^7.1.7"
+  },
+  "allowScripts": {
+    "puppeteer@25.1.0": true
   }
 }

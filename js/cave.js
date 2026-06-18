@@ -1,7 +1,9 @@
 import {
   addLog,
+  celebrate,
   cheatProbabilityPercent,
   createSeededRng,
+  flashFail,
   readAutoFromUrl,
   readModeFromUrl,
   readSeedFromUrl,
@@ -63,7 +65,7 @@ function updateCaveProbability() {
   document.getElementById('cave-cp').textContent = `${cheatProbabilityPercent(caveState.n, 0.5).toFixed(4)}%`;
 }
 
-async function runCaveRound() {
+async function runCaveRound(celebrateWin = false) {
   const bluffing = document.getElementById('bluff-tog').checked;
   const wentLeft = nextBool();
   setProverColor('#4f7bff');
@@ -92,10 +94,14 @@ async function runCaveRound() {
       addLog('cave-log', `Seeded run: ${scenarioSeed}`, 'lacc');
       seedAnnounced = true;
     }
+    if (celebrateWin) {
+      celebrate('cave-status');
+    }
   } else {
     setProverColor('#f87171');
     document.getElementById('cave-status').textContent = '✗ Wrong exit — CAUGHT bluffing!';
     addLog('cave-log', `R${caveState.n + 1}: challenge=${challengeLeft ? 'L' : 'R'} [BLUFF] → ✗ CAUGHT`, 'lerr');
+    flashFail('cave-status');
   }
   await sleep(700);
   setProverColor('#4f7bff');
@@ -109,7 +115,7 @@ export async function caveRound() {
   caveState.running = true;
   caveSetControls();
   try {
-    await runCaveRound();
+    await runCaveRound(true);
   } finally {
     caveState.running = false;
     caveSetControls();
@@ -127,7 +133,7 @@ export async function caveAuto() {
       caveState.running = true;
       caveSetControls();
       try {
-        await runCaveRound();
+        await runCaveRound(i === 9);
       } finally {
         caveState.running = false;
         caveSetControls();
