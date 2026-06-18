@@ -17,6 +17,7 @@ import {
 let schnorrN = 0;
 let schnorrBusy = false;
 let lastSchnorrTranscript = null;
+let stepRun = null;
 const scenarioSeed = readSeedFromUrl();
 const scenarioMode = readModeFromUrl();
 const autoScenario = readAutoFromUrl();
@@ -31,10 +32,66 @@ function nextInt(min, max) {
 
 function schnorrSetControls() {
   document.getElementById('s-btn').disabled = schnorrBusy;
+  document.getElementById('s-step-btn').disabled = schnorrBusy;
   document.getElementById('s-cheat-btn').disabled = schnorrBusy;
   document.getElementById('s-reset-btn').disabled = schnorrBusy;
   document.getElementById('s-copy-btn').disabled = schnorrBusy || !lastSchnorrTranscript;
   document.getElementById('s-replay-btn').disabled = schnorrBusy || !lastSchnorrTranscript;
+}
+
+function updateStepButton() {
+  const phase = stepRun ? stepRun.phase : 0;
+  document.getElementById('s-step-btn').textContent = phase >= 4 ? 'Step ▷ (restart)' : `Step ▷ (${phase}/4)`;
+}
+
+// Advance the protocol one step per click so the four phases can be read at
+// the user's own pace. A completed run restarts with fresh randomness.
+export function schnorrStep() {
+  if (schnorrBusy) {
+    return;
+  }
+  if (!stepRun || stepRun.phase >= 4) {
+    const r = nextInt(1, 2051);
+    const R = schnorrVerify({ g: 5, p: 2053, y: 1, R: 1, c: 0, s: r }).lhs;
+    const c = nextInt(1, 50);
+    const s = ((r + c * 17) % 2052 + 2052) % 2052;
+    const { lhs, rhs, ok } = schnorrVerify({ g: 5, p: 2053, y: 375, R, c, s });
+    stepRun = { r, R, c, s, lhs, rhs, ok, phase: 0 };
+    ['s2', 's3', 's4'].forEach(id => {
+      document.getElementById(id).style.display = 'none';
+    });
+    document.getElementById('s-result').textContent = '';
+  }
+  stepRun.phase += 1;
+  if (stepRun.phase === 1) {
+    document.getElementById('s-r').textContent = stepRun.r;
+    document.getElementById('s-r2').textContent = stepRun.r;
+    document.getElementById('s-R').textContent = stepRun.R;
+    document.getElementById('s-r3').textContent = stepRun.r;
+    addLog('s-log', `Step 1 — commitment R = g^r mod p = ${stepRun.R}`, 'le');
+  } else if (stepRun.phase === 2) {
+    document.getElementById('s-c').textContent = stepRun.c;
+    document.getElementById('s-c2').textContent = stepRun.c;
+    document.getElementById('s2').style.display = '';
+    addLog('s-log', `Step 2 — verifier challenge c = ${stepRun.c}`, 'le');
+  } else if (stepRun.phase === 3) {
+    document.getElementById('s-s').textContent = stepRun.s;
+    document.getElementById('s3').style.display = '';
+    addLog('s-log', `Step 3 — response s = (r + c·x) mod (p−1) = ${stepRun.s}`, 'le');
+  } else if (stepRun.phase === 4) {
+    document.getElementById('s-lhs').textContent = stepRun.lhs;
+    document.getElementById('s-rhs').textContent = stepRun.rhs;
+    document.getElementById('s4').style.display = '';
+    document.getElementById('s-result').innerHTML = '<span style="color:var(--ok)">✓ VERIFIED — values match</span>';
+    schnorrN += 1;
+    setConf('s-fill', 's-pct', schnorrN, 1 / 50);
+    addLog('s-log', `Step 4 — g^s mod p = ${stepRun.lhs} = R·y^c ✓`, 'lok');
+    celebrate('s-result');
+    lastSchnorrTranscript = buildTranscript({ cheat: false, ...stepRun });
+    persistTranscript(lastSchnorrTranscript);
+  }
+  updateStepButton();
+  schnorrSetControls();
 }
 
 function buildTranscript({ cheat, r, R, c, s, lhs, rhs, ok }) {
@@ -58,6 +115,8 @@ export async function schnorrRun(cheat) {
     return;
   }
   schnorrBusy = true;
+  stepRun = null;
+  updateStepButton();
   schnorrSetControls();
   try {
     ['s2', 's3', 's4'].forEach(id => {
@@ -115,6 +174,8 @@ export function schnorrReset() {
   }
   schnorrN = 0;
   lastSchnorrTranscript = null;
+  stepRun = null;
+  updateStepButton();
   ['s-r', 's-r2', 's-R', 's-r3', 's-c', 's-c2', 's-s', 's-lhs', 's-rhs'].forEach(id => {
     const element = document.getElementById(id);
     if (element) {
@@ -148,6 +209,7 @@ export function schnorrReplayInLab() {
 }
 
 document.getElementById('s-btn').addEventListener('click', () => schnorrRun(false));
+document.getElementById('s-step-btn').addEventListener('click', schnorrStep);
 document.getElementById('s-cheat-btn').addEventListener('click', () => schnorrRun(true));
 document.getElementById('s-copy-btn').addEventListener('click', schnorrCopyTranscript);
 document.getElementById('s-replay-btn').addEventListener('click', schnorrReplayInLab);

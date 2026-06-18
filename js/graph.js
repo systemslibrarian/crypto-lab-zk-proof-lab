@@ -146,7 +146,7 @@ export function graphChallenge() {
   if (ok) {
     addLog('g-log', `R${gState.n}: edge ${a}–${b} → ${COLORS[gState.commits[a].color].label} ≠ ${COLORS[gState.commits[b].color].label} ✓`, 'lok');
     if (!gState.auto) {
-      celebrate('g-challenge');
+      celebrate('g-challenge', { confetti: gState.n % 5 === 0 });
     }
   } else {
     addLog('g-log', `R${gState.n}: FAIL — same color ✗`, 'lerr');

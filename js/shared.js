@@ -135,14 +135,14 @@ function resolveElement(target) {
 // Celebrate a successful verification: a brief "pop" on the result element plus
 // a lightweight confetti burst. Motion is skipped for reduced-motion users; the
 // result text/colour still conveys the outcome, so no meaning is lost.
-export function celebrate(target) {
+export function celebrate(target, options = {}) {
   const element = resolveElement(target);
   if (element) {
     element.classList.remove('celebrate-pop');
     void element.offsetWidth;
     element.classList.add('celebrate-pop');
   }
-  if (prefersReducedMotion()) {
+  if (prefersReducedMotion() || options.confetti === false) {
     return;
   }
   spawnConfetti(element);
