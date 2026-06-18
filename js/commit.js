@@ -3,6 +3,7 @@ import {
   copyTextToClipboard,
   createSeededRng,
   flashFail,
+  narrate,
   readAutoFromUrl,
   readModeFromUrl,
   rHex,
@@ -85,6 +86,7 @@ export async function commitPhase() {
     document.getElementById('cb-hash').textContent = cs.hB;
     document.getElementById('commit-result').innerHTML = '<strong style="color:var(--ok)">Both commitments published.</strong> Neither bidder can see the other\'s bid. Neither can change their bid without detection.';
     cs.phase = 'committed';
+    narrate('commit-narration', 'Each bid is hashed with a secret nonce and published. The values stay hidden, yet are now locked — no one can change a bid undetected.');
     lastCommitTranscript = buildCommitTranscript({ note: 'Commitments published; bids intentionally still hidden in the UI.' });
     persistCommitTranscript(lastCommitTranscript);
     if (scenarioSeed) {
@@ -116,6 +118,7 @@ export async function revealPhase() {
     document.getElementById('commit-result').innerHTML = winner === 'TIE'
       ? `<strong style="color:var(--warn)">Tie — $${cs.bidA} = $${cs.bidB}.</strong> Both commitments verified.`
       : `<strong style="color:var(--ok)">Bidder ${winner} wins</strong> — $${winner === 'A' ? cs.bidA : cs.bidB} vs $${winner === 'A' ? cs.bidB : cs.bidA}. Both bids cryptographically verified.`;
+    narrate('commit-narration', 'Bids are opened and re-hashed. Matching the published commitments proves nobody altered their bid after seeing the other.');
     lastCommitTranscript = buildCommitTranscript({ verification: { bidderA: okA, bidderB: okB }, winner });
     persistCommitTranscript(lastCommitTranscript);
     if (okA && okB) {
@@ -139,6 +142,7 @@ export async function cheatPhase() {
     const fakeHash = await sha256hex(`$${fake}|${cs.nA}`);
     document.getElementById('ca-verify').innerHTML = `SHA-256($${fake} ‖ nonce) =<br><span style="color:var(--err);font-size:10px;word-break:break-all">${fakeHash}</span><br><strong style="color:var(--err)">✗ CAUGHT — hash does not match commitment!</strong>`;
     document.getElementById('commit-result').innerHTML = '<strong style="color:var(--err)">Binding property holds.</strong> Bidder A\'s revised bid produces a completely different SHA-256 hash. Finding any (bid, nonce) pair that produces the same hash is computationally infeasible.';
+    narrate('commit-narration', 'Bidder A tries to change their bid — but the new value hashes to something completely different, so the tamper is caught.');
     cs.phase = 'cheated';
     lastCommitTranscript = buildCommitTranscript({ cheatAttempt: { fakeBid: fake, fakeHash, detected: true } });
     persistCommitTranscript(lastCommitTranscript);
@@ -159,6 +163,7 @@ export function commitReset() {
     document.getElementById(id).textContent = '—';
   });
   document.getElementById('commit-result').textContent = 'Commitments lock bids before revelation — neither bidder can see or change the other\'s bid once committed.';
+  narrate('commit-narration', 'Two bidders lock in hidden bids as SHA-256 hashes, then reveal them later. The hash binds each bid so it cannot be changed after the fact.');
   commitSetControls();
 }
 

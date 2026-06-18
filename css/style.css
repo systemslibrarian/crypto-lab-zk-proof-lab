@@ -110,6 +110,17 @@ button{font-family:var(--mono);font-size:12px;padding:10px 15px;border-radius:6p
 .param-select:hover{border-color:var(--acc)}
 .narration{background:rgba(79,123,255,.08);border:1px solid rgba(79,123,255,.28);border-left:3px solid var(--acc);border-radius:6px;padding:12px 15px;margin:0 0 14px;font-size:13.5px;line-height:1.6;color:var(--tx);min-height:22px}
 .narration strong{color:var(--acc2);font-weight:600}
+.tour-launch{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:11px 18px;border-radius:999px;border:1px solid var(--acc);background:linear-gradient(180deg,var(--acc2),var(--acc));color:#fff;font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 14px rgba(53,101,216,.32)}
+.tour-launch:hover{filter:brightness(1.08)}
+.tour-active{outline:3px solid var(--acc);outline-offset:4px;box-shadow:0 0 0 4px rgba(53,101,216,.25),0 16px 30px rgba(8,16,30,.34)}
+.tour-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:1500;width:min(620px,calc(100vw - 28px));background:var(--elev);border:1px solid var(--acc);border-radius:12px;box-shadow:0 18px 40px rgba(5,8,14,.5);padding:14px 16px;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.tour-content{flex:1 1 320px;min-width:0}
+.tour-counter{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--tx2)}
+.tour-title{font-family:var(--sans);font-size:15px;color:var(--tx);font-weight:600;margin:2px 0}
+.tour-body{font-size:13px;color:var(--tx2);line-height:1.5}
+.tour-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tour-bar .tour-close{min-width:44px}
+@media(prefers-reduced-motion:reduce){.tour-active{box-shadow:none}}
 .table-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
 .commit-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
 .commit-table th,.commit-table td{padding:6px 8px;border-bottom:1px solid var(--bord);text-align:left}

@@ -4,6 +4,7 @@ import {
   copyTextToClipboard,
   createSeededRng,
   flashFail,
+  narrate,
   readAutoFromUrl,
   readModeFromUrl,
   rHex,
@@ -105,6 +106,7 @@ async function runPipeline() {
     if (scenarioSeed) {
       addLog('snark-log', `Seeded run: ${scenarioSeed}`, 'lacc');
     }
+    narrate('snark-narration', 'A private witness w is checked against the public output y = w²+3w+7, with a digest binding the proof. The verifier accepts without ever seeing w.');
   } finally {
     snarkBusy = false;
     setControls();
@@ -126,6 +128,7 @@ async function tamperPublicInput() {
     };
     render(tampered);
     addLog('snark-log', 'Tamper attempt: public input changed after proof generation', 'lerr');
+    narrate('snark-narration', 'Changing the public input after proving breaks the bound relation, so the verifier rejects the toy proof.');
   } finally {
     snarkBusy = false;
     setControls();
@@ -157,6 +160,7 @@ function reset() {
     document.getElementById(id).textContent = '—';
   });
   document.getElementById('snark-result').textContent = 'Ready.';
+  narrate('snark-narration', 'A toy SNARK pipeline: a private witness is reduced to a public output and a binding digest, so the verifier can accept the proof without ever seeing the witness.');
   document.getElementById('snark-log').innerHTML = '<span class="le">— protocol log —</span>';
   setControls();
 }

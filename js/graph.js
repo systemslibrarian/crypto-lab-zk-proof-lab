@@ -4,6 +4,7 @@ import {
   cheatProbabilityPercent,
   createSeededRng,
   flashFail,
+  narrate,
   readAutoFromUrl,
   rHex,
   rInt,
@@ -114,6 +115,7 @@ export function graphRound() {
   }
   renderCommitTable();
   document.getElementById('g-round-info').textContent = `Round ${gState.n + 1}: prover re-colored and committed. Hashes published.`;
+  narrate('graph-narration', 'The prover secretly re-colors the map with a fresh random permutation, then publishes a locked hash commitment for every region.');
   document.getElementById('g-challenge').textContent = '';
   if (scenarioSeed && !seedAnnounced) {
     addLog('g-log', `Seeded run: ${scenarioSeed}`, 'lacc');
@@ -145,11 +147,13 @@ export function graphChallenge() {
   gState.n += 1;
   if (ok) {
     addLog('g-log', `R${gState.n}: edge ${a}–${b} → ${COLORS[gState.commits[a].color].label} ≠ ${COLORS[gState.commits[b].color].label} ✓`, 'lok');
+    narrate('graph-narration', 'The verifier opens one border. The two regions show different colors, so this edge is valid — and the rest of the coloring stays hidden.');
     if (!gState.auto) {
       celebrate('g-challenge', { confetti: gState.n % 5 === 0 });
     }
   } else {
     addLog('g-log', `R${gState.n}: FAIL — same color ✗`, 'lerr');
+    narrate('graph-narration', 'A border showing the same color on both sides would expose an invalid coloring — that is exactly what the verifier is checking for.');
     flashFail('g-challenge');
   }
   setConf('g-fill', 'g-pct', gState.n, 5 / 6);
@@ -184,6 +188,7 @@ export function graphReset() {
   gState = { n: 0, phase: 'idle', perm: null, commits: null, auto: false };
   graphResetViz();
   document.getElementById('g-round-info').textContent = 'Press "New Round" to commit.';
+  narrate('graph-narration', 'The prover commits to a random re-coloring of the map, then reveals just the two regions on a border the verifier picks. Valid borders never share a color.');
   document.getElementById('g-challenge').textContent = '';
   document.getElementById('g-fill').style.width = '0%';
   document.getElementById('g-pct').textContent = '0.00%';

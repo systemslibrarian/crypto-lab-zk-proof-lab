@@ -4,6 +4,7 @@ import {
   cheatProbabilityPercent,
   createSeededRng,
   flashFail,
+  narrate,
   readAutoFromUrl,
   readModeFromUrl,
   readSeedFromUrl,
@@ -71,6 +72,7 @@ async function runCaveRound(celebrateWin = false) {
   setProverColor('#4f7bff');
   document.getElementById('cave-challenge').textContent = '';
   document.getElementById('cave-status').textContent = 'Prover enters cave…';
+  narrate('cave-narration', 'The prover enters and secretly picks a tunnel — the verifier never sees which one.');
   await caveAnim(100, 20, 400);
   await caveAnim(100, 85, 500);
   document.getElementById('cave-status').textContent = `Prover reaches fork — goes ${wentLeft ? 'LEFT' : 'RIGHT'} (unseen by verifier)`;
@@ -78,6 +80,7 @@ async function runCaveRound(celebrateWin = false) {
   await sleep(500);
   const challengeLeft = nextBool();
   document.getElementById('cave-challenge').textContent = `→ CHALLENGE: "Come out the ${challengeLeft ? 'LEFT' : 'RIGHT'} side!"`;
+  narrate('cave-narration', `The verifier demands the ${challengeLeft ? 'LEFT' : 'RIGHT'} exit. A knower opens the secret door and complies; a bluffer is trapped if they guessed wrong.`);
   await sleep(400);
   const success = bluffing ? wentLeft === challengeLeft : true;
   if (success) {
@@ -85,6 +88,7 @@ async function runCaveRound(celebrateWin = false) {
     await caveAnim(targetX, 170, 400);
     setProverColor('#34d399');
     document.getElementById('cave-status').textContent = '✓ Exited correct side';
+    narrate('cave-narration', 'Correct exit. Each honest round halves a cheater\'s odds, so the verifier\'s confidence climbs toward certainty.');
     caveState.n += 1;
     addLog('cave-log', `R${caveState.n}: challenge=${challengeLeft ? 'L' : 'R'}${bluffing ? ' [BLUFF]' : ''} → ✓ PASS`, 'lok');
     setConf('cave-fill', 'cave-pct', caveState.n, 0.5);
@@ -100,6 +104,7 @@ async function runCaveRound(celebrateWin = false) {
   } else {
     setProverColor('#f87171');
     document.getElementById('cave-status').textContent = '✗ Wrong exit — CAUGHT bluffing!';
+    narrate('cave-narration', 'Wrong side — the bluff is exposed. A cheater gets caught about half the time per round.');
     addLog('cave-log', `R${caveState.n + 1}: challenge=${challengeLeft ? 'L' : 'R'} [BLUFF] → ✗ CAUGHT`, 'lerr');
     flashFail('cave-status');
   }
@@ -155,6 +160,7 @@ export function caveReset() {
   document.getElementById('cave-prover-g').setAttribute('transform', 'translate(100,20)');
   setProverColor('#4f7bff');
   document.getElementById('cave-status').textContent = 'Ready.';
+  narrate('cave-narration', 'In each round the prover secretly takes one tunnel, then must exit the side the verifier names. Only someone who knows the secret word can always comply.');
   document.getElementById('cave-challenge').textContent = '';
   document.getElementById('cave-fill').style.width = '0%';
   document.getElementById('cave-pct').textContent = '0.00%';

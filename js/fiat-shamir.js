@@ -5,6 +5,7 @@ import {
   createSeededRng,
   flashFail,
   modpow,
+  narrate,
   readAutoFromUrl,
   readModeFromUrl,
   rHex,
@@ -102,6 +103,7 @@ async function generateProof() {
     if (scenarioSeed) {
       addLog('fs-log', `Seeded run: ${scenarioSeed}`, 'lacc');
     }
+    narrate('fs-narration', 'No live verifier needed: the challenge c is derived by hashing the transcript itself (c = H(R‖y‖m)), turning the interactive proof into a single self-contained one.');
   } finally {
     fsBusy = false;
     setFsControls();
@@ -134,6 +136,7 @@ async function tamperMessage() {
     document.getElementById('fs-lhs').textContent = String(lhs);
     document.getElementById('fs-rhs').textContent = String(rhs);
     addLog('fs-log', `Tamper check with altered message produced c=${c}: verification failed as expected`, 'lerr');
+    narrate('fs-narration', 'Altering the message changes the hash-derived challenge, so the original response no longer satisfies the equation — tampering is detected.');
   } finally {
     fsBusy = false;
     setFsControls();
@@ -165,6 +168,7 @@ function resetFiatShamir() {
     document.getElementById(id).textContent = '—';
   });
   document.getElementById('fs-result').textContent = 'Ready.';
+  narrate('fs-narration', 'Fiat-Shamir removes the live verifier: the challenge is derived by hashing the transcript itself, turning an interactive proof into a single non-interactive one.');
   document.getElementById('fs-log').innerHTML = '<span class="le">— protocol log —</span>';
   setFsControls();
 }

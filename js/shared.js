@@ -132,6 +132,15 @@ function resolveElement(target) {
   return typeof target === 'string' ? document.getElementById(target) : target;
 }
 
+// Update an exhibit's guided-narration caption (plain-English explanation of
+// the current protocol phase). No-op if the element is absent.
+export function narrate(id, html) {
+  const element = document.getElementById(id);
+  if (element) {
+    element.innerHTML = html;
+  }
+}
+
 // Celebrate a successful verification: a brief "pop" on the result element plus
 // a lightweight confetti burst. Motion is skipped for reduced-motion users; the
 // result text/colour still conveys the outcome, so no meaning is lost.
