@@ -1,6 +1,6 @@
-import puppeteer from 'puppeteer';
+import { chromium } from 'playwright';
 
-const baseUrl = process.env.ZKPL_BASE_URL || 'http://localhost:8000/crypto-lab-zk-proof-lab';
+const baseUrl = process.env.ZKPL_BASE_URL || 'http://127.0.0.1:8000';
 const pages = [
   '/',
   '/exhibits/cave.html',
@@ -43,9 +43,9 @@ async function runSchnorrInvariantCheck(page) {
     const t = document.getElementById('s-result')?.textContent || '';
     return t.includes('VERIFIED') || t.includes('FAILED');
   });
-  const lhs = await page.$eval('#s-lhs', el => el.textContent);
-  const rhs = await page.$eval('#s-rhs', el => el.textContent);
-  const verdict = await page.$eval('#s-result', el => el.textContent);
+  const lhs = await page.locator('#s-lhs').textContent();
+  const rhs = await page.locator('#s-rhs').textContent();
+  const verdict = await page.locator('#s-result').textContent();
   assertPass(Boolean(verdict && verdict.includes('VERIFIED')), 'Schnorr seeded scenario verifies');
   assertPass(lhs === rhs, 'Schnorr invariant: g^s equals R·y^c');
 }
@@ -56,7 +56,7 @@ async function runFiatShamirInvariantCheck(page) {
     const t = document.getElementById('fs-result')?.textContent || '';
     return t.includes('VERIFIED') || t.includes('FAILED');
   });
-  const verified = await page.$eval('#fs-result', el => el.textContent);
+  const verified = await page.locator('#fs-result').textContent();
   assertPass(Boolean(verified && verified.includes('VERIFIED')), 'Fiat-Shamir seeded scenario verifies');
 
   const check = await page.evaluate(async () => {
@@ -101,7 +101,7 @@ async function runSnarkTamperCheck(page) {
     const t = document.getElementById('snark-result')?.textContent || '';
     return t.includes('accepted') || t.includes('rejected');
   });
-  const verdict = await page.$eval('#snark-result', el => el.textContent);
+  const verdict = await page.locator('#snark-result').textContent();
   assertPass(Boolean(verdict && verdict.includes('rejected')), 'SNARK tamper scenario is rejected');
 }
 
@@ -116,9 +116,9 @@ async function runScenarioPresetLinkCheck(page) {
   }
 }
 
-const browser = await puppeteer.launch({ headless: true });
-const page = await browser.newPage();
-await page.setViewport({ width: 1366, height: 900 });
+const browser = await chromium.launch({ headless: true });
+const context = await browser.newContext({ viewport: { width: 1366, height: 900 } });
+const page = await context.newPage();
 
 for (const route of pages) {
   const url = `${baseUrl}${route}`;
@@ -127,14 +127,14 @@ for (const route of pages) {
   const title = await page.title();
   assertPass(Boolean(title.trim()), `${route} has non-empty title`);
 
-  const viewportMeta = await page.$$eval('meta[name="viewport"]', nodes => nodes.length);
+  const viewportMeta = await page.locator('meta[name="viewport"]').count();
   assertPass(viewportMeta > 0, `${route} has viewport meta`);
 
-  const onclickAttrs = await page.$$eval('[onclick]', nodes => nodes.length);
+  const onclickAttrs = await page.locator('[onclick]').count();
   assertPass(onclickAttrs === 0, `${route} has no inline onclick handlers`);
 
   if (trustExpected.has(route)) {
-    const trustBanners = await page.$$eval('.trust-banner', nodes => nodes.length);
+    const trustBanners = await page.locator('.trust-banner').count();
     assertPass(trustBanners > 0, `${route} contains trust messaging`);
   }
 
