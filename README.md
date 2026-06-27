@@ -1,7 +1,7 @@
 # ZK Proof Lab
 
 [![Deploy GitHub Pages](https://github.com/systemslibrarian/zk-proof-lab/actions/workflows/pages.yml/badge.svg)](https://github.com/systemslibrarian/zk-proof-lab/actions/workflows/pages.yml)
-[Live Demo](https://systemslibrarian.github.io/zk-proof-lab/)
+[Live Demo](https://systemslibrarian.github.io/crypto-lab-zk-proof-lab/)
 
 ## 1. What It Is
 
@@ -17,7 +17,7 @@ ZK Proof Lab is an interactive educational demo for zero-knowledge proof workflo
 
 ## 3. Live Demo
 
-Live demo: https://systemslibrarian.github.io/zk-proof-lab/
+Live demo: https://systemslibrarian.github.io/crypto-lab-zk-proof-lab/
 
 The demo lets users run six exhibits, execute protocol rounds, simulate cheating behavior, and inspect verification outcomes and logs. It includes real `Run Protocol`, `Simulate Cheat`, `Submit Bids`, `Reveal Bids`, replay, and reset controls, plus explicit toy-vs-production parameter tables (for example `p = 2053`, `g = 5`, and challenge range in the Schnorr exhibit). The project does not provide encryption/decryption flows; it focuses on identification proofs, commitment verification, and transcript-based verification.
 
