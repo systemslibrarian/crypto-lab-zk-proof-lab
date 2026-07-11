@@ -2,3 +2,5 @@ node_modules/
 docs/screenshots/gif-frames/
 dist/
 test-results/
+playwright-report/
+.pw-browsers/
