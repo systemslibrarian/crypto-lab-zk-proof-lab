@@ -31,7 +31,20 @@ main:focus{outline:none}
 .brand-kicker{font-size:11px;color:var(--tx3);letter-spacing:.11em;text-transform:uppercase}
 .brand-title{font-size:31px;font-family:var(--sans);letter-spacing:-.02em;font-weight:650;color:var(--tx)}
 .brand-sub{font-size:13px;color:var(--tx2)}
+/* BEGIN cl-hero standard — managed, keep in sync across fleet */
+/* Theme mapping for this demo: --text=--tx, --text-dim=--tx2, --accent=--acc, --border=--bord */
+.cl-hero{display:flex;align-items:flex-start;justify-content:space-between;gap:clamp(1rem,4vw,3rem);flex-wrap:wrap;margin:clamp(1rem,3vw,2rem) 0 1.5rem;}
+.cl-hero-main{flex:1 1 22rem;min-width:min(100%,20rem);}
+.cl-hero-title{margin:0;font-family:var(--sans);color:var(--tx);font-size:clamp(1.6rem,3.8vw,2.7rem);font-weight:700;line-height:1.1;letter-spacing:.01em;}
+.cl-hero-sub{margin:.4rem 0 0;color:var(--tx);font-size:clamp(.9rem,1.6vw,1.05rem);letter-spacing:.01em;opacity:.85;}
+.cl-hero-desc{margin:.55rem 0 0;font-size:1rem;line-height:1.5;color:var(--tx2);max-width:60ch;}
+.cl-hero-why{flex:0 1 min(40%,26rem);min-width:min(100%,15rem);border:1px solid var(--bord);border-radius:10px;padding:.85rem 1.05rem;background:color-mix(in oklab,var(--acc) 6%,transparent);}
+.cl-hero-why-label{display:block;color:var(--tx);font-size:.68rem;font-weight:700;letter-spacing:.14em;}
+.cl-hero-why-text{margin:.35rem 0 0;color:var(--tx);font-size:.95rem;line-height:1.5;}
+@media (max-width:640px){.cl-hero{flex-direction:column;}.cl-hero-why{flex-basis:auto;width:100%;}}
+/* END cl-hero standard */
 .top-nav{display:flex;gap:10px;flex-wrap:wrap}
+.site-nav{margin:0 0 20px}
 .nav-link{font-size:11px;letter-spacing:.09em;text-transform:uppercase;border:1px solid var(--bord);padding:11px 14px;border-radius:999px;color:var(--tx);background:var(--chip);min-height:44px;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
 .nav-link:hover,.nav-link.active{border-color:var(--acc);color:var(--acc2)}
 .hero-panel{background:linear-gradient(180deg,rgba(19,28,46,.94),rgba(13,20,34,.82));border:1px solid rgba(127,163,255,.22);border-radius:10px;padding:20px 22px;margin:10px 0 24px;box-shadow:0 16px 32px rgba(6,11,20,.24)}

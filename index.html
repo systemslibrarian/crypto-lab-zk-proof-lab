@@ -133,13 +133,19 @@
 </script>
 <!-- END crypto-lab shared header -->
   <div class="site-shell">
-    <header class="site-header">
-      <div>
-        <div class="brand-kicker">Cipher Museum Style Protocol Gallery</div>
-        <h1 class="brand-title">ZK Proof Lab</h1>
-        <p class="brand-sub">Interactive exhibits on proving knowledge without revealing secrets.</p>
+    <header class="cl-hero">
+      <div class="cl-hero-main">
+        <h1 class="cl-hero-title">ZK Proof Lab</h1>
+        <p class="cl-hero-sub">Zero-Knowledge Proofs · Interactive · Fiat-Shamir · SNARK</p>
+        <p class="cl-hero-desc">Walk interactive proofs (Ali Baba cave, graph 3-coloring, Schnorr) through commit-challenge-response, then collapse them into non-interactive Fiat-Shamir and SNARK-shaped pipelines with real in-browser hashing and modular arithmetic.</p>
       </div>
-      <nav class="top-nav" aria-label="Primary">
+      <aside class="cl-hero-why" aria-label="Why it matters">
+        <span class="cl-hero-why-label">WHY IT MATTERS</span>
+        <p class="cl-hero-why-text">Zero-knowledge proofs let you prove a fact is true without exposing the secret behind it — the backbone of private payments, rollup scaling, and password-free identity. Soundness is everything: a broken proof lets anyone convince a verifier of a lie.</p>
+      </aside>
+    </header>
+
+    <nav class="top-nav site-nav" aria-label="Primary">
         <a class="nav-link active" href="index.html">Lobby</a>
         <a class="nav-link" href="exhibits/cave.html">Exhibit 01</a>
         <a class="nav-link" href="exhibits/graph-coloring.html">Exhibit 02</a>
@@ -149,7 +155,6 @@
         <a class="nav-link" href="exhibits/snark.html">Exhibit 06</a>
         <a class="nav-link" href="exhibits/scenario-presets.html">Scenarios</a>
       </nav>
-    </header>
 
     <main>
       <section class="hero-panel" aria-label="Why zero-knowledge matters">
