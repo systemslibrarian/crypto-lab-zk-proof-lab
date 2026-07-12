@@ -12,8 +12,9 @@ import {
   seededHex,
   seededInt,
   setConf,
+  sha256hex,
   sleep
-} from './utils.js';
+} from './shared.js';
 
 const TRUTH = ['A', 'B', 'C', 'B', 'C'];
 const EDGES = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 0], [0, 2]];
@@ -66,8 +67,17 @@ function graphResetViz() {
   });
 }
 
-function simCommit(color, nonce) {
-  return `${btoa(`${color}|${nonce}`).substring(0, 8)}…`;
+// Real binding+hiding commitment: SHA-256 over the region colour and a fresh
+// per-round nonce. The verifier only ever sees this digest until reveal, and
+// re-hashing on reveal is what catches a prover who tries to swap colours.
+export async function graphCommit(color, nonce) {
+  return sha256hex(`${color}|${nonce}`);
+}
+
+// Short, monospace-friendly form of a commitment for the SVG node labels and
+// the commitment table. The full digest is retained in state for verification.
+function shortHash(hash) {
+  return `${hash.slice(0, 8)}…`;
 }
 
 function shuffleColors() {
@@ -90,28 +100,29 @@ function renderCommitTable() {
     const nodeCell = document.createElement('td');
     const hashCell = document.createElement('td');
     nodeCell.textContent = String(i);
-    hashCell.textContent = gState.commits[i].hash;
+    hashCell.textContent = gState.commits[i].display;
     tr.appendChild(nodeCell);
     tr.appendChild(hashCell);
     tbody.appendChild(tr);
   }
 }
 
-export function graphRound() {
+export async function graphRound() {
   if (gState.auto || gState.phase === 'committed') {
     return;
   }
   const perm = shuffleColors();
   gState.phase = 'committed';
   gState.perm = perm;
-  gState.commits = TRUTH.map(color => {
+  gState.commits = await Promise.all(TRUTH.map(async color => {
     const permuted = perm['ABC'.indexOf(color)];
-    const nonce = nextHex(4);
-    return { color: permuted, nonce, hash: simCommit(permuted, nonce) };
-  });
+    const nonce = nextHex(16);
+    const hash = await graphCommit(permuted, nonce);
+    return { color: permuted, nonce, hash, display: shortHash(hash) };
+  }));
   graphResetViz();
   for (let i = 0; i < 5; i += 1) {
-    document.getElementById(`l${i}`).textContent = gState.commits[i].hash;
+    document.getElementById(`l${i}`).textContent = gState.commits[i].display;
   }
   renderCommitTable();
   document.getElementById('g-round-info').textContent = `Round ${gState.n + 1}: prover re-colored and committed. Hashes published.`;
@@ -124,7 +135,7 @@ export function graphRound() {
   graphSetControls();
 }
 
-export function graphChallenge() {
+export async function graphChallenge() {
   if (gState.auto || gState.phase !== 'committed') {
     return;
   }
@@ -143,10 +154,22 @@ export function graphChallenge() {
     label.setAttribute('fill', colorDef.stroke);
     label.textContent = colorDef.label;
   });
-  const ok = gState.commits[a].color !== gState.commits[b].color;
+  // Re-open the two revealed commitments and confirm each opening re-hashes to
+  // the digest published at commit time. Binding is enforced here, not assumed.
+  const openings = await Promise.all([a, b].map(async nodeIndex => {
+    const commit = gState.commits[nodeIndex];
+    const recomputed = await graphCommit(commit.color, commit.nonce);
+    return recomputed === commit.hash;
+  }));
+  const bindingOk = openings.every(Boolean);
+  const ok = bindingOk && gState.commits[a].color !== gState.commits[b].color;
   gState.n += 1;
-  if (ok) {
-    addLog('g-log', `R${gState.n}: edge ${a}–${b} → ${COLORS[gState.commits[a].color].label} ≠ ${COLORS[gState.commits[b].color].label} ✓`, 'lok');
+  if (!bindingOk) {
+    addLog('g-log', `R${gState.n}: edge ${a}–${b} → ✗ commitment opening did not re-hash to published digest`, 'lerr');
+    narrate('graph-narration', 'A revealed colour+nonce that does not re-hash to its published commitment is rejected — the SHA-256 binding caught a swapped colour.');
+    flashFail('g-challenge');
+  } else if (ok) {
+    addLog('g-log', `R${gState.n}: edge ${a}–${b} → ${COLORS[gState.commits[a].color].label} ≠ ${COLORS[gState.commits[b].color].label} ✓ (openings verified)`, 'lok');
     narrate('graph-narration', 'The verifier opens one border. The two regions show different colors, so this edge is valid — and the rest of the coloring stays hidden.');
     if (!gState.auto) {
       celebrate('g-challenge', { confetti: gState.n % 5 === 0 });
@@ -170,9 +193,9 @@ export async function graphAuto() {
   graphSetControls();
   try {
     for (let i = 0; i < 10; i += 1) {
-      graphRound();
+      await graphRound();
       await sleep(300);
-      graphChallenge();
+      await graphChallenge();
       await sleep(300);
     }
   } finally {

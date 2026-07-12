@@ -1,5 +1,20 @@
+// @ts-check
+// Shared browser utilities and the crypto core (modular arithmetic, Schnorr
+// verification, SHA-256) for ZK Proof Lab. This module is type-checked under
+// `tsc --noEmit` (see tsconfig.json), so the correctness-critical primitives
+// carry real static types, not just runtime assertions.
+
+/**
+ * Append a line to a log element by id. No-op if the element is absent.
+ * @param {string} id
+ * @param {string} msg
+ * @param {string} [cls]
+ */
 export function addLog(id, msg, cls = 'le') {
   const log = document.getElementById(id);
+  if (!log) {
+    return;
+  }
   const line = document.createElement('div');
   line.className = cls;
   line.textContent = msg;
@@ -7,36 +22,79 @@ export function addLog(id, msg, cls = 'le') {
   log.scrollTop = log.scrollHeight;
 }
 
+/**
+ * @param {number} ms
+ * @returns {Promise<void>}
+ */
 export function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+/**
+ * Verifier confidence after `rounds` independent challenges, given a per-round
+ * cheat-success probability. Equals 1 - cheatProb^rounds, as a percentage.
+ * @param {number} rounds
+ * @param {number} cheatProb
+ * @returns {number}
+ */
 export function confidencePercent(rounds, cheatProb) {
   return (1 - Math.pow(cheatProb, rounds)) * 100;
 }
 
+/**
+ * Probability (percent) that a cheater survives `rounds` independent challenges.
+ * @param {number} rounds
+ * @param {number} cheatProb
+ * @returns {number}
+ */
 export function cheatProbabilityPercent(rounds, cheatProb) {
   return Math.pow(cheatProb, rounds) * 100;
 }
 
+/**
+ * @param {string} fillId
+ * @param {string} pctId
+ * @param {number} rounds
+ * @param {number} cheatProb
+ */
 export function setConf(fillId, pctId, rounds, cheatProb) {
   const confidence = confidencePercent(rounds, cheatProb);
-  document.getElementById(fillId).style.width = `${Math.min(confidence, 100)}%`;
-  document.getElementById(pctId).textContent = `${confidence.toFixed(2)}%`;
+  const fill = document.getElementById(fillId);
+  const pct = document.getElementById(pctId);
+  if (fill) {
+    fill.style.width = `${Math.min(confidence, 100)}%`;
+  }
+  if (pct) {
+    pct.textContent = `${confidence.toFixed(2)}%`;
+  }
 }
 
+/**
+ * Cryptographically-random integer in [min, max] using crypto.getRandomValues.
+ * @param {number} min
+ * @param {number} max
+ * @returns {number}
+ */
 export function rInt(min, max) {
   const values = new Uint32Array(1);
   globalThis.crypto.getRandomValues(values);
   return min + (values[0] % (max - min + 1));
 }
 
+/**
+ * Cryptographically-random hex string of the given byte length.
+ * @param {number} bytes
+ * @returns {string}
+ */
 export function rHex(bytes) {
   const values = new Uint8Array(bytes);
   globalThis.crypto.getRandomValues(values);
   return Array.from(values).map(value => value.toString(16).padStart(2, '0')).join('');
 }
 
+/**
+ * @returns {string | null}
+ */
 export function readSeedFromUrl() {
   try {
     const seed = new URLSearchParams(window.location.search).get('seed');
@@ -50,6 +108,9 @@ export function readSeedFromUrl() {
   }
 }
 
+/**
+ * @returns {string | null}
+ */
 export function readModeFromUrl() {
   try {
     const mode = new URLSearchParams(window.location.search).get('mode');
@@ -63,6 +124,9 @@ export function readModeFromUrl() {
   }
 }
 
+/**
+ * @returns {boolean}
+ */
 export function readAutoFromUrl() {
   try {
     const value = new URLSearchParams(window.location.search).get('auto');
@@ -72,6 +136,12 @@ export function readAutoFromUrl() {
   }
 }
 
+/**
+ * Deterministic FNV-seeded LCG PRNG for replayable scenarios. Returns a
+ * function that yields floats in [0, 1). Not for cryptographic use.
+ * @param {string} seedText
+ * @returns {() => number}
+ */
 export function createSeededRng(seedText) {
   let state = 2166136261 >>> 0;
   for (const char of seedText) {
@@ -84,10 +154,21 @@ export function createSeededRng(seedText) {
   };
 }
 
+/**
+ * @param {() => number} rng
+ * @param {number} min
+ * @param {number} max
+ * @returns {number}
+ */
 export function seededInt(rng, min, max) {
   return min + Math.floor(rng() * (max - min + 1));
 }
 
+/**
+ * @param {() => number} rng
+ * @param {number} bytes
+ * @returns {string}
+ */
 export function seededHex(rng, bytes) {
   let out = '';
   for (let i = 0; i < bytes; i += 1) {
@@ -97,6 +178,13 @@ export function seededHex(rng, bytes) {
   return out;
 }
 
+/**
+ * Modular exponentiation base^exp mod mod, computed with BigInt for exactness.
+ * @param {number} base
+ * @param {number} exp
+ * @param {number} mod
+ * @returns {number}
+ */
 export function modpow(base, exp, mod) {
   let result = 1n;
   let currentBase = BigInt(base) % BigInt(mod);
@@ -112,28 +200,59 @@ export function modpow(base, exp, mod) {
   return Number(result);
 }
 
+/**
+ * @typedef {Object} SchnorrParams
+ * @property {number} g generator
+ * @property {number} p prime modulus
+ * @property {number} y public key (g^x mod p)
+ * @property {number} R commitment (g^r mod p)
+ * @property {number} c challenge
+ * @property {number} s response ((r + c*x) mod (p-1))
+ */
+
+/**
+ * Verify a Schnorr transcript: checks g^s ≡ R·y^c (mod p).
+ * @param {SchnorrParams} params
+ * @returns {{ lhs: number, rhs: number, ok: boolean }}
+ */
 export function schnorrVerify({ g, p, y, R, c, s }) {
   const lhs = modpow(g, s, p);
   const rhs = (modpow(y, c, p) * R) % p;
   return { lhs, rhs, ok: lhs === rhs };
 }
 
+/**
+ * SHA-256 of a UTF-8 string, returned as lowercase hex.
+ * @param {string} msg
+ * @returns {Promise<string>}
+ */
 export async function sha256hex(msg) {
   const buffer = new TextEncoder().encode(msg);
   const hash = await globalThis.crypto.subtle.digest('SHA-256', buffer);
   return Array.from(new Uint8Array(hash)).map(value => value.toString(16).padStart(2, '0')).join('');
 }
 
+/**
+ * @returns {boolean}
+ */
 export function prefersReducedMotion() {
   return Boolean(globalThis.matchMedia && globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches);
 }
 
+/**
+ * @param {string | HTMLElement} target
+ * @returns {HTMLElement | null}
+ */
 function resolveElement(target) {
   return typeof target === 'string' ? document.getElementById(target) : target;
 }
 
-// Update an exhibit's guided-narration caption (plain-English explanation of
-// the current protocol phase). No-op if the element is absent.
+/**
+ * Update an exhibit's guided-narration caption (plain-English explanation of
+ * the current protocol phase). No-op if the element is absent.
+ * @param {string} id
+ * @param {string} html
+ */
 export function narrate(id, html) {
   const element = document.getElementById(id);
   if (element) {
@@ -141,9 +260,13 @@ export function narrate(id, html) {
   }
 }
 
-// Celebrate a successful verification: a brief "pop" on the result element plus
-// a lightweight confetti burst. Motion is skipped for reduced-motion users; the
-// result text/colour still conveys the outcome, so no meaning is lost.
+/**
+ * Celebrate a successful verification: a brief "pop" on the result element plus
+ * a lightweight confetti burst. Motion is skipped for reduced-motion users; the
+ * result text/colour still conveys the outcome, so no meaning is lost.
+ * @param {string | HTMLElement} target
+ * @param {{ confetti?: boolean }} [options]
+ */
 export function celebrate(target, options = {}) {
   const element = resolveElement(target);
   if (element) {
@@ -157,7 +280,10 @@ export function celebrate(target, options = {}) {
   spawnConfetti(element);
 }
 
-// Signal a failed/caught outcome with a short shake on the result element.
+/**
+ * Signal a failed/caught outcome with a short shake on the result element.
+ * @param {string | HTMLElement} target
+ */
 export function flashFail(target) {
   const element = resolveElement(target);
   if (!element || prefersReducedMotion()) {
@@ -168,6 +294,9 @@ export function flashFail(target) {
   element.classList.add('flash-fail');
 }
 
+/**
+ * @param {HTMLElement | null} anchor
+ */
 function spawnConfetti(anchor) {
   const layer = document.createElement('div');
   layer.className = 'confetti-layer';
@@ -195,6 +324,10 @@ function spawnConfetti(anchor) {
   globalThis.setTimeout(() => layer.remove(), 1200);
 }
 
+/**
+ * @param {string} text
+ * @returns {Promise<boolean>}
+ */
 export async function copyTextToClipboard(text) {
   if (navigator.clipboard && navigator.clipboard.writeText) {
     await navigator.clipboard.writeText(text);

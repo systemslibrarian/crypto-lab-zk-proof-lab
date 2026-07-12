@@ -2,7 +2,7 @@
 
 ## What It Is
 
-ZK Proof Lab is an interactive educational demo for zero-knowledge proof workflows, with conceptual exhibits (Ali Baba Cave, Graph 3-Coloring ZKP, zk-SNARK intuition) and cryptographically real primitives in the browser (`Schnorr Identification Protocol`, `Hash Commit-Reveal` with `window.crypto.subtle.digest('SHA-256', ...)`, and `Fiat-Shamir (Non-Interactive)`). It addresses the problem of proving knowledge or correctness without disclosing the secret witness. The security model shown in code is primarily honest-verifier ZK for the interactive proofs, plus hash-based binding/hiding for commitments, with explicit notes where the exhibit is pedagogical rather than production hardened. It is a teaching lab, not an audited cryptographic library. Parameters are intentionally small in the real-math exhibits for traceability and UI clarity.
+ZK Proof Lab is an interactive educational demo for zero-knowledge proof workflows. Four of the six exhibits use cryptographically real primitives in the browser: the `Graph 3-Coloring ZKP` commits every region with a real `window.crypto.subtle.digest('SHA-256', color ‖ nonce)` and re-hashes each opening on reveal; the `Schnorr Identification Protocol` and `Fiat-Shamir (Non-Interactive)` run real BigInt modular arithmetic; and `Hash Commit-Reveal` uses real SHA-256 commitments. The remaining two exhibits (`Ali Baba Cave`, `zk-SNARK intuition`) are clearly-labelled conceptual models. It addresses the problem of proving knowledge or correctness without disclosing the secret witness. The security model shown in code is primarily honest-verifier ZK for the interactive proofs, plus hash-based binding/hiding for commitments, with explicit notes where the exhibit is pedagogical rather than production hardened. It is a teaching lab, not an audited cryptographic library. Parameters are intentionally small in the real-math exhibits for traceability and UI clarity.
 
 ## When to Use It
 
@@ -10,7 +10,7 @@ ZK Proof Lab is an interactive educational demo for zero-knowledge proof workflo
 - Use it in interviews or classroom demos when you need concrete Schnorr and commit-reveal mechanics in a browser, since the implementation uses real BigInt modular arithmetic and Web Crypto SHA-256.
 - Use it for replayable protocol walkthroughs when deterministic scenarios matter, because the scenario preset and transcript lab pages let teams compare runs and reason about verifier outcomes.
 - Use it to explain why Fiat-Shamir removes interactivity, because the dedicated exhibit derives the challenge from hashing transcript inputs and verifies the resulting non-interactive proof.
-- Do NOT use it for production security decisions, because the project explicitly uses toy parameters and pedagogical models (especially cave/graph/snark intuition) rather than deployment-grade cryptographic hardening.
+- Do NOT use it for production security decisions, because the project explicitly uses toy parameters and small-scale models (and two clearly-labelled conceptual exhibits, cave and snark intuition) rather than deployment-grade cryptographic hardening.
 
 ## Live Demo
 

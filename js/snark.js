@@ -13,7 +13,7 @@ import {
   seededHex,
   seededInt,
   sha256hex
-} from './utils.js';
+} from './shared.js';
 
 let snarkBusy = false;
 let lastSnarkTranscript = null;

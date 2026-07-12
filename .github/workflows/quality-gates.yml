@@ -25,6 +25,15 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install dependencies
+        run: npm install
+
+      - name: Type-check crypto core (tsc)
+        run: npm run typecheck
+
+      - name: Unit tests (vitest — crypto correctness gate)
+        run: npm test
+
       - name: Install Playwright
         run: |
           npm install --no-save playwright axe-core

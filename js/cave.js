@@ -11,7 +11,7 @@ import {
   seededInt,
   setConf,
   sleep
-} from './utils.js';
+} from './shared.js';
 
 let caveState = { n: 0, running: false, auto: false };
 let cavePos = { x: 100, y: 20 };

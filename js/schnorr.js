@@ -13,7 +13,7 @@ import {
   seededInt,
   setConf,
   sleep
-} from './utils.js';
+} from './shared.js';
 
 let schnorrN = 0;
 let schnorrBusy = false;

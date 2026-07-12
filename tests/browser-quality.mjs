@@ -105,6 +105,24 @@ async function runSnarkTamperCheck(page) {
   assertPass(Boolean(verdict && verdict.includes('rejected')), 'SNARK tamper scenario is rejected');
 }
 
+async function runGraphCommitmentCheck(page) {
+  // The graph exhibit now publishes REAL SHA-256(color||nonce) commitments and
+  // re-verifies each opening on reveal. Drive one round + challenge and confirm
+  // the node labels carry hex (not base64) digests and the reveal is accepted.
+  await page.goto(`${baseUrl}/exhibits/graph-coloring.html?seed=ci-graph`, { waitUntil: 'domcontentloaded' });
+  await page.click('#g-btn-r');
+  await page.waitForFunction(() => {
+    const label = document.getElementById('l0')?.textContent || '';
+    return /^[0-9a-f]{8}…$/.test(label);
+  });
+  const label = await page.locator('#l0').textContent();
+  assertPass(/^[0-9a-f]{8}…$/.test(label || ''), 'Graph commitment label is a real SHA-256 hex prefix, not base64');
+  await page.click('#g-btn-c');
+  await page.waitForFunction(() => (document.getElementById('g-log')?.textContent || '').includes('openings verified') || (document.getElementById('g-log')?.textContent || '').includes('FAIL'));
+  const log = await page.locator('#g-log').textContent();
+  assertPass(Boolean(log && log.includes('openings verified')), 'Graph reveal re-hashes openings and accepts a valid commitment');
+}
+
 async function runScenarioPresetLinkCheck(page) {
   await page.goto(`${baseUrl}/exhibits/scenario-presets.html`, { waitUntil: 'domcontentloaded' });
   const links = await page.$$eval('section[aria-label="Preset selector"] a.card', nodes => nodes.map(node => node.getAttribute('href')).filter(Boolean));
@@ -159,6 +177,7 @@ await runSchnorrInvariantCheck(page);
 await runFiatShamirInvariantCheck(page);
 await runCommitInvariantCheck(page);
 await runSnarkTamperCheck(page);
+await runGraphCommitmentCheck(page);
 await runScenarioPresetLinkCheck(page);
 
 await browser.close();

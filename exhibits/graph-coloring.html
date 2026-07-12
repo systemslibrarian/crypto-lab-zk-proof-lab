@@ -38,7 +38,7 @@
 
     <main class="exhibit">
       <div class="ex-header">
-        <div class="ex-row"><span class="ex-num">EXHIBIT 02</span><span class="badge badge-sim">⬡ COMMITMENTS SIMPLIFIED</span></div>
+        <div class="ex-row"><span class="ex-num">EXHIBIT 02</span><span class="badge badge-real">⬡ REAL SHA-256 COMMITMENTS</span></div>
         <div class="ex-title">Graph 3-Coloring ZKP</div>
         <div class="ex-sub">Proving a valid coloring exists without revealing which colors go where · Goldreich, Micali, Wigderson 1986</div>
       </div>
@@ -58,14 +58,14 @@
         <a class="resource-link" href="graph-coloring.html?seed=interview-1&auto=1">Preset: 10 Challenges</a>
       </div>
 
-      <div class="trust-banner trust-conceptual global-honesty"><strong>Cryptographic honesty:</strong> this graph exhibit preserves the challenge-reveal logic and soundness amplification of ZK coloring, but uses simplified commitments for pedagogy rather than a production-grade binding commitment scheme.</div>
+      <div class="trust-banner trust-real global-honesty"><strong>Cryptographic honesty:</strong> each region is committed with a real <code>SHA-256(color ‖ nonce)</code> digest, and on reveal the opening is re-hashed and checked against the published commitment. The challenge-reveal logic and soundness amplification ((5/6)<sup>k</sup>) of ZK graph coloring are preserved faithfully. The graph and colour palette are small for a legible walkthrough, not for deployment security.</div>
 
       <section class="prose">
         <p>Think of this as proving a map has been colored correctly without handing over the whole answer key. The prover hides every node's color, then the verifier points to just one connecting line and asks to see only the two colors at its ends.</p>
         <p>If those two touching nodes are different colors, that local check passes. Because the hidden colors are shuffled each round, the verifier never gets enough information to reconstruct the whole map, but repeated spot-checks still make cheating harder and harder.</p>
       </section>
 
-      <div class="trust-banner trust-conceptual"><strong>Rigor note:</strong> in full GMW-style protocols, each round commits to all vertex colors using a cryptographically binding commitment scheme (e.g., <code>H(color ‖ nonce)</code> with a collision-resistant hash). This exhibit replaces that with truncated base64 — enough to show the commit-then-reveal flow, but <em>not</em> binding or hiding in a cryptographic sense. The verifier interaction model and soundness amplification ((5/6)<sup>k</sup>) are preserved faithfully.</div>
+      <div class="trust-banner trust-real"><strong>Rigor note:</strong> in full GMW-style protocols, each round commits to all vertex colors using a cryptographically binding commitment scheme — <code>H(color ‖ nonce)</code> with a collision-resistant hash. This exhibit implements exactly that with <code>window.crypto.subtle.digest('SHA-256', ...)</code> over a fresh 16-byte nonce per node, and verifies each opening on reveal. It remains a teaching model (small graph, three colours, no reveal-window enforcement), but the commitment layer itself is genuine.</div>
 
       <div class="panel" style="margin-bottom:14px">
         <div class="ph">FULL GRAPH VIEW</div>
@@ -89,7 +89,7 @@
             <circle id="n4" cx="32" cy="82" r="15" fill="#131c2e" stroke="#1c2540" stroke-width="2"/>
             <text id="l4" x="32" y="86" text-anchor="middle" fill="#3a4a68" font-size="7" font-family="monospace">0x…</text>
           </svg>
-          <div style="font-size:10px;color:var(--tx3);margin-top:4px">Nodes show simplified commitments (base64, not real hashes) — colors hidden</div>
+          <div style="font-size:10px;color:var(--tx3);margin-top:4px">Nodes show real SHA-256 commitments (truncated for display) — colors hidden</div>
         </div>
       </div>
 
@@ -101,7 +101,7 @@
             <div id="g-round-info" aria-live="polite" aria-atomic="true" style="font-size:11px;color:var(--tx2);margin-bottom:8px">Press "New Round" to commit.</div>
             <table class="commit-table" aria-label="Round commitments">
               <thead>
-                <tr><th>Node</th><th>Commitment <span style="font-weight:400;color:var(--warn);font-size:10px">(simplified)</span></th></tr>
+                <tr><th>Node</th><th>Commitment <span style="font-weight:400;color:var(--tx3);font-size:10px">(SHA-256, truncated)</span></th></tr>
               </thead>
               <tbody id="g-commit-table">
                 <tr><td>0</td><td>0x…</td></tr>
@@ -133,7 +133,7 @@
         <button class="bs" id="g-btn-a">Run 10</button>
         <button class="bs" id="g-btn-x">Reset</button>
       </div>
-      <div class="vl"><strong>What the verifier learns:</strong> Only that the challenged endpoints differ. Random color permutation each round prevents accumulating a global coloring. The pedagogical simplification is in the commitment layer (base64 encoding, not a binding hash), not in the soundness argument: after k independent rounds, P(undetected cheat) = (5/6)<sup>k</sup>. A production version would replace <code>simCommit</code> with <code>SHA-256(color ‖ nonce)</code> to guarantee binding and hiding.</div>
+      <div class="vl"><strong>What the verifier learns:</strong> Only that the challenged endpoints differ. Random color permutation each round prevents accumulating a global coloring. The commitment layer is a real binding+hiding <code>SHA-256(color ‖ nonce)</code> — the reveal step re-hashes each opening and rejects any that does not match the published digest. After k independent rounds, P(undetected cheat) = (5/6)<sup>k</sup>. This remains a teaching model in scale (5 nodes, 3 colours, no reveal-window enforcement), not the soundness argument.</div>
     </main>
 
     <footer class="footer">

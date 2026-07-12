@@ -12,7 +12,7 @@ import {
   seededHex,
   seededInt,
   sha256hex
-} from './utils.js';
+} from './shared.js';
 
 let cs = { phase: 'idle', bidA: 0, bidB: 0, nA: '', nB: '', hA: '', hB: '' };
 let commitBusy = false;
