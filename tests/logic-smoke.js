@@ -1,4 +1,4 @@
-import { addLog, modpow, sha256hex, schnorrVerify, confidencePercent, cheatProbabilityPercent } from '../js/shared.js';
+import { addLog, modpow, sha256hex, schnorrVerify, recoverSchnorrSecret, confidencePercent, cheatProbabilityPercent } from '../js/shared.js';
 
 async function run() {
   const tests = [
@@ -13,6 +13,29 @@ async function run() {
     ['Schnorr cheat verification fails', () => {
       const R = modpow(5, 123, 2053);
       return !schnorrVerify({ g: 5, p: 2053, y: 375, R, c: 9, s: 222 }).ok;
+    }],
+    ['A leaked nonce r recovers the Schnorr private key (why r is not in the transcript)', () => {
+      const x = 17;
+      const y = modpow(5, x, 2053);
+      // Every challenge in the exhibit's range, including the ones sharing a
+      // factor with p-1 where the congruence has several roots.
+      for (let c = 1; c <= 50; c += 1) {
+        const r = 1234;
+        const s = (r + c * x) % 2052;
+        if (!recoverSchnorrSecret({ r, c, s, y }).includes(x)) {
+          return false;
+        }
+      }
+      return true;
+    }],
+    ['Without r, the transcript (R, c, s) alone yields no private key', () => {
+      // Same call with the nonce unknown to the attacker: guessing r wrong
+      // must not hand back the real x.
+      const x = 17;
+      const y = modpow(5, x, 2053);
+      const c = 9;
+      const s = (1234 + c * x) % 2052;
+      return !recoverSchnorrSecret({ r: 1235, c, s, y }).includes(x);
     }],
     ['Confidence math matches cave formula', () => confidencePercent(10, 0.5).toFixed(2) === '99.90'],
     ['Cheat probability matches graph formula', () => cheatProbabilityPercent(10, 5 / 6).toFixed(2) === '16.15'],

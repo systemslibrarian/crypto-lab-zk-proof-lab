@@ -44,11 +44,12 @@ function setControls() {
   document.getElementById('snark-reset-btn').disabled = snarkBusy;
 }
 
-async function buildProofTranscript() {
+// Prover side: emit the proof envelope only. It carries no verdict of its own —
+// deciding whether the envelope is acceptable is the verifier's job, below.
+async function buildProof() {
   const witness = nextInt(2, 40);
   const publicInput = witness * witness + 3 * witness + 7;
   const provingNonce = nextHex(12);
-  const digest = await sha256hex(`${publicInput}|${provingNonce}`);
   return {
     protocol: 'zk-SNARK Intuition Model',
     mode: 'toy-pipeline',
@@ -57,14 +58,28 @@ async function buildProofTranscript() {
     publicInput,
     privateWitness: witness,
     provingNonce,
-    digest,
+    digest: await sha256hex(`${publicInput}|${provingNonce}`),
     relation: 'y = w^2 + 3w + 7',
-    verification: {
-      equationHolds: publicInput === witness * witness + 3 * witness + 7,
-      digestBound: true
-    },
     note: 'Pedagogical SNARK pipeline only; not a real SNARK cryptosystem.'
   };
+}
+
+// Verifier side: both verdicts are recomputed from the envelope's own fields —
+// the relation is re-evaluated at the claimed witness, and the digest is
+// re-derived with real SHA-256 and compared to the one that was shipped. The
+// same function decides the honest and the tampered run, so a tamper cannot be
+// waved through by a verdict that was written down in advance.
+async function verifyProof(proof) {
+  const recomputedDigest = await sha256hex(`${proof.publicInput}|${proof.provingNonce}`);
+  return {
+    equationHolds: proof.publicInput === proof.privateWitness * proof.privateWitness + 3 * proof.privateWitness + 7,
+    digestBound: recomputedDigest === proof.digest
+  };
+}
+
+async function buildProofTranscript() {
+  const proof = await buildProof();
+  return { ...proof, verification: await verifyProof(proof) };
 }
 
 function persist(transcript) {
@@ -121,11 +136,7 @@ async function tamperPublicInput() {
   setControls();
   try {
     const tampered = { ...lastSnarkTranscript, publicInput: lastSnarkTranscript.publicInput + 1 };
-    const tamperedDigest = await sha256hex(`${tampered.publicInput}|${tampered.provingNonce}`);
-    tampered.verification = {
-      equationHolds: tampered.publicInput === tampered.privateWitness * tampered.privateWitness + 3 * tampered.privateWitness + 7,
-      digestBound: tamperedDigest === tampered.digest
-    };
+    tampered.verification = await verifyProof(tampered);
     render(tampered);
     addLog('snark-log', 'Tamper attempt: public input changed after proof generation', 'lerr');
     narrate('snark-narration', 'Changing the public input after proving breaks the bound relation, so the verifier rejects the toy proof.');

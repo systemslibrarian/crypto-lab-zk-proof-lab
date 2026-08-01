@@ -222,6 +222,79 @@ export function schnorrVerify({ g, p, y, R, c, s }) {
 }
 
 /**
+ * @param {number} a
+ * @param {number} b
+ * @returns {number}
+ */
+function gcd(a, b) {
+  let x = Math.abs(a);
+  let y = Math.abs(b);
+  while (y !== 0) {
+    const t = y;
+    y = x % y;
+    x = t;
+  }
+  return x;
+}
+
+/**
+ * Modular inverse of `a` mod `m` via the extended Euclidean algorithm, or null
+ * when gcd(a, m) !== 1.
+ * @param {number} a
+ * @param {number} m
+ * @returns {number | null}
+ */
+function modInverse(a, m) {
+  let old_r = ((a % m) + m) % m;
+  let r = m;
+  let old_s = 1;
+  let s = 0;
+  while (r !== 0) {
+    const q = Math.floor(old_r / r);
+    [old_r, r] = [r, old_r - q * r];
+    [old_s, s] = [s, old_s - q * s];
+  }
+  if (old_r !== 1) {
+    return null;
+  }
+  return ((old_s % m) + m) % m;
+}
+
+/**
+ * Recover the Schnorr private key from a transcript whose nonce leaked.
+ *
+ * This is the reason a real Schnorr transcript is (R, c, s) and never carries
+ * r: since s = (r + c·x) mod (p−1), anyone holding r as well solves the linear
+ * congruence c·x ≡ (s − r) (mod p−1) for x. gcd(c, p−1) may exceed 1, so the
+ * congruence can have several roots; each is confirmed against the public key,
+ * and only the x with g^x ≡ y (mod p) is returned.
+ *
+ * @param {{ r: number, c: number, s: number, y: number, g?: number, p?: number, order?: number }} params
+ * @returns {number[]} every x consistent with both the congruence and y
+ */
+export function recoverSchnorrSecret({ r, c, s, y, g = 5, p = 2053, order = 2052 }) {
+  const target = (((s - r) % order) + order) % order;
+  const divisor = gcd(c, order);
+  if (divisor === 0 || target % divisor !== 0) {
+    return [];
+  }
+  const reducedModulus = order / divisor;
+  const inverse = modInverse(c / divisor, reducedModulus);
+  if (inverse === null) {
+    return [];
+  }
+  const base = ((target / divisor) % reducedModulus) * inverse % reducedModulus;
+  const found = [];
+  for (let k = 0; k < divisor; k += 1) {
+    const candidate = (base + k * reducedModulus) % order;
+    if (modpow(g, candidate, p) === y) {
+      found.push(candidate);
+    }
+  }
+  return found;
+}
+
+/**
  * SHA-256 of a UTF-8 string, returned as lowercase hex.
  * @param {string} msg
  * @returns {Promise<string>}

@@ -140,11 +140,21 @@ export async function cheatPhase() {
     const fake = cs.bidA + 100;
     document.getElementById('ca-bid').textContent = `$${fake} ← changed!`;
     const fakeHash = await sha256hex(`$${fake}|${cs.nA}`);
-    document.getElementById('ca-verify').innerHTML = `SHA-256($${fake} ‖ nonce) =<br><span style="color:var(--err);font-size:10px;word-break:break-all">${fakeHash}</span><br><strong style="color:var(--err)">✗ CAUGHT — hash does not match commitment!</strong>`;
-    document.getElementById('commit-result').innerHTML = '<strong style="color:var(--err)">Binding property holds.</strong> Bidder A\'s revised bid produces a completely different SHA-256 hash. Finding any (bid, nonce) pair that produces the same hash is computationally infeasible.';
-    narrate('commit-narration', 'Bidder A tries to change their bid — but the new value hashes to something completely different, so the tamper is caught.');
+    // The verdict is the verifier's own comparison, not a foregone conclusion:
+    // the tamper is "caught" precisely when the recomputed digest differs from
+    // the digest published at commit time. A collision would show as NOT CAUGHT.
+    const detected = fakeHash !== cs.hA;
+    document.getElementById('ca-verify').innerHTML = detected
+      ? `SHA-256($${fake} ‖ nonce) =<br><span style="color:var(--err);font-size:10px;word-break:break-all">${fakeHash}</span><br><strong style="color:var(--err)">✗ CAUGHT — recomputed hash ≠ published commitment</strong>`
+      : `SHA-256($${fake} ‖ nonce) =<br><span style="color:var(--warn);font-size:10px;word-break:break-all">${fakeHash}</span><br><strong style="color:var(--warn)">⚠ NOT CAUGHT — recomputed hash equals the published commitment</strong>`;
+    document.getElementById('commit-result').innerHTML = detected
+      ? `<strong style="color:var(--err)">Binding property holds.</strong> Bidder A's revised bid hashes to <code>${fakeHash.slice(0, 16)}…</code>, which does not equal the published <code>${cs.hA.slice(0, 16)}…</code>. Finding any (bid, nonce) pair that produces the same hash is computationally infeasible.`
+      : '<strong style="color:var(--warn)">Binding broken.</strong> The revised bid hashed to the published commitment — a SHA-256 collision. If you are reading this, something is very wrong with the browser\'s hash implementation.';
+    narrate('commit-narration', detected
+      ? 'Bidder A tries to change their bid — but the new value hashes to something completely different, so the tamper is caught.'
+      : 'Bidder A changed their bid and the hash still matched, which is what a broken commitment scheme looks like.');
     cs.phase = 'cheated';
-    lastCommitTranscript = buildCommitTranscript({ cheatAttempt: { fakeBid: fake, fakeHash, detected: true } });
+    lastCommitTranscript = buildCommitTranscript({ cheatAttempt: { fakeBid: fake, fakeHash, publishedHash: cs.hA, detected } });
     persistCommitTranscript(lastCommitTranscript);
     flashFail('commit-result');
   } finally {

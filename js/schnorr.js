@@ -9,6 +9,7 @@ import {
   readModeFromUrl,
   rInt,
   readSeedFromUrl,
+  recoverSchnorrSecret,
   schnorrVerify,
   seededInt,
   setConf,
@@ -19,6 +20,9 @@ let schnorrN = 0;
 let schnorrBusy = false;
 let lastSchnorrTranscript = null;
 let stepRun = null;
+// The prover's private view of the last run, kept in memory only so the
+// "Leak the nonce" lesson has an r to leak. It is never persisted or copied.
+let lastRun = null;
 let secretX = 17;
 let pubY = 375;
 
@@ -60,6 +64,14 @@ function nextInt(min, max) {
   return rInt(min, max);
 }
 
+function hideLeakPanel() {
+  const panel = document.getElementById('s-leak');
+  if (panel) {
+    panel.style.display = 'none';
+    panel.innerHTML = '';
+  }
+}
+
 function schnorrSetControls() {
   document.getElementById('s-btn').disabled = schnorrBusy;
   document.getElementById('s-step-btn').disabled = schnorrBusy;
@@ -67,6 +79,7 @@ function schnorrSetControls() {
   document.getElementById('s-reset-btn').disabled = schnorrBusy;
   document.getElementById('s-copy-btn').disabled = schnorrBusy || !lastSchnorrTranscript;
   document.getElementById('s-replay-btn').disabled = schnorrBusy || !lastSchnorrTranscript;
+  document.getElementById('s-leak-btn').disabled = schnorrBusy || !lastRun;
 }
 
 function updateStepButton() {
@@ -90,6 +103,7 @@ export function schnorrStep() {
     ['s2', 's3', 's4'].forEach(id => {
       document.getElementById(id).style.display = 'none';
     });
+    hideLeakPanel();
     document.getElementById('s-result').textContent = '';
   }
   stepRun.phase += 1;
@@ -113,11 +127,19 @@ export function schnorrStep() {
     document.getElementById('s-lhs').textContent = stepRun.lhs;
     document.getElementById('s-rhs').textContent = stepRun.rhs;
     document.getElementById('s4').style.display = '';
-    document.getElementById('s-result').innerHTML = '<span style="color:var(--ok)">✓ VERIFIED — values match</span>';
-    schnorrN += 1;
-    setConf('s-fill', 's-pct', schnorrN, 1 / 50);
-    addLog('s-log', `Step 4 — g^s mod p = ${stepRun.lhs} = R·y^c ✓`, 'lok');
-    celebrate('s-result');
+    // The verdict is read off the verifier's own comparison of lhs and rhs, so
+    // a broken response would show FAILED here rather than a canned success.
+    if (stepRun.ok) {
+      document.getElementById('s-result').innerHTML = `<span style="color:var(--ok)">✓ VERIFIED — ${stepRun.lhs} = ${stepRun.rhs}</span>`;
+      schnorrN += 1;
+      setConf('s-fill', 's-pct', schnorrN, 1 / 50);
+      addLog('s-log', `Step 4 — g^s mod p = ${stepRun.lhs} = R·y^c ✓`, 'lok');
+      celebrate('s-result');
+    } else {
+      document.getElementById('s-result').innerHTML = `<span style="color:var(--err)">✗ FAILED — ${stepRun.lhs} ≠ ${stepRun.rhs}</span>`;
+      addLog('s-log', `Step 4 — g^s mod p = ${stepRun.lhs} ≠ R·y^c = ${stepRun.rhs} ✗`, 'lerr');
+      flashFail('s-result');
+    }
     lastSchnorrTranscript = buildTranscript({ cheat: false, ...stepRun });
     persistTranscript(lastSchnorrTranscript);
   }
@@ -125,16 +147,49 @@ export function schnorrStep() {
   schnorrSetControls();
 }
 
+// A real Schnorr transcript is exactly (R, c, s). The nonce r is the prover's
+// private scratch value and never crosses the wire: publishing it next to s
+// hands over the private key, because s = (r + c·x) mod (p−1) then solves for
+// x. So r is deliberately absent from everything that is stored, copied, or
+// replayed here — what leaves this exhibit is what a verifier actually sees.
+// The "Leak the nonce" control below adds it back on purpose to show the
+// recovery happening, and that path is the only one that ever exposes r.
 function buildTranscript({ cheat, r, R, c, s, lhs, rhs, ok }) {
+  lastRun = { cheat, r, R, c, s, ok };
   return {
     protocol: 'Schnorr Identification',
     mode: cheat ? 'cheat-simulation' : 'honest-proof',
     educationalParameters: true,
     parameters: { p: 2053, g: 5, y: pubY },
     seed: scenarioSeed,
-    transcript: { r, R, c, s, lhs, rhs, verified: ok },
-    note: 'Real browser-side modular arithmetic with intentionally tiny educational parameters.'
+    transcript: { R, c, s, lhs, rhs, verified: ok },
+    note: 'Real browser-side modular arithmetic with intentionally tiny educational parameters. The prover nonce r is intentionally omitted: a verifier never sees it, and anyone holding it could recover the private key from s.'
   };
+}
+
+// The lesson behind the omission: put r back into the transcript and the
+// "zero-knowledge" property collapses on the spot. Everything shown here is
+// computed from the run's own (r, c, s) — nothing is asserted.
+export function schnorrLeakNonce() {
+  if (schnorrBusy || !lastRun) {
+    return;
+  }
+  const { r, R, c, s } = lastRun;
+  const leaked = {
+    warning: 'NOT A REAL SCHNORR TRANSCRIPT — the prover nonce r must never be published.',
+    parameters: { p: 2053, g: 5, y: pubY },
+    transcript: { R, c, s, r }
+  };
+  const recovered = recoverSchnorrSecret({ r, c, s, y: pubY });
+  const panel = document.getElementById('s-leak');
+  const congruence = `c·x ≡ (s − r) (mod p−1) → ${c}·x ≡ (${s} − ${r}) ≡ ${(((s - r) % 2052) + 2052) % 2052} (mod 2052)`;
+  const outcome = recovered.length > 0
+    ? `<div style="color:var(--err);margin-top:6px"><strong>Private key recovered: x = ${recovered.join(' or ')}.</strong> Compare it with the secret x in the parameter box above — the proof just stopped being zero-knowledge.</div>`
+    : '<div style="color:var(--warn);margin-top:6px"><strong>No x satisfies the congruence.</strong> This was a cheat run: the prover guessed s rather than deriving it, so there is no private key to recover — and no valid proof either.</div>';
+  panel.innerHTML = `<strong>Nonce leaked on purpose.</strong> A transcript that carries r looks like this:<pre style="white-space:pre-wrap;word-break:break-all;margin:6px 0;font-size:11px">${JSON.stringify(leaked, null, 2)}</pre><div><code>${congruence}</code></div>${outcome}<div style="margin-top:6px">This is why the transcript this exhibit stores, copies, and replays contains only <code>(R, c, s)</code>.</div>`;
+  panel.style.display = '';
+  addLog('s-log', recovered.length > 0 ? `LEAKED r=${r} → recovered x=${recovered.join('/')}` : `LEAKED r=${r} → no x satisfies the congruence (cheat run)`, 'lerr');
+  flashFail('s-leak');
 }
 
 function persistTranscript(transcript) {
@@ -153,6 +208,7 @@ export async function schnorrRun(cheat) {
     ['s2', 's3', 's4'].forEach(id => {
       document.getElementById(id).style.display = 'none';
     });
+    hideLeakPanel();
     document.getElementById('s-result').textContent = '';
     const r = nextInt(1, 2051);
     const R = schnorrVerify({ g: 5, p: 2053, y: 1, R: 1, c: 0, s: r }).lhs;
@@ -211,6 +267,8 @@ export function schnorrReset() {
   schnorrN = 0;
   lastSchnorrTranscript = null;
   stepRun = null;
+  lastRun = null;
+  hideLeakPanel();
   updateStepButton();
   ['s-r', 's-r2', 's-R', 's-r3', 's-c', 's-c2', 's-s', 's-lhs', 's-rhs'].forEach(id => {
     const element = document.getElementById(id);
@@ -250,6 +308,7 @@ document.getElementById('s-step-btn').addEventListener('click', schnorrStep);
 document.getElementById('s-cheat-btn').addEventListener('click', () => schnorrRun(true));
 document.getElementById('s-copy-btn').addEventListener('click', schnorrCopyTranscript);
 document.getElementById('s-replay-btn').addEventListener('click', schnorrReplayInLab);
+document.getElementById('s-leak-btn').addEventListener('click', schnorrLeakNonce);
 document.getElementById('s-reset-btn').addEventListener('click', schnorrReset);
 document.getElementById('s-x-select').addEventListener('change', schnorrSetSecret);
 

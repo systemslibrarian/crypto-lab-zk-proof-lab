@@ -154,11 +154,14 @@
         <button class="bp" id="s-btn">▶ Run Protocol</button>
         <button class="bs" id="s-step-btn">Step ▷ (0/4)</button>
         <button class="bd" id="s-cheat-btn">Simulate Cheat</button>
+        <button class="bd" id="s-leak-btn" disabled>Leak The Nonce r</button>
         <button class="bs" id="s-copy-btn" disabled>Copy Transcript</button>
         <button class="bs" id="s-replay-btn" disabled>Replay In Lab</button>
         <button class="bs" id="s-reset-btn">Reset</button>
       </div>
+      <div id="s-leak" class="vl" aria-live="polite" style="display:none"></div>
       <div class="vl"><strong>What the verifier learns:</strong> Only that the prover knows x. The response s = r + c x changes every round because r is freshly random. Even knowing s and c, computing x requires solving the discrete logarithm — infeasible for large primes. Production Schnorr uses 256-bit parameters (secp256k1, Bitcoin signatures).</div>
+      <div class="vl"><strong>What is <em>not</em> in the transcript.</strong> A Schnorr transcript is exactly <code>(R, c, s)</code>. The nonce <code>r</code> is shown in the prover panel because you are standing behind the prover, but it never crosses to the verifier and it is not in what <strong>Copy Transcript</strong> or <strong>Replay In Lab</strong> hand you. It cannot be: <code>s = (r + c·x) mod (p−1)</code>, so anyone holding both <code>r</code> and <code>s</code> solves <code>c·x ≡ s − r (mod p−1)</code> and reads the private key straight out. Press <strong>Leak The Nonce r</strong> to watch exactly that happen to this run's numbers — one extra field in the transcript is the whole difference between zero-knowledge and no knowledge withheld at all.</div>
     </main>
 
     <footer class="footer">

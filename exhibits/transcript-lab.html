@@ -49,7 +49,7 @@
         <a class="resource-link" href="../tests/quality-gates.html">Quality Gates</a>
       </div>
 
-      <div class="trust-banner trust-real global-honesty"><strong>How to use:</strong> load the latest transcript from an exhibit or paste JSON manually, then compare transcript semantics and verifier outcomes side by side.</div>
+      <div class="trust-banner trust-real global-honesty"><strong>How to use, and what is real:</strong> load the latest transcript from an exhibit or paste JSON manually, then compare transcript semantics and verifier outcomes side by side. For Fiat-Shamir transcripts this page does not take the recorded challenge on trust — it re-derives it with a real <code>SHA-256</code> digest over the transcript's own <code>(R, y, message)</code> and reports match or mismatch. The remaining rows are field-level comparison of the JSON, not verification: this is a teaching inspector for proof traces, not a proof checker.</div>
 
       <div class="demo-grid">
         <div class="panel">
