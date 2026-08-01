@@ -70,17 +70,19 @@
       <div class="panel" style="margin-bottom:14px">
         <div class="ph">Toy vs Production Parameters</div>
         <div class="pb">
-          <table class="commit-table" aria-label="Toy versus production Fiat-Shamir parameters">
+          <div class="table-scroll" tabindex="0">
+            <table class="commit-table" aria-label="Toy versus production Fiat-Shamir parameters">
             <thead>
-              <tr><th>Dimension</th><th>This Exhibit</th><th>Production Expectation</th></tr>
+            <tr><th>Dimension</th><th>This Exhibit</th><th>Production Expectation</th></tr>
             </thead>
             <tbody>
-              <tr><td>Hash input</td><td>R || y || message</td><td>Domain separated transcript with context binding</td></tr>
-              <tr><td>Challenge range</td><td>1..50</td><td>Large scalar field challenge</td></tr>
-              <tr><td>Math domain</td><td>Small prime modulus</td><td>Secure elliptic curves or large finite fields</td></tr>
-              <tr><td>Security model</td><td>Didactic random-oracle intuition</td><td>Audited proofs and protocol-specific assumptions</td></tr>
+            <tr><td>Hash input</td><td>R || y || message</td><td>Domain separated transcript with context binding</td></tr>
+            <tr><td>Challenge range</td><td>1..50</td><td>Large scalar field challenge</td></tr>
+            <tr><td>Math domain</td><td>Small prime modulus</td><td>Secure elliptic curves or large finite fields</td></tr>
+            <tr><td>Security model</td><td>Didactic random-oracle intuition</td><td>Audited proofs and protocol-specific assumptions</td></tr>
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
       </div>
 
