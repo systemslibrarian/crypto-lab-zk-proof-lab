@@ -32,7 +32,7 @@
         <a class="nav-link" href="transcript-lab.html">Lab</a>
         <a class="nav-link" href="scenario-presets.html">Scenarios</a>
         <a class="nav-link" href="../tests/logic-smoke.html">Tests</a>
-        <a class="nav-link" href="https://github.com/systemslibrarian/zk-proof-lab" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a class="nav-link" href="https://github.com/systemslibrarian/crypto-lab-zk-proof-lab" target="_blank" rel="noopener noreferrer">GitHub</a>
       </nav>
     </header>
 
@@ -48,10 +48,10 @@
       </div>
 
       <div class="resource-links" aria-label="Exhibit resources">
-        <a class="resource-link" href="https://github.com/systemslibrarian/zk-proof-lab" target="_blank" rel="noopener noreferrer">Repository</a>
-        <a class="resource-link" href="https://github.com/systemslibrarian/zk-proof-lab/blob/main/docs/zkp-primer.md" target="_blank" rel="noopener noreferrer">ZK Primer</a>
+        <a class="resource-link" href="https://github.com/systemslibrarian/crypto-lab-zk-proof-lab" target="_blank" rel="noopener noreferrer">Repository</a>
+        <a class="resource-link" href="https://github.com/systemslibrarian/crypto-lab-zk-proof-lab/blob/main/docs/zkp-primer.md" target="_blank" rel="noopener noreferrer">ZK Primer</a>
         <a class="resource-link" href="transcript-lab.html">Replay Lab</a>
-        <a class="resource-link" href="https://github.com/systemslibrarian/zk-proof-lab/blob/main/exhibits/commit-reveal.html" target="_blank" rel="noopener noreferrer">View Source</a>
+        <a class="resource-link" href="https://github.com/systemslibrarian/crypto-lab-zk-proof-lab/blob/main/exhibits/commit-reveal.html" target="_blank" rel="noopener noreferrer">View Source</a>
       </div>
 
       <div class="resource-links" aria-label="Scenario presets">
@@ -126,11 +126,12 @@
         <button class="bs" id="c-btn-replay" disabled>Replay In Lab</button>
         <button class="bs" id="c-btn-reset">Reset</button>
       </div>
-      <div class="vl"><strong>Real SHA-256 runs in your browser</strong> via window.crypto.subtle.digest(). <strong>Binding:</strong> changing even one character produces a completely different 256-bit hash. <strong>Hiding:</strong> the hash reveals nothing about the bid value.</div>
+      <div class="vl"><strong>Real SHA-256 runs in your browser</strong> via window.crypto.subtle.digest(). <strong>Binding:</strong> changing even one character produces a completely different 256-bit hash. <strong>Hiding:</strong> the nonce is doing this work, not the hash. Bids here are integers from $100 to $999 — only 900 possibilities — so <code>SHA-256(bid)</code> alone would hide nothing: an observer would hash all 900 candidates in well under a millisecond and read the bid straight off the table. Committing to <code>SHA-256(bid ‖ nonce)</code> with a fresh 32-byte nonce is what puts the value beyond search. And what that buys is <em>computational</em> hiding — it rests on SHA-256 being hard to invert, not on information theory. A Pedersen commitment hides <em>perfectly</em>: even an adversary with unbounded time learns nothing. That is the tradeoff — a hash commitment is perfectly binding and computationally hiding; Pedersen is the reverse.</div>
+      <div class="vl"><strong>One caveat on the presets.</strong> The preset links above pass <code>?seed=…</code>, which switches this exhibit to a deterministic RNG so a walkthrough replays identically. In that mode the nonce comes from a seed printed in the URL, so it is not secret and hiding does not hold at all. Use the presets to rehearse the demo, not to reason about hiding.</div>
     </main>
 
     <footer class="footer">
-      <a href="https://github.com/systemslibrarian/zk-proof-lab" target="_blank" rel="noopener noreferrer">View on GitHub</a> · <a href="../tests/logic-smoke.html">Run Tests</a> · v1.0 · ZK Proof Lab by <a href="https://github.com/systemslibrarian" target="_blank" rel="noopener noreferrer">systemslibrarian</a>
+      <a href="https://github.com/systemslibrarian/crypto-lab-zk-proof-lab" target="_blank" rel="noopener noreferrer">View on GitHub</a> · <a href="../tests/logic-smoke.html">Run Tests</a> · v1.0 · ZK Proof Lab by <a href="https://github.com/systemslibrarian" target="_blank" rel="noopener noreferrer">systemslibrarian</a>
     </footer>
   </div>
 

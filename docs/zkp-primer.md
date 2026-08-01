@@ -30,8 +30,9 @@ Zero-knowledge: The verifier should learn nothing beyond the truth of the statem
 
 ## Exhibit 04 - Commit-Reveal with SHA-256 (Real Hash)
 
-- Binding: After publishing hash(bid || nonce), changing bid or nonce changes hash and is detected.
-- Hiding: Without nonce, the digest does not reveal the committed bid in any practical way.
+- Binding: After publishing hash(bid || nonce), changing bid or nonce changes hash and is detected. For a hash commitment this is the strong half — breaking it means finding a SHA-256 collision.
+- Hiding: Computational, and supplied by the nonce rather than by the hash. Bids are drawn from $100-$999, a 900-value space, so hash(bid) with no nonce would hide nothing: enumerate all 900 candidates and read the bid off the table. The fresh 32-byte nonce is what puts the preimage beyond search. Even then the guarantee rests on SHA-256 being hard to invert. A Pedersen commitment inverts the tradeoff: perfect hiding (even against an unbounded adversary), computational binding.
+- Caveat: under `?seed=...` the nonce comes from a deterministic RNG seeded from the URL, so in preset-replay mode it is not secret and hiding does not hold.
 - Verification: During reveal, anyone recomputes SHA-256 and checks exact digest equality.
 
 ## Real vs Simulated Labeling
