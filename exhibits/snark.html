@@ -76,7 +76,7 @@
             </thead>
             <tbody>
             <tr><td>Circuit complexity</td><td>Tiny arithmetic relation</td><td>Large circuits (thousands to millions of constraints)</td></tr>
-            <tr><td>Setup model</td><td>Visual trusted setup simulation</td><td>Ceremony with strict toxic-waste handling</td></tr>
+            <tr><td>Setup model</td><td>Assumed and narrated; not simulated</td><td>Ceremony with strict toxic-waste handling</td></tr>
             <tr><td>Proof object</td><td>Readable JSON envelope</td><td>Curve-based proof bytes with formal verification equations</td></tr>
             <tr><td>Verifier environment</td><td>Browser pedagogy</td><td>Audited verifiers (on-chain/off-chain) with formal assumptions</td></tr>
             </tbody>
@@ -85,12 +85,12 @@
         </div>
       </div>
 
-      <div id="snark-narration" class="narration" aria-live="polite">A toy SNARK pipeline: a private witness is reduced to a public output and a binding digest, so the verifier can accept the proof without ever seeing the witness.</div>
+      <div id="snark-narration" class="narration" aria-live="polite">A toy pipeline that exposes w so its arithmetic can be inspected. It models computed accept/reject plumbing, not zero-knowledge witness hiding or a real SNARK proof.</div>
       <div class="demo-grid">
         <div class="panel">
           <div class="ph">PROVER PIPELINE</div>
           <div class="pb">
-            <div class="hash-label">Private witness w</div>
+            <div class="hash-label">Witness w (exposed to this toy verifier)</div>
             <div class="hash-box" id="snark-w">—</div>
             <div class="hash-label" style="margin-top:8px">Public input y</div>
             <div class="hash-box" id="snark-y">—</div>
@@ -121,7 +121,7 @@
         <button class="bs" id="snark-reset-btn">Reset</button>
       </div>
 
-      <div class="vl"><strong>What this teaches:</strong> SNARK systems separate private witness data from public claims, and let verifiers run small checks over proof objects and public inputs. Real systems add finite-field circuits, polynomial commitments, setup assumptions, and formal security proofs.</div>
+      <div class="vl"><strong>What this teaches:</strong> SNARK systems separate private witness data from public claims, and let verifiers run small checks over proof objects and public inputs. This toy envelope deliberately includes <code>w</code> so you can inspect its computed relation; it does not provide witness privacy. Real systems add finite-field circuits, polynomial commitments, setup assumptions, zero-knowledge witness hiding, and formal security proofs.</div>
     </main>
 
     <footer class="footer">

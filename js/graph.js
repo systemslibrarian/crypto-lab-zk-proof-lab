@@ -49,6 +49,7 @@ function graphSetControls() {
   const busy = gState.auto;
   document.getElementById('g-btn-r').disabled = busy || gState.phase === 'committed';
   document.getElementById('g-btn-c').disabled = busy || gState.phase !== 'committed';
+  document.getElementById('g-btn-t').disabled = busy || gState.phase !== 'committed';
   document.getElementById('g-btn-a').disabled = busy;
   document.getElementById('g-btn-x').disabled = busy;
 }
@@ -185,6 +186,19 @@ export async function graphChallenge() {
   graphSetControls();
 }
 
+export function graphTamper() {
+  if (gState.auto || gState.phase !== 'committed') {
+    return;
+  }
+  gState.commits.forEach(commit => {
+    commit.color = commit.color === 'A' ? 'B' : 'A';
+  });
+  document.getElementById('g-round-info').textContent = 'Tamper injected: the openings were changed after their digests were published.';
+  narrate('graph-narration', 'The prover changed the colours after committing. Challenge any edge to see the published digests reject those altered openings.');
+  addLog('g-log', 'Tamper injected: colours changed without changing their published digests', 'lerr');
+  graphSetControls();
+}
+
 export async function graphAuto() {
   if (gState.auto) {
     return;
@@ -225,6 +239,7 @@ export function graphReset() {
 
 document.getElementById('g-btn-r').addEventListener('click', graphRound);
 document.getElementById('g-btn-c').addEventListener('click', graphChallenge);
+document.getElementById('g-btn-t').addEventListener('click', graphTamper);
 document.getElementById('g-btn-a').addEventListener('click', graphAuto);
 document.getElementById('g-btn-x').addEventListener('click', graphReset);
 

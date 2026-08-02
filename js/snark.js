@@ -121,7 +121,7 @@ async function runPipeline() {
     if (scenarioSeed) {
       addLog('snark-log', `Seeded run: ${scenarioSeed}`, 'lacc');
     }
-    narrate('snark-narration', 'A private witness w is checked against the public output y = w²+3w+7, with a digest binding the proof. The verifier accepts without ever seeing w.');
+    narrate('snark-narration', 'This toy verifier receives w and checks it against y = w²+3w+7, then re-checks the digest. A real SNARK would replace that exposed witness with a zero-knowledge proof object.');
   } finally {
     snarkBusy = false;
     setControls();
@@ -171,7 +171,7 @@ function reset() {
     document.getElementById(id).textContent = '—';
   });
   document.getElementById('snark-result').textContent = 'Ready.';
-  narrate('snark-narration', 'A toy SNARK pipeline: a private witness is reduced to a public output and a binding digest, so the verifier can accept the proof without ever seeing the witness.');
+  narrate('snark-narration', 'A toy pipeline that exposes w so its arithmetic can be inspected. It models computed accept/reject plumbing, not zero-knowledge witness hiding or a real SNARK proof.');
   document.getElementById('snark-log').innerHTML = '<span class="le">— protocol log —</span>';
   setControls();
 }

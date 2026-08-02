@@ -121,6 +121,16 @@ async function runGraphCommitmentCheck(page) {
   await page.waitForFunction(() => (document.getElementById('g-log')?.textContent || '').includes('openings verified') || (document.getElementById('g-log')?.textContent || '').includes('FAIL'));
   const log = await page.locator('#g-log').textContent();
   assertPass(Boolean(log && log.includes('openings verified')), 'Graph reveal re-hashes openings and accepts a valid commitment');
+
+  // Change the openings after commitment, then prove the same verifier reaches
+  // its digest-mismatch rejection branch.
+  await page.goto(`${baseUrl}/exhibits/graph-coloring.html?seed=ci-graph`, { waitUntil: 'domcontentloaded' });
+  await page.click('#g-btn-r');
+  await page.click('#g-btn-t');
+  await page.click('#g-btn-c');
+  await page.waitForFunction(() => (document.getElementById('g-log')?.textContent || '').includes('did not re-hash'));
+  const tamperLog = await page.locator('#g-log').textContent();
+  assertPass(Boolean(tamperLog && tamperLog.includes('did not re-hash')), 'Graph tamper control reaches commitment-opening rejection');
 }
 
 async function runScenarioPresetLinkCheck(page) {
