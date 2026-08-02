@@ -10,7 +10,10 @@
 }
 html[data-theme='light']{
   --bg:#f4f7fb;--surf:#ffffff;--elev:#edf2fa;--bord:#c7d2e3;
-  --acc:#2f5fd4;--acc2:#1847bf;--ok:#0a7a4f;--err:#c94343;--warn:#9d6a00;
+  /* --err darkened from #c94343 (4.48:1 on --bg, below the 4.5:1 AA floor for
+     12px log lines) to #b83232 (5.52:1). Surfaced once the extractor bench and
+     the tamper path both started emitting .lerr lines in the light theme. */
+  --acc:#2f5fd4;--acc2:#1847bf;--ok:#0a7a4f;--err:#b83232;--warn:#9d6a00;
   --tx:#101827;--tx2:#334155;--tx3:#64748b;
   --bg-spot-a:#d8e4f5;--bg-spot-b:#e3ecfa;
   --chip:#eef3fb;

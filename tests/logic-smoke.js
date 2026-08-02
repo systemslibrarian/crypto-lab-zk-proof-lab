@@ -1,4 +1,9 @@
 import { addLog, modpow, sha256hex, schnorrVerify, recoverSchnorrSecret, confidencePercent, cheatProbabilityPercent } from '../js/shared.js';
+import { bruteForceOpenings, consistentAfterOpening, consistentColorings, properColorings } from '../js/extractor.js';
+
+const GRAPH_EDGES = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 0], [0, 2]];
+const GRAPH_TRUTH = ['A', 'B', 'C', 'B', 'C'];
+const FULL_TRANSCRIPT = GRAPH_EDGES.map(edge => ({ edge, revealed: [GRAPH_TRUTH[edge[0]], GRAPH_TRUTH[edge[1]]] }));
 
 async function run() {
   const tests = [
@@ -39,7 +44,21 @@ async function run() {
     }],
     ['Confidence math matches cave formula', () => confidencePercent(10, 0.5).toFixed(2) === '99.90'],
     ['Cheat probability matches graph formula', () => cheatProbabilityPercent(10, 5 / 6).toFixed(2) === '16.15'],
-    ['SHA-256 matches known hash for abc', async () => (await sha256hex('abc')) === 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad']
+    ['SHA-256 matches known hash for abc', async () => (await sha256hex('abc')) === 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'],
+    ['Graph transcript never pins the coloring: it stops at the 18 proper colorings', () => {
+      const candidates = consistentColorings(5, FULL_TRANSCRIPT);
+      const proper = properColorings(5, GRAPH_EDGES);
+      return proper.length === 18
+        && candidates.length === proper.length
+        && candidates.some(c => c.every((color, i) => color === GRAPH_TRUTH[i]));
+    }],
+    ['Breaking commitment hiding leaks strictly more: 18 candidates collapse to 6', () =>
+      consistentAfterOpening(5, FULL_TRANSCRIPT, GRAPH_TRUTH).length === 6],
+    ['Brute force recovers an 8-bit-nonce opening but not a 16-byte one', async () => {
+      const weak = await bruteForceOpenings([await sha256hex('C|4d')], { nonceBytes: 1, budget: 768, hash: sha256hex });
+      const strong = await bruteForceOpenings([await sha256hex('C|4d0f19a3b7c25e618af03d94c1e27b56')], { nonceBytes: 16, budget: 3000, hash: sha256hex });
+      return weak.recovered[0] === 'C' && strong.recoveredCount === 0 && strong.hashesTried === 3000;
+    }]
   ];
 
   if (typeof document !== 'undefined') {

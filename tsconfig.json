@@ -13,6 +13,7 @@
   },
   "include": [
     "js/shared.js",
+    "js/extractor.js",
     "tests/unit/**/*.ts",
     "vite.config.ts"
   ],

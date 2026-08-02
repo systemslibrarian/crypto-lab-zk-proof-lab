@@ -1,4 +1,10 @@
 import {
+  bruteForceOpenings,
+  consistentAfterOpening,
+  consistentColorings,
+  properColorings
+} from './extractor.js';
+import {
   addLog,
   celebrate,
   cheatProbabilityPercent,
@@ -26,6 +32,22 @@ const COLORS = {
 };
 
 let gState = { n: 0, phase: 'idle', perm: null, commits: null, auto: false };
+
+// Everything the verifier legitimately saw: which edge it challenged and which
+// two (permuted) colours were opened. The extractor bench below is given this
+// and nothing else — it never reads TRUTH or gState.commits[i].color.
+/** @type {{edge: [number, number], revealed: [string, string]}[]} */
+let revealTranscript = [];
+// Permuted colouring recovered by the weak-nonce control, once that attack has
+// actually succeeded. Null until then; never assumed.
+/** @type {string[] | null} */
+let brokenOpening = null;
+let benchBusy = false;
+// Real SHA-256 invocations the 16-byte attack is allowed. Sized so the attack
+// finishes in well under a second in a browser; the point is the ratio between
+// this and the keyspace, which the bench prints.
+const ATTACK_BUDGET = 199998;
+
 const scenarioSeed = readSeedFromUrl();
 const autoScenario = readAutoFromUrl();
 const seededRng = scenarioSeed ? createSeededRng(`graph:${scenarioSeed}`) : null;
@@ -46,12 +68,15 @@ function nextHex(bytes) {
 }
 
 function graphSetControls() {
-  const busy = gState.auto;
+  const busy = gState.auto || benchBusy;
   document.getElementById('g-btn-r').disabled = busy || gState.phase === 'committed';
   document.getElementById('g-btn-c').disabled = busy || gState.phase !== 'committed';
   document.getElementById('g-btn-t').disabled = busy || gState.phase !== 'committed';
   document.getElementById('g-btn-a').disabled = busy;
   document.getElementById('g-btn-x').disabled = busy;
+  document.getElementById('x-btn-brute').disabled = busy;
+  document.getElementById('x-btn-recon').disabled = busy;
+  document.getElementById('x-btn-reset').disabled = busy;
 }
 
 function graphResetViz() {
@@ -170,6 +195,9 @@ export async function graphChallenge() {
     narrate('graph-narration', 'A revealed colour+nonce that does not re-hash to its published commitment is rejected — the SHA-256 binding caught a swapped colour.');
     flashFail('g-challenge');
   } else if (ok) {
+    // The verifier accepted this round, so this is a line of transcript it is
+    // entitled to keep. Everything the extractor bench knows comes from here.
+    revealTranscript.push({ edge: [a, b], revealed: [gState.commits[a].color, gState.commits[b].color] });
     addLog('g-log', `R${gState.n}: edge ${a}–${b} → ${COLORS[gState.commits[a].color].label} ≠ ${COLORS[gState.commits[b].color].label} ✓ (openings verified)`, 'lok');
     narrate('graph-narration', 'The verifier opens one border. The two regions show different colors, so this edge is valid — and the rest of the coloring stays hidden.');
     if (!gState.auto) {
@@ -234,7 +262,184 @@ export function graphReset() {
   document.getElementById('g-log').innerHTML = '<span class="le">— protocol log —</span>';
   document.getElementById('g-commit-table').innerHTML = '<tr><td>0</td><td>0x…</td></tr><tr><td>1</td><td>0x…</td></tr><tr><td>2</td><td>0x…</td></tr><tr><td>3</td><td>0x…</td></tr><tr><td>4</td><td>0x…</td></tr>';
   seedAnnounced = false;
+  benchReset();
   graphSetControls();
+}
+
+/* ---------------------------------------------------------------------------
+ * Extractor bench
+ *
+ * Two attacks the learner can actually run. Neither is narrated: the panel
+ * prints what the attack returned. The commitment attack does real SHA-256
+ * work against the digests this page published, and the transcript extractor
+ * enumerates all 3^5 colourings against the transcript this page produced.
+ * ------------------------------------------------------------------------ */
+
+/**
+ * @param {number} value
+ * @returns {string}
+ */
+function formatCount(value) {
+  return value.toLocaleString('en-US');
+}
+
+/**
+ * @param {number} value
+ * @returns {string}
+ */
+function formatBig(value) {
+  return value >= 1e6 ? value.toExponential(2) : formatCount(Math.round(value));
+}
+
+/**
+ * @param {number} value
+ * @returns {string}
+ */
+function formatFraction(value) {
+  if (value >= 1) {
+    return '100%';
+  }
+  return value >= 0.0001 ? `${(value * 100).toFixed(4)}%` : value.toExponential(2);
+}
+
+/**
+ * @param {number} count
+ * @returns {string}
+ */
+function guessPercent(count) {
+  return count > 0 ? `${(100 / count).toFixed(2)}%` : 'n/a';
+}
+
+/**
+ * @param {string} prefix
+ * @param {import('./extractor.js').AttackResult} result
+ */
+function renderAttackRow(prefix, result) {
+  document.getElementById(`${prefix}-keyspace`).textContent = formatBig(result.keyspace);
+  document.getElementById(`${prefix}-hashes`).textContent = formatCount(result.hashesTried);
+  document.getElementById(`${prefix}-recovered`).textContent = `${result.recoveredCount} of ${result.recovered.length}`;
+  document.getElementById(`${prefix}-fraction`).textContent = result.exhausted
+    ? `${formatFraction(result.fractionSearched)} (exhausted)`
+    : formatFraction(result.fractionSearched);
+  document.getElementById(`${prefix}-expected`).textContent = `${formatBig(result.expectedHashesToBreak)} hashes`;
+}
+
+// Attack 1. Brute-force the published commitments at the exhibit's real nonce
+// width, then re-run the identical attacker against the same colours committed
+// under an 8-bit nonce. Only the keyspace differs between the two runs.
+async function runBruteForce() {
+  if (benchBusy || gState.auto) {
+    return;
+  }
+  if (!gState.commits) {
+    await graphRound();
+  }
+  benchBusy = true;
+  graphSetControls();
+  try {
+    const commits = gState.commits;
+    const strong = await bruteForceOpenings(commits.map(commit => commit.hash), {
+      nonceBytes: 16,
+      budget: ATTACK_BUDGET,
+      hash: sha256hex
+    });
+    renderAttackRow('x-strong', strong);
+    addLog('x-log', `16-byte nonce: ${formatCount(strong.hashesTried)} real SHA-256 hashes → ${strong.recoveredCount} openings recovered`, strong.recoveredCount === 0 ? 'lok' : 'lerr');
+
+    // Weakened control: same five colours, same commitment scheme, 8-bit nonce.
+    const weakCommits = await Promise.all(commits.map(commit => graphCommit(commit.color, nextHex(1))));
+    const weak = await bruteForceOpenings(weakCommits, {
+      nonceBytes: 1,
+      budget: 3 * 256,
+      hash: sha256hex
+    });
+    renderAttackRow('x-weak', weak);
+    addLog('x-log', `1-byte nonce: ${formatCount(weak.hashesTried)} real SHA-256 hashes → ${weak.recoveredCount} openings recovered`, weak.recoveredCount === 0 ? 'lok' : 'lerr');
+
+    brokenOpening = weak.recoveredCount === weak.recovered.length
+      ? weak.recovered.map(color => String(color))
+      : null;
+    if (brokenOpening) {
+      addLog('x-log', 'Broken commitments folded in: the attacker now knows the colouring up to a relabelling', 'lerr');
+    }
+
+    const verdict = document.getElementById('x-attack-verdict');
+    if (strong.recoveredCount === 0 && brokenOpening) {
+      verdict.innerHTML = `<span style="color:var(--ok)">✓ Nothing recovered at 16 bytes</span> — ${formatCount(strong.hashesTried)} real hashes covered a ${formatFraction(strong.fractionSearched)} fraction of the keyspace, and an average break costs ${formatBig(strong.expectedHashesToBreak)} hashes, so this failure is a measurement of scale rather than an exhaustive search. <span style="color:var(--err)">✗ The same attacker recovered every colour at 1 byte</span> in ${formatCount(weak.hashesTried)} hashes. Hiding is a property of the nonce space, not of the word "commitment".`;
+      celebrate('x-attack-verdict', { confetti: false });
+    } else if (strong.recoveredCount === 0) {
+      verdict.innerHTML = `<span style="color:var(--ok)">✓ Nothing recovered at 16 bytes</span> after ${formatCount(strong.hashesTried)} real hashes (a ${formatFraction(strong.fractionSearched)} fraction of the keyspace). The 8-bit control recovered ${weak.recoveredCount} of ${weak.recovered.length}.`;
+    } else {
+      verdict.innerHTML = `<span style="color:var(--err)">✗ Recovered ${strong.recoveredCount} opening(s) at 16 bytes.</span> That should be infeasible — treat this run as a bug report, not a lesson.`;
+      flashFail('x-attack-verdict');
+    }
+    renderReconstruction();
+  } finally {
+    benchBusy = false;
+    graphSetControls();
+  }
+}
+
+// Attack 2. Enumerate every colouring the transcript cannot rule out. The
+// numbers printed are set sizes returned by the extractor, not commentary.
+function renderReconstruction() {
+  const candidates = consistentColorings(TRUTH.length, revealTranscript);
+  const floor = properColorings(TRUTH.length, EDGES);
+  const truthSurvives = candidates.some(candidate => candidate.every((color, node) => color === TRUTH[node]));
+  document.getElementById('x-recon-count').textContent = `${formatCount(candidates.length)} of 243`;
+  document.getElementById('x-recon-guess').textContent = guessPercent(candidates.length);
+
+  if (brokenOpening) {
+    const broken = consistentAfterOpening(TRUTH.length, revealTranscript, brokenOpening);
+    document.getElementById('x-broken-count').textContent = `${formatCount(broken.length)} of 243`;
+    document.getElementById('x-broken-guess').textContent = guessPercent(broken.length);
+  }
+
+  const verdict = document.getElementById('x-recon-verdict');
+  if (revealTranscript.length === 0) {
+    verdict.textContent = 'No accepted rounds yet — the extractor has nothing to work from.';
+    return;
+  }
+  const truthNote = truthSurvives
+    ? 'the true colouring is still in that set (the extractor is complete)'
+    : 'the true colouring was excluded — that would be an extractor bug';
+  verdict.innerHTML = `After ${revealTranscript.length} accepted round(s) the transcript leaves <strong>${formatCount(candidates.length)}</strong> colourings possible, ${truthNote}. It cannot fall below the ${formatCount(floor.length)} colourings that are proper on all ${EDGES.length} edges — that set <em>is</em> the statement being proved, so reaching it leaks nothing beyond it.`;
+}
+
+async function runReconstruction() {
+  if (benchBusy || gState.auto) {
+    return;
+  }
+  if (revealTranscript.length === 0) {
+    await graphRound();
+    await graphChallenge();
+  }
+  renderReconstruction();
+  addLog('x-log', `Transcript extractor run over ${revealTranscript.length} accepted round(s)`, 'lacc');
+}
+
+function benchReset() {
+  revealTranscript = [];
+  brokenOpening = null;
+  ['x-strong-keyspace', 'x-strong-hashes', 'x-strong-recovered', 'x-strong-fraction', 'x-strong-expected',
+    'x-weak-keyspace', 'x-weak-hashes', 'x-weak-recovered', 'x-weak-fraction', 'x-weak-expected',
+    'x-recon-count', 'x-recon-guess', 'x-broken-count', 'x-broken-guess'].forEach(id => {
+    document.getElementById(id).textContent = '—';
+  });
+  document.getElementById('x-attack-verdict').textContent = 'Not run yet.';
+  document.getElementById('x-recon-verdict').textContent = 'Challenge at least one edge, then run the extractor.';
+  document.getElementById('x-log').innerHTML = '<span class="le">— extractor log —</span>';
+  // The prior is the whole space: the extractor with an empty transcript.
+  const prior = consistentColorings(TRUTH.length, []);
+  document.getElementById('x-prior-count').textContent = formatCount(prior.length);
+  document.getElementById('x-prior-guess').textContent = guessPercent(prior.length);
+}
+
+function benchResetClick() {
+  if (benchBusy || gState.auto) {
+    return;
+  }
+  benchReset();
 }
 
 document.getElementById('g-btn-r').addEventListener('click', graphRound);
@@ -242,6 +447,10 @@ document.getElementById('g-btn-c').addEventListener('click', graphChallenge);
 document.getElementById('g-btn-t').addEventListener('click', graphTamper);
 document.getElementById('g-btn-a').addEventListener('click', graphAuto);
 document.getElementById('g-btn-x').addEventListener('click', graphReset);
+document.getElementById('x-btn-brute').addEventListener('click', runBruteForce);
+document.getElementById('x-btn-recon').addEventListener('click', runReconstruction);
+document.getElementById('x-btn-reset').addEventListener('click', benchResetClick);
+benchReset();
 
 if (autoScenario) {
   setTimeout(() => {
