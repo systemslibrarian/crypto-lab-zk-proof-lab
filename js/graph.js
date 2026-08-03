@@ -189,22 +189,31 @@ export async function graphChallenge() {
   }));
   const bindingOk = openings.every(Boolean);
   const ok = bindingOk && gState.commits[a].color !== gState.commits[b].color;
-  gState.n += 1;
+  // The exponent under P(cheat) = (5/6)^n counts rounds the prover SURVIVED.
+  // A round the verifier rejected is not one of them, so a rejected round is
+  // numbered in the log but never advances n — otherwise catching a tamper
+  // would raise the verifier's confidence, which is backwards. The cave
+  // exhibit already models it this way, and the extractor bench below likewise
+  // reports only "accepted rounds".
+  const roundNumber = gState.n + 1;
+  if (ok) {
+    gState.n = roundNumber;
+  }
   if (!bindingOk) {
-    addLog('g-log', `R${gState.n}: edge ${a}–${b} → ✗ commitment opening did not re-hash to published digest`, 'lerr');
+    addLog('g-log', `R${roundNumber}: edge ${a}–${b} → ✗ commitment opening did not re-hash to published digest`, 'lerr');
     narrate('graph-narration', 'A revealed colour+nonce that does not re-hash to its published commitment is rejected — the SHA-256 binding caught a swapped colour.');
     flashFail('g-challenge');
   } else if (ok) {
     // The verifier accepted this round, so this is a line of transcript it is
     // entitled to keep. Everything the extractor bench knows comes from here.
     revealTranscript.push({ edge: [a, b], revealed: [gState.commits[a].color, gState.commits[b].color] });
-    addLog('g-log', `R${gState.n}: edge ${a}–${b} → ${COLORS[gState.commits[a].color].label} ≠ ${COLORS[gState.commits[b].color].label} ✓ (openings verified)`, 'lok');
+    addLog('g-log', `R${roundNumber}: edge ${a}–${b} → ${COLORS[gState.commits[a].color].label} ≠ ${COLORS[gState.commits[b].color].label} ✓ (openings verified)`, 'lok');
     narrate('graph-narration', 'The verifier opens one border. The two regions show different colors, so this edge is valid — and the rest of the coloring stays hidden.');
     if (!gState.auto) {
       celebrate('g-challenge', { confetti: gState.n % 5 === 0 });
     }
   } else {
-    addLog('g-log', `R${gState.n}: FAIL — same color ✗`, 'lerr');
+    addLog('g-log', `R${roundNumber}: FAIL — same color ✗`, 'lerr');
     narrate('graph-narration', 'A border showing the same color on both sides would expose an invalid coloring — that is exactly what the verifier is checking for.');
     flashFail('g-challenge');
   }
