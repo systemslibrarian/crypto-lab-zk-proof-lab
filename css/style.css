@@ -2,6 +2,14 @@
 :root{
   --bg:#070b12;--surf:#0d1422;--elev:#131c2e;--bord:#1c2540;
   --acc:#3565d8;--acc2:#7fa3ff;--ok:#34d399;--err:#f87171;--warn:#fbbf24;
+  /* Bottom stop of the primary-button gradient. It must be DARKER than --acc,
+     never lighter: the button carries white text, and --acc is the lightest
+     surface white is measured against here (5.19:1 dark, 5.72:1 light). The
+     gradient used to run from --acc2, which is a light blue in the dark theme —
+     white sat at 3.53:1 across the middle of every ▶ Run button on the site,
+     and axe never reported it because axe declines to measure text over a
+     gradient at all. */
+  --acc-deep:#2447a3;
   --tx:#f4f8ff;--tx2:#cad8f0;--tx3:#93a8ca;
   --bg-spot-a:#17233d;--bg-spot-b:#102847;
   --chip:rgba(13,20,34,.8);
@@ -13,8 +21,18 @@ html[data-theme='light']{
   /* --err darkened from #c94343 (4.48:1 on --bg, below the 4.5:1 AA floor for
      12px log lines) to #b83232 (5.52:1). Surfaced once the extractor bench and
      the tamper path both started emitting .lerr lines in the light theme. */
-  --acc:#2f5fd4;--acc2:#1847bf;--ok:#0a7a4f;--err:#b83232;--warn:#9d6a00;
-  --tx:#101827;--tx2:#334155;--tx3:#64748b;
+  --acc:#2f5fd4;--acc2:#1847bf;--acc-deep:#1f47a8;
+  /* These three inks are painted on their own translucent tints — .badge-real,
+     .badge-sim, .prop-s, .prop-z, .trust-* — not on the page background they
+     were originally checked against. On those tints, which sit a surface
+     lighter than --bg, the previous values measured 4.10:1 (--ok), 3.64:1
+     (--warn) and 4.41:1 (--err). Darkened until the TINTED reading clears
+     4.5:1, which leaves them comfortably clear on --bg as well. */
+  --ok:#0a6b45;--err:#a82c2c;--warn:#7a5200;
+  /* --tx3 is the brand kicker's ink, and the kicker sits in the top-left corner
+     of every page — directly under the --bg-spot-a radial wash, which is
+     lighter than --bg. Measured against the wash the old value was 3.76:1. */
+  --tx:#101827;--tx2:#334155;--tx3:#57647a;
   --bg-spot-a:#d8e4f5;--bg-spot-b:#e3ecfa;
   --chip:#eef3fb;
 }
@@ -48,7 +66,12 @@ main:focus{outline:none}
 .site-nav{margin:0 0 20px}
 .nav-link{font-size:11px;letter-spacing:.09em;text-transform:uppercase;border:1px solid var(--bord);padding:11px 14px;border-radius:999px;color:var(--tx);background:var(--chip);min-height:44px;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
 .nav-link:hover,.nav-link.active{border-color:var(--acc);color:var(--acc2)}
-.hero-panel{background:linear-gradient(180deg,rgba(19,28,46,.94),rgba(13,20,34,.82));border:1px solid rgba(127,163,255,.22);border-radius:10px;padding:20px 22px;margin:10px 0 24px;box-shadow:0 16px 32px rgba(6,11,20,.24)}
+/* --elev/--surf, not the literal rgba() dark values these used to hold. In the
+   dark theme they resolve to the same two colours; in the LIGHT theme the
+   literals stayed dark while the text on them followed --tx, so the lede
+   rendered at 1.25:1 and the note at 1.27:1 — near-black on near-black. The
+   same bug ran through .card (1.13:1) and .prose (1.81:1). */
+.hero-panel{background:linear-gradient(180deg,var(--elev),var(--surf));border:1px solid rgba(127,163,255,.22);border-radius:10px;padding:20px 22px;margin:10px 0 24px;box-shadow:0 16px 32px rgba(6,11,20,.24)}
 .hero-lead{font-family:var(--sans);font-size:24px;line-height:1.35;letter-spacing:-.02em;color:var(--tx);max-width:880px}
 .hero-note{margin-top:10px;font-size:14px;color:var(--tx2);max-width:840px}
 .hero-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
@@ -57,7 +80,7 @@ main:focus{outline:none}
 .resource-link:hover{border-color:var(--acc);color:var(--acc2)}
 .lobby-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:24px 0}
 @media(max-width:860px){.lobby-grid{grid-template-columns:1fr}}
-.card{background:linear-gradient(165deg,rgba(19,28,46,.92),rgba(13,20,34,.82));border:1px solid var(--bord);border-radius:8px;padding:18px;display:flex;flex-direction:column;gap:10px;transition:transform .2s,border-color .2s,box-shadow .2s;box-shadow:0 12px 26px rgba(5,8,14,.24)}
+.card{background:linear-gradient(165deg,var(--elev),var(--surf));border:1px solid var(--bord);border-radius:8px;padding:18px;display:flex;flex-direction:column;gap:10px;transition:transform .2s,border-color .2s,box-shadow .2s;box-shadow:0 12px 26px rgba(5,8,14,.24)}
 .card:hover{transform:translateY(-3px);border-color:var(--acc);box-shadow:0 16px 30px rgba(8,16,30,.34)}
 .card-title{font-size:20px;font-family:var(--sans);letter-spacing:-.01em;color:var(--tx)}
 .card-desc{font-size:13px;color:var(--tx2)}
@@ -76,7 +99,7 @@ main:focus{outline:none}
 .prop-c{background:rgba(79,123,255,.1);color:var(--acc2);border:1px solid rgba(79,123,255,.25)}
 .prop-s{background:rgba(52,211,153,.1);color:var(--ok);border:1px solid rgba(52,211,153,.25)}
 .prop-z{background:rgba(248,113,113,.1);color:var(--err);border:1px solid rgba(248,113,113,.25)}
-.prose{background:rgba(13,20,34,.78);border:1px solid var(--bord);border-radius:6px;padding:17px 18px;margin:14px 0 16px;color:var(--tx);font-size:14px}
+.prose{background:var(--surf);border:1px solid var(--bord);border-radius:6px;padding:17px 18px;margin:14px 0 16px;color:var(--tx);font-size:14px}
 .prose p+p{margin-top:10px}
 .demo-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
 @media(max-width:740px){.demo-grid{grid-template-columns:1fr}}
@@ -89,8 +112,17 @@ main:focus{outline:none}
 .conf-label{display:flex;justify-content:space-between;font-size:11px;color:var(--tx);margin-bottom:5px;gap:12px}
 .conf-track{height:8px;background:var(--elev);border-radius:999px;overflow:hidden}
 .conf-fill{height:100%;background:linear-gradient(90deg,var(--acc),var(--ok));border-radius:3px;transition:width .5s ease;width:0%}
+/* Every .log is a fixed-height scroller holding nothing focusable, so it needs
+   `tabindex="0"` in the markup to be operable at all (WCAG 2.1.1) — see the
+   `role="log"` elements in the exhibits. Give it the same focus ring the rest
+   of the site uses so that stop is visible when a keyboard reaches it. */
 .log{background:var(--bg);border:1px solid var(--bord);border-radius:4px;padding:10px 11px;max-height:180px;overflow-y:auto;font-size:12px;line-height:1.9;color:var(--tx)}
-.le{color:var(--tx2)}.lok{color:var(--ok)}.lerr{color:var(--err)}.lacc{color:var(--acc)}
+.log:focus-visible{outline:3px solid rgba(127,163,255,.9);outline-offset:3px}
+/* .lacc marks a log line as an aside. --acc is a mid blue that reads at only
+   3.80:1 on the log's --bg backdrop in the dark theme; --acc2 is the token
+   already used for emphasis text everywhere else (.vl strong, .narration
+   strong) and clears 8.05:1 dark / 7.27:1 light on the same surface. */
+.le{color:var(--tx2)}.lok{color:var(--ok)}.lerr{color:var(--err)}.lacc{color:var(--acc2)}
 .controls{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
 button{font-family:var(--mono);font-size:12px;padding:10px 15px;border-radius:6px;cursor:pointer;transition:all .15s;letter-spacing:.05em;min-height:44px}
 .bp{background:var(--acc);color:#fff;border:1px solid var(--acc)}.bp:hover{opacity:.85}.bp:disabled{opacity:.4;cursor:not-allowed}
@@ -124,7 +156,7 @@ button{font-family:var(--mono);font-size:12px;padding:10px 15px;border-radius:6p
 .param-select:hover{border-color:var(--acc)}
 .narration{background:rgba(79,123,255,.08);border:1px solid rgba(79,123,255,.28);border-left:3px solid var(--acc);border-radius:6px;padding:12px 15px;margin:0 0 14px;font-size:13.5px;line-height:1.6;color:var(--tx);min-height:22px}
 .narration strong{color:var(--acc2);font-weight:600}
-.tour-launch{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:11px 18px;border-radius:999px;border:1px solid var(--acc);background:linear-gradient(180deg,var(--acc2),var(--acc));color:#fff;font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 14px rgba(53,101,216,.32)}
+.tour-launch{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:11px 18px;border-radius:999px;border:1px solid var(--acc);background:linear-gradient(180deg,var(--acc),var(--acc-deep));color:#fff;font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 14px rgba(53,101,216,.32)}
 .tour-launch:hover{filter:brightness(1.08)}
 .tour-active{outline:3px solid var(--acc);outline-offset:4px;box-shadow:0 0 0 4px rgba(53,101,216,.25),0 16px 30px rgba(8,16,30,.34)}
 .tour-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:1500;width:min(620px,calc(100vw - 28px));background:var(--elev);border:1px solid var(--acc);border-radius:12px;box-shadow:0 18px 40px rgba(5,8,14,.5);padding:14px 16px;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
@@ -152,7 +184,7 @@ button{font-family:var(--mono);font-size:12px;padding:10px 15px;border-radius:6p
 .log>*{animation:logIn .32s ease}
 @keyframes logIn{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
 button:active{transform:translateY(1px)}
-.bp{background:linear-gradient(180deg,var(--acc2),var(--acc));border-color:var(--acc);box-shadow:0 4px 14px rgba(53,101,216,.32)}
+.bp{background:linear-gradient(180deg,var(--acc),var(--acc-deep));border-color:var(--acc);box-shadow:0 4px 14px rgba(53,101,216,.32)}
 .bp:hover{opacity:1;filter:brightness(1.08);box-shadow:0 6px 18px rgba(53,101,216,.42)}
 .conf-fill{position:relative;overflow:hidden}
 .conf-fill::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.38),transparent);transform:translateX(-100%);animation:sheen 2.4s ease-in-out infinite}

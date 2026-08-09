@@ -25,9 +25,15 @@ import {
 const TRUTH = ['A', 'B', 'C', 'B', 'C'];
 const EDGES = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 0], [0, 2]];
 const EIDS = ['e01', 'e12', 'e23', 'e34', 'e40', 'e02'];
+// `stroke` is both the node outline and the ink of the label printed inside the
+// node, so it is measured against `fill`, not against the page. RED was 3.96:1
+// and BLUE 4.09:1 — under the 4.5:1 floor for the 7px label — while GRN already
+// cleared it at 6.10:1. The two failing strokes are lightened to 5.38:1 and
+// 5.95:1 rather than the fills darkened, which keeps each node recognisably its
+// own colour and brightens the outline as a bonus.
 const COLORS = {
-  A: { fill: '#4a1515', stroke: '#ef4444', label: 'RED' },
-  B: { fill: '#0f2456', stroke: '#3b82f6', label: 'BLUE' },
+  A: { fill: '#4a1515', stroke: '#ff6b6b', label: 'RED' },
+  B: { fill: '#0f2456', stroke: '#6ba3ff', label: 'BLUE' },
   C: { fill: '#0d3320', stroke: '#22c55e', label: 'GRN' }
 };
 
@@ -84,7 +90,7 @@ function graphResetViz() {
     document.getElementById(`n${i}`).setAttribute('fill', '#131c2e');
     document.getElementById(`n${i}`).setAttribute('stroke', '#1c2540');
     const label = document.getElementById(`l${i}`);
-    label.setAttribute('fill', '#3a4a68');
+    label.setAttribute('fill', '#93a8ca');
     label.textContent = '0x…';
   }
   EIDS.forEach(id => {
@@ -134,7 +140,7 @@ function renderCommitTable() {
 }
 
 export async function graphRound() {
-  if (gState.auto || gState.phase === 'committed') {
+  if (gState.phase === 'committed') {
     return;
   }
   const perm = shuffleColors();
@@ -162,7 +168,7 @@ export async function graphRound() {
 }
 
 export async function graphChallenge() {
-  if (gState.auto || gState.phase !== 'committed') {
+  if (gState.phase !== 'committed') {
     return;
   }
   gState.phase = 'revealed';
@@ -224,7 +230,7 @@ export async function graphChallenge() {
 }
 
 export function graphTamper() {
-  if (gState.auto || gState.phase !== 'committed') {
+  if (gState.phase !== 'committed') {
     return;
   }
   gState.commits.forEach(commit => {
@@ -451,9 +457,29 @@ function benchResetClick() {
   benchReset();
 }
 
-document.getElementById('g-btn-r').addEventListener('click', graphRound);
-document.getElementById('g-btn-c').addEventListener('click', graphChallenge);
-document.getElementById('g-btn-t').addEventListener('click', graphTamper);
+// `gState.auto` is a RE-ENTRANCY guard on the click path: while the ten-round
+// loop is running, a stray click must not start a second round on top of it.
+// It used to be checked inside `graphRound` / `graphChallenge` / `graphTamper`
+// themselves — which is precisely what `graphAuto` calls, so the loop blocked
+// every step it made. "Run 10" disabled the controls for six seconds and did
+// nothing: no commitment, no challenge, not one line of protocol log, and the
+// confidence bar stayed at 0.00%. The `?auto=1` scenario presets that link into
+// this exhibit promising "ten deterministic rounds" were dead for the same
+// reason, and `if (!gState.auto) celebrate(...)` inside `graphChallenge` shows
+// the code was always written expecting to run inside the loop. The guard
+// belongs where the re-entrancy comes from — the button.
+function ifIdle(step) {
+  return () => {
+    if (gState.auto) {
+      return;
+    }
+    void step();
+  };
+}
+
+document.getElementById('g-btn-r').addEventListener('click', ifIdle(graphRound));
+document.getElementById('g-btn-c').addEventListener('click', ifIdle(graphChallenge));
+document.getElementById('g-btn-t').addEventListener('click', ifIdle(graphTamper));
 document.getElementById('g-btn-a').addEventListener('click', graphAuto);
 document.getElementById('g-btn-x').addEventListener('click', graphReset);
 document.getElementById('x-btn-brute').addEventListener('click', runBruteForce);

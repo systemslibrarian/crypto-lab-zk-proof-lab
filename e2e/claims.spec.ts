@@ -605,10 +605,19 @@ test.describe('Graph 3-coloring', () => {
     const weakHashes = parseBig(await textOf(page, '#x-weak-hashes'));
     const weakExpected = parseBig(await textOf(page, '#x-weak-expected'));
     expect(weakKeyspace).toBe(3 * 256);
-    expect(weakHashes).toBe(weakKeyspace);
     expect(weakExpected).toBe(weakKeyspace / 2);
     await expect(page.locator('#x-weak-recovered')).toHaveText(`${NODES} of ${NODES}`);
-    await expect(page.locator('#x-weak-fraction')).toHaveText('100% (exhausted)');
+    // `bruteForceOpenings` stops the moment every digest has been matched, so
+    // how many hashes that took depends on where the prover's five random
+    // one-byte nonces happened to fall. Asserting the full 768 assumed the
+    // search always runs to exhaustion, which it does not: when all five nonces
+    // land inside the first chunk the loop exits at 501, and this test failed
+    // about one run in eight. What the weakened control actually guarantees is
+    // that the attacker recovers everything (asserted above) without ever
+    // exceeding the keyspace — assert that instead of a number that is a
+    // property of the nonces rather than of the attack.
+    expect(weakHashes).toBeGreaterThan(0);
+    expect(weakHashes).toBeLessThanOrEqual(weakKeyspace);
     // The only thing that changed is the nonce width.
     expect(strongKeyspace / weakKeyspace).toBeGreaterThan(1e30);
 
