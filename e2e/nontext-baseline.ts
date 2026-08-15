@@ -18,7 +18,6 @@ export const NONTEXT_BASELINE: Record<
   "control-boundary|button#c-btn-reset.bs": { ratio: 1.3, required: 3.0, unverified: false },
   "control-boundary|button#cave-auto-btn.bs": { ratio: 1.3, required: 3.0, unverified: false },
   "control-boundary|button#cave-reset-btn.bs": { ratio: 1.3, required: 3.0, unverified: false },
-  "control-boundary|button#cl-theme-toggle.cl-btn.cl-icon": { ratio: 2.45, required: 3.0, unverified: false },
   "control-boundary|button#fs-copy-btn.bs": { ratio: 1.3, required: 3.0, unverified: false },
   "control-boundary|button#fs-replay-btn.bs": { ratio: 1.3, required: 3.0, unverified: false },
   "control-boundary|button#fs-reset-btn.bs": { ratio: 1.3, required: 3.0, unverified: false },

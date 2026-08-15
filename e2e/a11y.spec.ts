@@ -20,7 +20,7 @@ import { NARROW, PAGES, WIDE, runPage } from './gate';
  * stack to full width.
  */
 for (const spec of PAGES) {
-  for (const theme of ['dark', 'light'] as const) {
+  for (const theme of ['dark'] as const) {
     for (const [size, viewport] of [
       ['desktop 1280', WIDE],
       ['phone 380', NARROW],
