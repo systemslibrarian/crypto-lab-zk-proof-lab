@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,9 +7,13 @@
   <meta name="theme-color" content="#070b12">
   <title>Exhibit 03 · Schnorr · ZK Proof Lab</title>
   <script>
+    // Dark is the only theme. Pin it before first paint, and overwrite any
+    // 'light' a visitor stored back when the header carried a theme toggle.
     (function () {
-      const saved = localStorage.getItem('theme');
-      document.documentElement.setAttribute('data-theme', saved ?? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'));
+      try {
+        localStorage.setItem('theme', 'dark');
+      } catch (e) {}
+      document.documentElement.setAttribute('data-theme', 'dark');
     })();
   </script>
   <link rel="stylesheet" href="../css/style.css">
