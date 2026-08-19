@@ -1,34 +1,3 @@
-function initThemeToggle() {
-  const root = document.documentElement;
-  const header = document.querySelector('.site-header');
-  if (!header) {
-    return;
-  }
-
-  const button = document.createElement('button');
-  button.className = 'theme-toggle';
-  button.type = 'button';
-
-  function applyButtonState() {
-    const current = root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
-    const isDark = current === 'dark';
-    button.textContent = isDark ? '🌙' : '☀️';
-    button.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
-    button.setAttribute('aria-pressed', String(!isDark));
-  }
-
-  button.addEventListener('click', () => {
-    const current = root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
-    const next = current === 'dark' ? 'light' : 'dark';
-    root.setAttribute('data-theme', next);
-    localStorage.setItem('theme', next);
-    applyButtonState();
-  });
-
-  header.appendChild(button);
-  applyButtonState();
-}
-
 // Inject a "skip to main content" link as the first focusable element so
 // keyboard and screen-reader users can bypass the nav on every page.
 function initSkipLink() {
@@ -98,7 +67,6 @@ function initScrollableTables() {
 
 function initEnhancements() {
   initSkipLink();
-  initThemeToggle();
   initCurrentNav();
   initSvgRoles();
   initScrollableTables();

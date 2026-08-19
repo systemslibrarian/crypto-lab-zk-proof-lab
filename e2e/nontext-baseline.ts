@@ -7,17 +7,16 @@
  * that no longer appears ALSO fails, so a fixed entry must be deleted and the
  * file can only shrink toward empty.
  *
- * It has shrunk from 27 entries to 2. `--bord-ctl` gave every secondary button,
+ * It has shrunk from 27 entries to 1. `--bord-ctl` gave every secondary button,
  * danger button, textarea and select a boundary that clears 3:1, so those 25
- * entries were fixed rather than excused. The two left are the shared header's
- * `.cl-btn` at 2.45:1, whose CSS lives in the header block every lab carries,
- * and the `.theme-toggle` at 1.17:1, which is theme machinery and out of scope
- * for a contrast pass.
+ * entries were fixed rather than excused. The `.theme-toggle` at 1.17:1 went
+ * with the toggle itself, deleted along with the theme machinery that drew it.
+ * The one left is the shared header's `.cl-btn` at 2.45:1, whose CSS lives in
+ * the header block every lab carries.
  */
 export const NONTEXT_BASELINE: Record<
   string,
   { ratio: number; required: number; unverified: boolean }
 > = {
-  "control-boundary|a.cl-btn": { ratio: 2.45, required: 3.0, unverified: false },
-  "control-boundary|button.theme-toggle": { ratio: 1.17, required: 3.0, unverified: false }
+  "control-boundary|a.cl-btn": { ratio: 2.45, required: 3.0, unverified: false }
 };

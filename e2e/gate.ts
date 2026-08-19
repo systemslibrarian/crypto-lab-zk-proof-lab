@@ -408,6 +408,14 @@ export async function boot(
     'reduced-motion emulation must actually be in effect'
   ).toBe(true);
   await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+  // One pinned theme, and no control that can leave it. `js/main.js` used to
+  // append a `.theme-toggle` to every `.site-header`, which persisted its
+  // choice to `localStorage` — one click pinned a visitor to the light palette
+  // across every exhibit. Asserted here so it covers all nine pages, not just
+  // the one whose drive happened to focus the button.
+  await expect(
+    page.locator('#theme-toggle,#themeToggle,.theme-toggle,.theme-toggle-btn,[data-theme-toggle]')
+  ).toHaveCount(0);
   await expect(page.locator('main')).toBeVisible();
   await spec.firstPaint(page);
   await settle(page);
@@ -443,7 +451,7 @@ export async function runPage(
  * The lobby.
  *
  * The only page carrying the shared Crypto Lab header, so it is the only place
- * `.cl-skip-link` and the theme toggle can be measured, and the only page with
+ * `.cl-skip-link` can be measured, and the only page with
  * the guided tour — which builds a `position: fixed` `.tour-bar` over the
  * content and moves a `.tour-active` outline from card to card. Every one of
  * its six stops is a separate rendering (the Back button is disabled on the
@@ -929,18 +937,16 @@ const SCENARIO_PRESETS: PageSpec = {
   label: 'scenario-presets',
   firstPaint: async (page) => {
     await expect(page.locator('.card').first()).toBeVisible();
-    // The only control on the page is the theme toggle `js/main.js` injects
-    // into every `.site-header`; there is nothing else here to drive.
-    await expect(page.locator('button')).toHaveCount(1);
-    await expect(page.locator('button.theme-toggle')).toBeVisible();
+    // `js/main.js` used to inject a theme toggle into every `.site-header`, and
+    // on this page it was the only control there was. The theme is pinned and
+    // the toggle is deleted, so the page now carries no button at all.
+    await expect(page.locator('button')).toHaveCount(0);
   },
   drive: async (page, at) => {
     await page.locator('.card').first().focus();
     await scan(page, at('first preset card focused'));
     await page.locator('.nav-link').first().focus();
     await scan(page, at('nav link focused'));
-    await page.locator('button.theme-toggle').focus();
-    await scan(page, at('theme toggle focused'));
   },
 };
 

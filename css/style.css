@@ -56,8 +56,6 @@ main:focus{outline:none}
 .skip-link:focus{top:8px;color:#fff}
 .site-shell{max-width:1180px;margin:0 auto;padding:0 20px 32px}
 .site-header{padding:20px 0 14px;border-bottom:1px solid var(--bord);margin-bottom:20px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;position:relative}
-.theme-toggle{position:absolute;top:0;right:0;width:44px;height:44px;border-radius:50%;border:1px solid var(--bord);background:var(--surf);color:var(--tx);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:1.05rem;line-height:1}
-.theme-toggle:hover{background:var(--elev);color:var(--acc2);border-color:var(--acc)}
 .brand-kicker{font-size:11px;color:var(--tx3);letter-spacing:.11em;text-transform:uppercase}
 .brand-title{font-size:31px;font-family:var(--sans);letter-spacing:-.02em;font-weight:650;color:var(--tx)}
 .brand-sub{font-size:13px;color:var(--tx2)}

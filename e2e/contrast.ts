@@ -41,7 +41,7 @@ import type { Page } from '@playwright/test';
  * thing as "painted underneath". An absolutely positioned child can render
  * entirely outside its parent's box, and then the parent's background is simply
  * not behind it. This site has exactly that: the shared header's `.cl-skip-link`
- * and the `.theme-toggle` are `position: absolute`, and the guided tour's
+ * and the lab's own `.skip-link` are `position: absolute`, and the guided tour's
  * `.tour-bar` is `position: fixed` over the middle of the lobby. So an
  * ancestor's own paint is applied only when its border box actually intersects
  * the text's box; a partial intersection still counts, so the judgement stays
