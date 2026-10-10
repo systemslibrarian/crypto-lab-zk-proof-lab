@@ -26,6 +26,7 @@ The demo lets users run six exhibits, execute protocol rounds, simulate cheating
 - Reusing Schnorr nonces (`r`) can leak the secret (`x`) from two transcripts, which breaks the core secrecy guarantee of identification proofs.
 - Using small or weak group parameters makes discrete-log attacks practical, so a verifier equation that passes in the toy demo would not imply real-world security.
 - Omitting transcript/domain separation details in Fiat-Shamir challenge derivation can enable replay or malleability across contexts, undermining non-interactive soundness assumptions.
+- The Fiat-Shamir exhibit deliberately reduces its SHA-256 digest to a challenge in `1..50`. With `?seed=3`, the original and altered messages have different full digests but the same challenge `26`, and verification passes. This is a toy challenge-domain collision, not a SHA-256 collision. All verdict text follows the actual equation and shows original/altered challenges; an unavailable hash produces no tamper verdict. Copy/Replay preserve the original proof. See [RFC 8235 §2.3](https://www.rfc-editor.org/rfc/rfc8235.html#section-2.3) for production-sized challenge and context requirements; this small-parameter exhibit is not an RFC-conforming implementation.
 - Reusing or biasing commit-reveal nonces weakens hiding and can leak bid information before reveal, defeating fairness of the commit phase.
 - Failing to enforce reveal windows in commit-reveal protocols allows strategic non-reveal (griefing), which is a protocol-level failure even when hash checks are correct.
 

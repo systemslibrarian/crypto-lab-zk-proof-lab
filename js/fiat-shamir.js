@@ -65,7 +65,7 @@ function renderTranscript(transcript) {
   document.getElementById('fs-lhs').textContent = String(transcript.transcript.lhs);
   document.getElementById('fs-rhs').textContent = String(transcript.transcript.rhs);
   document.getElementById('fs-result').innerHTML = transcript.transcript.verified
-    ? '<span style="color:var(--ok)">✓ VERIFIED — hash-derived challenge binds this proof transcript.</span>'
+    ? '<span style="color:var(--ok)">✓ VERIFIED — this transcript satisfies the hash-derived equation (toy parameters).</span>'
     : '<span style="color:var(--err)">✗ FAILED — transcript no longer verifies.</span>';
   if (transcript.transcript.verified) {
     celebrate('fs-result');
@@ -95,7 +95,7 @@ async function generateProof() {
       message,
       challengeDigest: digest,
       transcript: { R, c, s, lhs, rhs, verified: ok },
-      note: 'Challenge is derived via SHA-256 over transcript inputs for non-interactive verification.'
+      note: 'SHA-256 transcript hash reduced to a toy challenge in 1..50; not production proof security.'
     };
     persistTranscript(lastFiatShamirTranscript);
     renderTranscript(lastFiatShamirTranscript);
@@ -118,7 +118,8 @@ async function tamperMessage() {
   setFsControls();
   try {
     const alteredMessage = `${lastFiatShamirTranscript.message}-tampered`;
-    const { c } = await deriveChallenge({ R: lastFiatShamirTranscript.transcript.R, y: fsParams.y, message: alteredMessage });
+    const originalC = lastFiatShamirTranscript.transcript.c;
+    const { digest, c } = await deriveChallenge({ R: lastFiatShamirTranscript.transcript.R, y: fsParams.y, message: alteredMessage });
     const { lhs, rhs, ok } = schnorrVerify({
       g: fsParams.g,
       p: fsParams.p,
@@ -127,16 +128,34 @@ async function tamperMessage() {
       c,
       s: lastFiatShamirTranscript.transcript.s
     });
+    const sameChallenge = c === originalC;
+    const comparison = `original c=${originalC}, altered c=${c}`;
     document.getElementById('fs-result').innerHTML = ok
-      ? '<span style="color:var(--warn)">Unexpected pass after tamper; regenerate and inspect transcript.</span>'
-      : '<span style="color:var(--err)">✗ Tamper detected — changing message changes challenge and breaks verification.</span>';
+      ? `<span style="color:var(--warn)">⚠ Tamper passed — ${sameChallenge ? 'toy challenge collision' : 'equation still holds despite a changed challenge'} (${comparison}).</span>`
+      : `<span style="color:var(--err)">✗ Tamper detected — changed challenge breaks verification (${comparison}).</span>`;
     if (!ok) {
       flashFail('fs-result');
     }
     document.getElementById('fs-lhs').textContent = String(lhs);
     document.getElementById('fs-rhs').textContent = String(rhs);
-    addLog('fs-log', `Tamper check with altered message produced c=${c}: verification failed as expected`, 'lerr');
-    narrate('fs-narration', 'Altering the message changes the hash-derived challenge, so the original response no longer satisfies the equation — tampering is detected.');
+    addLog('fs-log', `Tamper check with altered message produced c=${c} (original c=${originalC}): verification ${ok ? 'passed' : 'failed'}`, ok ? 'lacc' : 'lerr');
+    if (ok && sameChallenge) {
+      const hashScope = digest !== lastFiatShamirTranscript.challengeDigest
+        ? 'The full SHA-256 digests differ: this is not a SHA-256 collision.'
+        : 'The full digests also match; inspect the hash inputs before drawing cryptographic conclusions.';
+      narrate('fs-narration', `Tamper check passed (${comparison}): different messages mapped to the same one of only 50 toy challenges, so the unchanged response still satisfies the equation. ${hashScope} Production protocols need cryptographic-sized challenge domains and context binding. The original proof is unchanged for Copy/Replay; this is a separate probe.`);
+    } else if (ok) {
+      narrate('fs-narration', `Tamper check passed (${comparison}): the equation still holds despite a different challenge. This toy result must not be reported as detected tampering or production security. The original proof remains unchanged for Copy/Replay.`);
+    } else {
+      narrate('fs-narration', `Tamper check failed (${comparison}): the original response gives g^s = ${lhs}, while the altered challenge gives R·y^c = ${rhs} (mod p), so the equation no longer holds — tampering is detected in this run. Different messages can still share a challenge in the 50-value toy domain. The original proof remains unchanged for Copy/Replay.`);
+    }
+  } catch (error) {
+    document.getElementById('fs-result').textContent = 'Tamper check unavailable — verification did not complete.';
+    document.getElementById('fs-lhs').textContent = '—';
+    document.getElementById('fs-rhs').textContent = '—';
+    addLog('fs-log', 'Tamper check unavailable: verification did not complete; original proof retained.', 'lerr');
+    narrate('fs-narration', 'No tamper verdict: the altered-message hash or verification could not be completed. A previous verified proof does not establish the result of this probe. Copy/Replay still use the original proof.');
+    console.warn('Tamper check unavailable', error);
   } finally {
     fsBusy = false;
     setFsControls();

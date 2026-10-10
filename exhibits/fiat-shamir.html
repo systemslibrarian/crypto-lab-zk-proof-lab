@@ -62,6 +62,7 @@
       <div class="resource-links" role="group" aria-label="Scenario presets">
         <a class="resource-link" href="fiat-shamir.html?seed=interview-1&auto=1">Preset: Honest NIZK</a>
         <a class="resource-link" href="fiat-shamir.html?seed=interview-1&mode=tamper&auto=1">Preset: Tamper Fail</a>
+        <a class="resource-link" href="fiat-shamir.html?seed=3&mode=tamper&auto=1">Preset: Toy Challenge Collision</a>
       </div>
 
       <div class="trust-banner trust-real global-honesty"><strong>Cryptographic honesty:</strong> challenge generation is real SHA-256 over transcript inputs and verification is real modular arithmetic. Parameters are intentionally small for readability.</div>
@@ -69,6 +70,7 @@
       <section class="prose">
         <p>In Schnorr, the verifier sends a random challenge c. In Fiat-Shamir, we remove that verifier message and derive c by hashing public transcript data. This turns an interactive proof into a single self-contained proof object.</p>
         <p>That "hash as verifier" pattern is the bridge from educational Sigma protocols toward many modern signature and proof systems used in production.</p>
+        <p>Here the SHA-256 digest is reduced to only 50 challenges. Different messages can therefore produce the same challenge, and a tampered message can still verify. The result, log and narration report the computed equation and both challenges; passing this toy check does not establish secure message binding. <a href="https://www.rfc-editor.org/rfc/rfc8235.html#section-2.3" target="_blank" rel="noopener noreferrer">RFC 8235 §2.3</a> describes cryptographic-sized hash challenges and contextual binding for Schnorr NIZK; this exhibit is a small pedagogical model, not a conforming production implementation.</p>
       </section>
 
       <div class="panel" style="margin-bottom:14px">

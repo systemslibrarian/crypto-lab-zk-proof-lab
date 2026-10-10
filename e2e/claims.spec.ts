@@ -268,15 +268,23 @@ test.describe('Fiat-Shamir', () => {
     expect(lines.some((line) => line === `Generated proof with c = H(R||y||m) = ${c}`)).toBe(true);
   });
 
-  test('tampering with the message breaks verification, and the numbers show why', async ({
+  test('a fixed noncolliding tampered message breaks verification, and the numbers show why', async ({
     page,
   }) => {
+    // The 50-value challenge domain can collide. Select the independently checked
+    // rejection fixture, while tamper-collision.spec.ts covers the genuine pass.
+    await page.goto('exhibits/fiat-shamir.html?seed=ci-fs');
     await page.locator('#fs-run-btn').click();
     await expect(page.locator('#fs-result')).toContainText('VERIFIED', { timeout: 15_000 });
     const message = await textOf(page, '#fs-msg');
     const R = BigInt(await intOf(page, '#fs-R'));
     const s = BigInt(await intOf(page, '#fs-s'));
     const originalRhs = BigInt(await intOf(page, '#fs-rhs'));
+    const originalC = BigInt(match(await textOf(page, '#fs-c'), /^(\d+)/));
+    const independentlyAlteredC = BigInt((parseInt(sha256hex(`${R}|375|${message}-tampered`).slice(0, 8), 16) % 50) + 1);
+    expect(originalC).toBe(46n);
+    expect(independentlyAlteredC).toBe(32n);
+    expect(independentlyAlteredC).not.toBe(originalC);
 
     await page.locator('#fs-tamper-btn').click();
     await expect(page.locator('#fs-result')).toContainText('Tamper detected', { timeout: 15_000 });
