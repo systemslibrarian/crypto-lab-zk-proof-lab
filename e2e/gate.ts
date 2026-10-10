@@ -783,7 +783,7 @@ const COMMIT: PageSpec = {
 
 /** Exhibit 05 — Fiat-Shamir. Generate, tamper, reset. */
 const FIAT_SHAMIR: PageSpec = {
-  path: 'exhibits/fiat-shamir.html',
+  path: 'exhibits/fiat-shamir.html?seed=ci-fs',
   label: 'fiat-shamir',
   firstPaint: async (page) => {
     await expect(page.locator('#fs-result')).toHaveText('Ready.');
@@ -805,6 +805,19 @@ const FIAT_SHAMIR: PageSpec = {
     await page.locator('#fs-reset-btn').click();
     await expect(page.locator('#fs-c')).toHaveText('—');
     await scan(page, at('reset'));
+
+    // Cover the distinct, reachable accepted-tamper state with genuine hashing.
+    // A random challenge must not be assumed to change in a 50-value domain.
+    await page.goto('exhibits/fiat-shamir.html?seed=3');
+    await page.locator('#fs-run-btn').click();
+    await expect(page.locator('#fs-copy-btn')).toBeEnabled();
+    await page.locator('#fs-tamper-btn').click();
+    await expect(page.locator('#fs-result')).toContainText('Tamper passed — toy challenge collision');
+    await expect(page.locator('#fs-log .lacc').last()).toContainText('verification passed');
+    await scan(page, at('toy collision passes, warn badge and log agree'));
+    await page.locator('#fs-reset-btn').click();
+    await expect(page.locator('#fs-c')).toHaveText('—');
+    await scan(page, at('reset after toy collision'));
   },
 };
 
