@@ -79,3 +79,12 @@ npm run dev
 *Part of the [Crypto Lab](https://crypto-lab.systemslibrarian.dev/) suite.*
 
 *"So whether you eat or drink or whatever you do, do it all for the glory of God." — 1 Corinthians 10:31*
+
+### GQ input verification correction
+
+The prover now rejects inputs outside the canonical unit range before computing a
+transcript. Rewinding preserves named membership errors and reports a nontrivial gcd
+as a discovered factor, rather than hiding it behind a generic transcript rejection.
+Retiring a result also disables its copy controls. The deploy gate replays all six
+source mutations with structured reports; crashes, missing tests, and setup failures
+cannot count as kills.

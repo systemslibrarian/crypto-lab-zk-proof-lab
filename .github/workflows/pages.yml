@@ -47,6 +47,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Accessibility gate (axe-core, WCAG A/AA)
         run: npm run test:a11y
+      - name: Replay source mutations
+        run: npm run test:mutations
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist

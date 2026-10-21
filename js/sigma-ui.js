@@ -82,6 +82,8 @@ function clearValues(ids) {
     target.textContent = '—';
     target.dataset.value = '';
     target.removeAttribute('title');
+    const copy = document.querySelector(`button[data-copy-target="${id}"]`);
+    if (copy instanceof HTMLButtonElement) copy.disabled = true;
   }
 }
 

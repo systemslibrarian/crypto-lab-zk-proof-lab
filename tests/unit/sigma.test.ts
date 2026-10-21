@@ -221,3 +221,16 @@ describe('Guillou–Quisquater', () => {
     expect(accepted).toBeLessThan(1160);
   });
 });
+
+describe('GQ membership diagnostics', () => {
+  const params = {N:55n,e:3n};
+  it('refuses noncanonical prover inputs and reports discovered factors', () => {
+    for (const x of [-2n,57n]) expect(() => gqProve(params,x,1n,3n)).toThrow('x is outside Z*_N');
+    expect(() => gqProve(params,2n,1n,58n)).toThrow('x_t is outside Z*_N');
+    expect(gqVerify(params,{y:8n,yT:27n,c:1n,xZ:5n}).reason).toContain('found factor 5');
+  });
+  it('extraction preserves the non-member name and factor instead of hiding the gcd', () => {
+    const first = gqProve(params,2n,0n,3n), second = gqProve(params,2n,1n,3n);
+    expect(() => gqExtract(params,first,{...second,xZ:5n})).toThrow('second x_z is not in Z*_N (gcd = 5; found factor 5)');
+  });
+});

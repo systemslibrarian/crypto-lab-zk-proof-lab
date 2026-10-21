@@ -4,6 +4,7 @@
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { assertNormalExit,validateNamedRun } from './mutation-report.mjs';
 
 const SOURCE = 'js/sigma.js';
 const SPEC = 'e2e/sigma-mutations.spec.ts';
@@ -54,7 +55,9 @@ function run(command, args, timeout = 300_000) {
     maxBuffer: 16 * 1024 * 1024,
     timeout,
   });
+  assertNormalExit(result, command);
   return {
+    ...result,
     code: result.status,
     output: `${result.stdout ?? ''}${result.stderr ?? ''}`,
   };
@@ -73,8 +76,8 @@ function bundleHash() {
   return hash.digest('hex');
 }
 
-function namedTest(testName) {
-  return run('npx', [
+function namedTest(testName, shouldPass) {
+  const result = run('npx', [
     'playwright',
     'test',
     SPEC,
@@ -82,7 +85,10 @@ function namedTest(testName) {
     testName,
     '--retries=0',
     '--workers=1',
+    '--reporter=json',
   ]);
+  validateNamedRun(result,testName,shouldPass,'sigma-mutations.spec.ts');
+  return result;
 }
 
 function sourceDiff() {
@@ -93,6 +99,7 @@ const selectedName = process.argv[2];
 const selected = selectedName ? mutations.filter(({ name }) => name === selectedName) : mutations;
 if (selected.length === 0) throw new Error(`Unknown mutation: ${selectedName}`);
 
+if (run('git',['status','--porcelain']).output.trim()) throw Error('Commit source changes before replaying mutations');
 const records = [];
 for (const mutation of selected) {
   const source = readFileSync(SOURCE, 'utf8');
@@ -102,7 +109,7 @@ for (const mutation of selected) {
 
   build();
   const baselineHash = bundleHash();
-  const baseline = namedTest(mutation.test);
+  const baseline = namedTest(mutation.test,true);
   if (baseline.code !== 0) throw new Error(`${mutation.name}: baseline failed.\n${baseline.output}`);
   console.log(`[${mutation.name}] 1/5 baseline passes: ${mutation.test}`);
 
@@ -123,7 +130,7 @@ for (const mutation of selected) {
     if (mutatedHash === baselineHash) throw new Error(`${mutation.name}: bundle hash did not move.`);
     console.log(`[${mutation.name}] 3/5 bundle hash MOVED: ${baselineHash} -> ${mutatedHash}`);
 
-    const observed = namedTest(mutation.test);
+    const observed = namedTest(mutation.test,false);
     if (observed.code === 0) throw new Error(`${mutation.name}: mutation survived.`);
     if (!observed.output.includes(mutation.test)) {
       throw new Error(`${mutation.name}: red output did not name its owning test.\n${observed.output}`);
@@ -138,7 +145,7 @@ for (const mutation of selected) {
   }
 
   if (bundleHash() !== baselineHash) throw new Error(`${mutation.name}: restored bundle differs.`);
-  const restored = namedTest(mutation.test);
+  const restored = namedTest(mutation.test,true);
   if (restored.code !== 0) throw new Error(`${mutation.name}: restored control failed.\n${restored.output}`);
   console.log(`[${mutation.name}] 5/5 restored and green`);
   records.push({ ...mutation, baselineHash, mutatedHash, killed: true, restored: true });

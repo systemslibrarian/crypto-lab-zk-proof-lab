@@ -125,7 +125,7 @@ export function randomBelow(limit) {
   }
 }
 
-/** Uniform random member of Z*_N. @param {bigint} N */
+/** Uniform random non-identity member of Z*_N. @param {bigint} N */
 export function randomUnit(N) {
   if (N <= 3n) throw new RangeError('N must be greater than 3');
   for (;;) {
@@ -387,8 +387,10 @@ export async function gqKeygen(e) {
  * @returns {GqTranscript}
  */
 export function gqProve(params, x, challenge, nonce) {
-  if (gcdBig(x, params.N) !== 1n) throw new RangeError('x is not in Z*_N');
-  if (gcdBig(nonce, params.N) !== 1n) throw new RangeError('x_t is not in Z*_N');
+  for (const [name, value] of [['x', x], ['x_t', nonce]]) {
+    const reason = gqMemberFailure(/** @type {bigint} */ (value), params.N, /** @type {string} */ (name));
+    if (reason) throw new RangeError(reason);
+  }
   if (challenge < 0n || challenge >= params.e) throw new RangeError('GQ challenge is outside {0, ..., e-1}');
   const y = modpowBig(x, params.e, params.N);
   const yT = modpowBig(nonce, params.e, params.N);
@@ -400,7 +402,7 @@ export function gqProve(params, x, challenge, nonce) {
 function gqMemberFailure(value, N, name) {
   if (value <= 0n || value >= N) return `${name} is outside Z*_N`;
   const divisor = gcdBig(value, N);
-  if (divisor !== 1n) return `${name} is not in Z*_N (gcd = ${divisor})`;
+  if (divisor !== 1n) return `${name} is not in Z*_N (gcd = ${divisor}; found factor ${divisor})`;
   return '';
 }
 
@@ -431,6 +433,12 @@ export function gqVerify(params, transcript) {
 export function gqExtract(params, first, second) {
   if (first.y !== second.y || first.yT !== second.yT) {
     throw new RangeError('special soundness requires the same statement and commitment');
+  }
+  for (const [label, transcript] of /** @type {const} */ ([['first', first], ['second', second]])) {
+    for (const [name, value] of /** @type {const} */ ([['y', transcript.y], ['y_t', transcript.yT], ['x_z', transcript.xZ]])) {
+      const reason = gqMemberFailure(value, params.N, `${label} ${name}`);
+      if (reason) throw new RangeError(reason);
+    }
   }
   if (!gqVerify(params, first).ok || !gqVerify(params, second).ok) {
     throw new RangeError('both GQ transcripts must be accepting');
