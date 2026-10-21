@@ -8,7 +8,7 @@ export const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
 /** The two viewports the gate runs at: desktop, and phone width for WCAG 1.4.10. */
 export const WIDE = { width: 1280, height: 900 };
-export const NARROW = { width: 380, height: 800 };
+export const NARROW = { width: 320, height: 800 };
 
 /**
  * Shared machinery for the WCAG gate.
@@ -155,7 +155,7 @@ export async function expectNoLiveTextAriaHidden(page: Page, label: string): Pro
  * Assert the page does not require horizontal scrolling.
  *
  * WCAG 1.4.10 (Reflow, AA). axe has no rule for this at all, and this site is a
- * plausible offender at 380px: the lobby is a two-column card grid, every
+ * plausible offender at 320px: the lobby is a two-column card grid, every
  * exhibit is a two-column `.demo-grid`, the graph exhibit lays out two
  * six-column extractor tables, and the guided tour drops a fixed-position bar
  * across the viewport.
@@ -454,7 +454,7 @@ export async function runPage(
  * `.cl-skip-link` can be measured, and the only page with
  * the guided tour — which builds a `position: fixed` `.tour-bar` over the
  * content and moves a `.tour-active` outline from card to card. Every one of
- * its six stops is a separate rendering (the Back button is disabled on the
+ * its seven stops is a separate rendering (the Back button is disabled on the
  * first, the Next button reads "Finish" on the last), so each is scanned.
  */
 const LOBBY: PageSpec = {
@@ -463,7 +463,7 @@ const LOBBY: PageSpec = {
   firstPaint: async (page) => {
     await expect(page.locator('.cl-topbar')).toBeVisible();
     await expect(page.locator('.cl-hero-title')).toHaveText('ZK Proof Lab');
-    await expect(page.locator('.lobby-grid .card')).toHaveCount(6);
+    await expect(page.locator('.lobby-grid .card')).toHaveCount(7);
     await expect(page.locator('#tour-btn')).toHaveAttribute('aria-expanded', 'false');
     // The tour bar is built on demand and is genuinely absent here.
     await expect(page.locator('.tour-bar')).toHaveCount(0);
@@ -479,15 +479,15 @@ const LOBBY: PageSpec = {
     await page.locator('#tour-btn').click();
     await expect(page.locator('.tour-bar')).toBeVisible();
     await expect(page.locator('#tour-btn')).toHaveAttribute('aria-expanded', 'true');
-    for (let stop = 1; stop <= 6; stop++) {
-      await expect(page.locator('.tour-counter')).toHaveText(`Stop ${stop} of 6`);
+    for (let stop = 1; stop <= 7; stop++) {
+      await expect(page.locator('.tour-counter')).toHaveText(`Stop ${stop} of 7`);
       await expect(page.locator('.tour-active')).toHaveCount(1);
       // First stop has Back disabled; last reads "Finish" rather than "Next".
       if (stop === 1) await expect(page.locator('.tour-prev')).toBeDisabled();
       else await expect(page.locator('.tour-prev')).toBeEnabled();
-      await expect(page.locator('.tour-next')).toHaveText(stop === 6 ? 'Finish' : 'Next ▷');
-      await scan(page, at(`guided tour, stop ${stop} of 6`));
-      if (stop < 6) await page.locator('.tour-next').click();
+      await expect(page.locator('.tour-next')).toHaveText(stop === 7 ? 'Finish' : 'Next ▷');
+      await scan(page, at(`guided tour, stop ${stop} of 7`));
+      if (stop < 7) await page.locator('.tour-next').click();
     }
 
     // "Finish" on the last stop closes the tour and returns focus to the launcher.
@@ -848,6 +848,76 @@ const SNARK: PageSpec = {
 };
 
 /**
+ * Exhibit 07 — Okamoto representations and GQ RSA roots.
+ *
+ * The drive reaches all six computed verdicts: two honest verifier equations,
+ * two special-soundness extractions, the complete witness-independence census,
+ * and the deliberately broken e=3 cheater fixture. It also scans the default
+ * e=65537 cheater counter and both retirement paths.
+ */
+const SIGMA_FAMILY: PageSpec = {
+  path: 'exhibits/sigma-family.html',
+  label: 'sigma-family',
+  firstPaint: async (page) => {
+    await expect(page.locator('[data-verdict]')).toHaveCount(6);
+    await expect(page.locator('#ok-run')).toBeEnabled({ timeout: 20_000 });
+    await expect(page.locator('#ok-u')).toHaveAttribute('data-value', '');
+    await expect(page.locator('#gq-n')).toHaveAttribute('data-value', '');
+    await expect(page.locator('#gq-rewind')).toBeDisabled();
+    await expect(page.locator('#gq-cheat')).toBeDisabled();
+  },
+  drive: async (page, at) => {
+    await page.locator('#ok-run').click();
+    await expect(page.locator('#ok-verdict')).toHaveAttribute('data-state', 'pass');
+    await scan(page, at('Okamoto proof accepted'));
+
+    await page.locator('#ok-rewind').click();
+    await expect(page.locator('#ok-extract-verdict')).toHaveAttribute('data-state', 'alarm');
+    await scan(page, at('Okamoto witness extracted'));
+
+    await page.locator('#toy-enumerate').click();
+    await expect(page.locator('#toy-equality-verdict')).toHaveAttribute('data-state', 'pass');
+    await scan(page, at('random-verifier transcript census equal'));
+
+    await page.locator('label[for="toy-adaptive"]').click();
+    await expect(page.locator('#toy-equality-verdict')).toHaveAttribute('data-state', 'pending');
+    await scan(page, at('toy verifier strategy retired'));
+    await page.locator('#toy-enumerate').click();
+    await expect(page.locator('#toy-equality-verdict')).toHaveAttribute('data-state', 'pass');
+    await scan(page, at('adaptive-verifier transcript census equal'));
+
+    await page.locator('#gq-run').click();
+    await expect(page.locator('#gq-verdict')).toHaveAttribute('data-state', 'pass', { timeout: 120_000 });
+    await scan(page, at('GQ e=65537 proof accepted'));
+
+    await page.locator('#gq-rewind').click();
+    await expect(page.locator('#gq-extract-verdict')).toHaveAttribute('data-state', 'alarm');
+    await scan(page, at('GQ root extracted'));
+
+    await page.locator('#gq-cheat').click();
+    await expect(page.locator('#gq-cheat-verdict')).not.toHaveAttribute('data-state', 'busy', { timeout: 120_000 });
+    await scan(page, at('GQ e=65537 cheater, 1000 attempts'));
+
+    await page.locator('#gq-e').selectOption('3');
+    await expect(page.locator('#gq-broken-warning')).toBeVisible();
+    await expect(page.locator('#gq-verdict')).toHaveAttribute('data-state', 'pending');
+    await scan(page, at('e=3 selected, old verdicts retired'));
+
+    await page.locator('#gq-run').click();
+    await expect(page.locator('#gq-verdict')).toHaveAttribute('data-state', 'pass', { timeout: 120_000 });
+    await scan(page, at('GQ e=3 honest proof accepted'));
+
+    await page.locator('#gq-rewind').click();
+    await expect(page.locator('#gq-extract-verdict')).toHaveAttribute('data-state', 'alarm');
+    await scan(page, at('GQ e=3 root extracted'));
+
+    await page.locator('#gq-cheat').click();
+    await expect(page.locator('#gq-cheat-verdict')).toHaveAttribute('data-state', 'alarm', { timeout: 120_000 });
+    await scan(page, at('GQ e=3 rootless proof accepted'));
+  },
+};
+
+/**
  * The transcript replay lab.
  *
  * Four states the exhibits themselves never produce: the "no transcript stored"
@@ -971,6 +1041,7 @@ export const PAGES: PageSpec[] = [
   COMMIT,
   FIAT_SHAMIR,
   SNARK,
+  SIGMA_FAMILY,
   TRANSCRIPT_LAB,
   SCENARIO_PRESETS,
 ];

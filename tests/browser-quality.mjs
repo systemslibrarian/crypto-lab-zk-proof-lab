@@ -9,6 +9,7 @@ const pages = [
   '/exhibits/commit-reveal.html',
   '/exhibits/fiat-shamir.html',
   '/exhibits/snark.html',
+  '/exhibits/sigma-family.html',
   '/exhibits/transcript-lab.html',
   '/exhibits/scenario-presets.html'
 ];
@@ -21,6 +22,7 @@ const trustExpected = new Set([
   '/exhibits/commit-reveal.html',
   '/exhibits/fiat-shamir.html',
   '/exhibits/snark.html',
+  '/exhibits/sigma-family.html',
   '/exhibits/transcript-lab.html',
   '/exhibits/scenario-presets.html'
 ]);

@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Interactive Okamoto representation and Guillou–Quisquater RSA-root Sigma protocols with real 2048-bit BigInt arithmetic.">
+  <meta name="theme-color" content="#070b12">
+  <title>Exhibit 07 · Beyond Schnorr · ZK Proof Lab</title>
+  <script>
+    // Dark is the only theme. Pin it before first paint, and overwrite any
+    // 'light' a visitor stored back when the header carried a theme toggle.
+    (function () {
+      try {
+        localStorage.setItem('theme', 'dark');
+      } catch (e) {}
+      document.documentElement.setAttribute('data-theme', 'dark');
+    })();
+  </script>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="site-shell wrap">
+    <header class="site-header">
+      <div>
+        <a class="back-link" href="../index.html">← Back to Lab</a>
+        <div class="brand-kicker" style="margin-top:10px">ZK Proof Lab</div>
+        <h1 class="brand-title">Exhibit 07 · Beyond Schnorr</h1>
+      </div>
+      <nav class="top-nav" aria-label="Exhibits">
+        <a class="nav-link" href="cave.html">01</a>
+        <a class="nav-link" href="graph-coloring.html">02</a>
+        <a class="nav-link" href="schnorr.html">03</a>
+        <a class="nav-link" href="commit-reveal.html">04</a>
+        <a class="nav-link" href="fiat-shamir.html">05</a>
+        <a class="nav-link" href="snark.html">06</a>
+        <a class="nav-link active" href="sigma-family.html">07</a>
+        <a class="nav-link" href="transcript-lab.html">Lab</a>
+        <a class="nav-link" href="scenario-presets.html">Scenarios</a>
+        <a class="nav-link" href="../tests/logic-smoke.html">Tests</a>
+        <a class="nav-link" href="https://github.com/systemslibrarian/crypto-lab-zk-proof-lab" target="_blank" rel="noopener noreferrer">GitHub</a>
+      </nav>
+    </header>
+
+    <main class="exhibit">
+      <div class="ex-header">
+        <div class="ex-row"><span class="ex-num">EXHIBIT 07</span><span class="badge badge-real">● REAL BIGINT ARITHMETIC · 2048-BIT</span></div>
+        <div class="ex-title">Beyond Schnorr: representations and RSA roots</div>
+        <div class="ex-sub">Two Sigma protocols, one extraction mechanism: answer two challenges for the same commitment and the witness comes out.</div>
+      </div>
+      <div class="props">
+        <span class="prop prop-c">✓ Completeness</span>
+        <span class="prop prop-s">✓ Special soundness</span>
+        <span class="prop prop-z">✓ Special HVZK</span>
+      </div>
+
+      <div class="resource-links" role="group" aria-label="Exhibit resources">
+        <a class="resource-link" href="https://crypto.stanford.edu/~dabo/cryptobook/BonehShoup_0_6.pdf" target="_blank" rel="noopener noreferrer">Boneh–Shoup v0.6</a>
+        <a class="resource-link" href="https://www.rfc-editor.org/rfc/rfc3526#section-3" target="_blank" rel="noopener noreferrer">RFC 3526 §3</a>
+        <a class="resource-link" href="https://doi.org/10.1007/3-540-48071-4_3" target="_blank" rel="noopener noreferrer">Okamoto · CRYPTO ’92</a>
+        <a class="resource-link" href="https://doi.org/10.1007/3-540-45961-8_11" target="_blank" rel="noopener noreferrer">GQ · EUROCRYPT ’88</a>
+      </div>
+
+      <section class="prose" data-claim="special-soundness-intro">
+        <p>Schnorr proves you know one secret exponent. The same three-move pattern proves you know a pair of exponents, or an RSA root — and if you can answer twice for one commitment, you hand the secret over.</p>
+        <p>Everything below runs on the values printed here. The first act uses a published 2048-bit group; the second asks WebCrypto for a fresh 2048-bit RSA modulus.</p>
+      </section>
+
+      <div class="trust-banner trust-real global-honesty"><strong>Cryptographic honesty:</strong> Okamoto and GQ use exact BigInt equations at 2048 bits, with SHA-256 deriving h from the seed shown below. The p = 47 witness-independence census is explicitly a complete toy model. This is inspectable teaching code, not a constant-time production library.</div>
+
+      <section class="sigma-section" aria-labelledby="okamoto-heading">
+        <div class="sigma-act">ACT A</div>
+        <h2 id="okamoto-heading">Okamoto · know a representation</h2>
+        <p class="sigma-lead" data-claim="okamoto-statement">The public statement is <code>u = g<sup>α</sup>h<sup>β</sup></code>. A prover knows a pair <code>(α, β)</code>, commits with a fresh pair, then answers the verifier’s challenge without identifying which valid representation it holds.</p>
+
+        <div class="panel" style="margin-bottom:14px">
+          <div class="ph">REAL-SIZE PARAMETERS · RFC 3526 GROUP 14</div>
+          <div class="pb">
+            <div class="params-grid">
+              <div class="param-box"><div class="hash-label">Prime p</div><div class="sigma-value-line"><code id="ok-p" class="long-value" data-value="">deriving…</code><button class="bs copy-value" type="button" data-copy-target="ok-p" disabled>Copy p</button></div></div>
+              <div class="param-box"><div class="hash-label">Order q = (p − 1)/2</div><div class="sigma-value-line"><code id="ok-q" class="long-value" data-value="">deriving…</code><button class="bs copy-value" type="button" data-copy-target="ok-q" disabled>Copy q</button></div></div>
+              <div class="param-box"><div class="hash-label">Generator g</div><code id="ok-g">4</code></div>
+              <div class="param-box"><div class="hash-label">Sizes</div><span id="ok-bits">p: — · q: —</span></div>
+            </div>
+            <div class="hash-label">Published nothing-up-my-sleeve seed</div>
+            <div class="hash-box" id="ok-seed">crypto-lab-zk-proof-lab/okamoto-h/v1</div>
+            <p class="hint" data-claim="h-derivation">The page expands <code>seed || I2OSP(counter, 4)</code> with SHA-256 to 2,112 bits, reduces modulo p, and squares. That places h in the order-q subgroup without computing or storing <code>log<sub>g</sub> h</code>.</p>
+            <div class="hash-label" style="margin-top:10px">Derived h</div>
+            <div class="sigma-value-line"><code id="ok-h" class="hash-box long-value" data-value="">deriving…</code><button class="bs copy-value" type="button" data-copy-target="ok-h" disabled>Copy h</button></div>
+            <p class="hint" id="ok-param-status" role="status" aria-live="polite">Deriving h and checking subgroup membership…</p>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button class="bp" id="ok-run" type="button" disabled>▶ Run Okamoto proof</button>
+          <button class="bd" id="ok-rewind" type="button" disabled>Rewind: answer again</button>
+        </div>
+
+        <div class="panel" style="margin-bottom:14px">
+          <div class="ph">TRANSCRIPT · g<sup>αz</sup>h<sup>βz</sup> = u<sub>t</sub>u<sup>c</sup></div>
+          <div class="pb">
+            <div class="table-scroll" tabindex="0">
+              <table class="commit-table" aria-label="Okamoto proof transcript">
+                <thead><tr><th>Value</th><th>Computed output</th></tr></thead>
+                <tbody>
+                  <tr><td>statement u</td><td><code id="ok-u" class="long-value" data-value="">—</code></td></tr>
+                  <tr><td>commitment u<sub>t</sub></td><td><code id="ok-ut" class="long-value" data-value="">—</code></td></tr>
+                  <tr><td>challenge c</td><td><code id="ok-c" data-value="">—</code></td></tr>
+                  <tr><td>response α<sub>z</sub></td><td><code id="ok-za" class="long-value" data-value="">—</code></td></tr>
+                  <tr><td>response β<sub>z</sub></td><td><code id="ok-zb" class="long-value" data-value="">—</code></td></tr>
+                  <tr><td>left side</td><td><code id="ok-lhs" class="long-value" data-value="">—</code></td></tr>
+                  <tr><td>right side</td><td><code id="ok-rhs" class="long-value" data-value="">—</code></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="ok-verdict" class="sigma-verdict" data-verdict="okamoto-verify" data-state="pending" role="status" aria-live="polite">Run the proof to compute the verifier equation.</div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-bottom:14px">
+          <div class="ph">BREAK IT YOURSELF · REWIND THE SAME COMMITMENT</div>
+          <div class="pb">
+            <p>The rewind keeps <code>u<sub>t</sub></code> fixed and changes only c. Dividing the two accepting equations cancels the commitment.</p>
+            <div class="table-scroll" tabindex="0">
+              <table class="commit-table" aria-label="Okamoto rewound transcript and extraction">
+                <thead><tr><th>Value</th><th>Second answer / extracted value</th></tr></thead>
+                <tbody>
+                  <tr><td>second challenge c′</td><td><code id="ok-c2" data-value="">—</code></td></tr>
+                  <tr><td>second response α′<sub>z</sub></td><td><code id="ok-za2" class="long-value" data-value="">—</code></td></tr>
+                  <tr><td>second response β′<sub>z</sub></td><td><code id="ok-zb2" class="long-value" data-value="">—</code></td></tr>
+                  <tr><td>extracted α̂</td><td><code id="ok-alpha-hat" class="long-value" data-value="">—</code></td></tr>
+                  <tr><td>extracted β̂</td><td><code id="ok-beta-hat" class="long-value" data-value="">—</code></td></tr>
+                  <tr><td>g<sup>α̂</sup>h<sup>β̂</sup></td><td><code id="ok-reconstructed" class="long-value" data-value="">—</code></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="ok-extract-verdict" class="sigma-verdict" data-verdict="okamoto-extract" data-state="pending" role="status" aria-live="polite">A second challenge will expose the witness.</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="ph">WITNESS INDEPENDENCE · COMPLETE TOY CENSUS</div>
+          <div class="pb">
+            <p data-claim="okamoto-witness-scope">Okamoto’s protocol proves knowledge of <em>a</em> representation of u, not of the registered one.</p>
+            <p class="hint">Only at p = 47 and q = 23 can this page brute-force <code>log<sub>g</sub> h</code>, construct a second representation, and enumerate the whole transcript space. The real-size panel never does that.</p>
+            <div class="params-grid" style="margin-top:12px">
+              <div class="param-box"><div class="hash-label">Toy group</div><code>p=47 · q=23 · g=4 · h=9</code></div>
+              <div class="param-box"><div class="hash-label">Registered witness</div><code id="toy-rep1">(5, 7)</code></div>
+              <div class="param-box"><div class="hash-label">Second witness</div><code id="toy-rep2">(9, 8)</code></div>
+              <div class="param-box"><div class="hash-label">Same statement u</div><code id="toy-u" data-value="">—</code></div>
+            </div>
+            <div class="param-control">
+              <span class="tog"><input type="checkbox" id="toy-adaptive"><span class="tog-sl"></span></span>
+              <label for="toy-adaptive">Adaptive verifier: c = u<sub>t</sub> mod 23</label>
+            </div>
+            <div class="controls">
+              <button class="bp" id="toy-enumerate" type="button">Enumerate both witnesses</button>
+            </div>
+            <div class="table-scroll" tabindex="0">
+              <table class="commit-table" aria-label="Toy Okamoto transcript multiset counts">
+                <thead><tr><th>Witness</th><th>Nonce pairs</th><th>Challenges per pair</th><th>Transcript count</th></tr></thead>
+                <tbody>
+                  <tr><td>registered (5, 7)</td><td id="toy-nonces-a">—</td><td id="toy-challenges-a">—</td><td id="toy-count-a">—</td></tr>
+                  <tr><td>second (9, 8)</td><td id="toy-nonces-b">—</td><td id="toy-challenges-b">—</td><td id="toy-count-b">—</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="toy-equality-verdict" class="sigma-verdict" data-verdict="witness-independence" data-state="pending" role="status" aria-live="polite">Enumerate the two transcript multisets to compare every entry.</div>
+            <div class="vl">
+              <strong>Fact 10.3 readout:</strong> the two representations reveal <code>log<sub>4</sub>9 = <span id="toy-dlog">—</span></code>; the independent check prints <code>4<sup>log</sup> mod 47 = <span id="toy-dlog-check">—</span></code>. The second witness’s verifier equation prints <code><span id="toy-second-lhs">—</span> = <span id="toy-second-rhs">—</span></code>.
+            </div>
+            <p class="hint" data-claim="okamoto-active-security">At real size, two distinct representations compute <code>log<sub>g</sub> h</code>. That hardness, a large challenge space, and witness independence are what Boneh–Shoup Theorem 19.23 uses for Okamoto identification against active attacks.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="sigma-section" aria-labelledby="gq-heading">
+        <div class="sigma-act">ACT B</div>
+        <h2 id="gq-heading">Guillou–Quisquater · know an RSA root</h2>
+        <p class="sigma-lead" data-claim="gq-statement">The public statement is <code>y = x<sup>e</sup> mod N</code>. The verifier checks <code>x<sub>z</sub><sup>e</sup> = y<sub>t</sub>y<sup>c</sup> mod N</code>; two answers for one commitment expose x through the extended Euclidean algorithm.</p>
+
+        <div class="param-control">
+          <label for="gq-e">Prime challenge exponent e:</label>
+          <select id="gq-e" class="param-select">
+            <option value="65537" selected>65537 (default)</option>
+            <option value="3">3 — deliberately broken challenge space</option>
+          </select>
+          <span class="hint">Changing e retires every result below.</span>
+        </div>
+        <div id="gq-broken-warning" class="trust-banner trust-conceptual" hidden><strong>⚠ DELIBERATELY BROKEN MODE:</strong> e = 3 gives the verifier only three challenges. It is never the default.</div>
+        <div id="gq-retired" class="narration" role="status" aria-live="polite">No GQ result yet. Run an honest proof to generate a fresh WebCrypto modulus.</div>
+
+        <div class="controls">
+          <button class="bp" id="gq-run" type="button">▶ Generate N and run GQ</button>
+          <button class="bd" id="gq-rewind" type="button" disabled>Rewind: extract the root</button>
+          <button class="bd" id="gq-cheat" type="button" disabled>Run the cheater 1,000×</button>
+        </div>
+
+        <div class="panel" style="margin-bottom:14px">
+          <div class="ph">REAL 2048-BIT RSA MODULUS · ONLY N ENTERS THE PROTOCOL</div>
+          <div class="pb">
+            <p id="gq-key-status" role="status" aria-live="polite">Waiting for WebCrypto key generation.</p>
+            <div class="hash-label" style="margin-top:10px">N</div>
+            <div class="sigma-value-line"><code id="gq-n" class="hash-box long-value" data-value="">—</code><button class="bs copy-value" type="button" data-copy-target="gq-n" disabled>Copy N</button></div>
+            <div class="table-scroll" tabindex="0">
+              <table class="commit-table" aria-label="GQ proof transcript">
+                <thead><tr><th>Value</th><th>Computed output</th></tr></thead>
+                <tbody>
+                  <tr><td>public y = x<sup>e</sup></td><td><code id="gq-y" class="long-value" data-value="">—</code></td></tr>
+                  <tr><td>commitment y<sub>t</sub></td><td><code id="gq-yt" class="long-value" data-value="">—</code></td></tr>
+                  <tr><td>challenge c</td><td><code id="gq-c" data-value="">—</code></td></tr>
+                  <tr><td>response x<sub>z</sub></td><td><code id="gq-xz" class="long-value" data-value="">—</code></td></tr>
+                  <tr><td>left side x<sub>z</sub><sup>e</sup></td><td><code id="gq-lhs" class="long-value" data-value="">—</code></td></tr>
+                  <tr><td>right side y<sub>t</sub>y<sup>c</sup></td><td><code id="gq-rhs" class="long-value" data-value="">—</code></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="gq-verdict" class="sigma-verdict" data-verdict="gq-verify" data-state="pending" role="status" aria-live="polite">Run the proof to compute the verifier equation.</div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-bottom:14px">
+          <div class="ph">BREAK IT YOURSELF · SHAMIR’S TRICK</div>
+          <div class="pb">
+            <p>For Δx = x<sub>z</sub>/x′<sub>z</sub> and Δc = c − c′, extended Euclid finds <code>s·e + t·Δc = 1</code>. Then <code>root = y<sup>s</sup>Δx<sup>t</sup></code>; negative powers use modular inverses.</p>
+            <div class="table-scroll" tabindex="0">
+              <table class="commit-table" aria-label="GQ rewind extraction">
+                <thead><tr><th>Value</th><th>Computed output</th></tr></thead>
+                <tbody>
+                  <tr><td>second challenge c′</td><td><code id="gq-c2" data-value="">—</code></td></tr>
+                  <tr><td>Δc</td><td><code id="gq-dc" data-value="">—</code></td></tr>
+                  <tr><td>s</td><td><code id="gq-s" data-value="">—</code></td></tr>
+                  <tr><td>t</td><td><code id="gq-t" data-value="">—</code></td></tr>
+                  <tr><td>extracted root</td><td><code id="gq-root" class="long-value" data-value="">—</code></td></tr>
+                  <tr><td>root<sup>e</sup> mod N</td><td><code id="gq-root-check" class="long-value" data-value="">—</code></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="gq-extract-verdict" class="sigma-verdict" data-verdict="gq-extract" data-state="pending" role="status" aria-live="polite">A second challenge will expose the RSA root.</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="ph">BREAK IT YOURSELF · SMALL-e CHEATER</div>
+          <div class="pb">
+            <p id="gq-negative-claim" data-claim="gq-small-e-negative"><strong>With a small exponent e, an accepted GQ proof does not show the prover knows an e-th root: a cheater who holds only y passes about one time in e.</strong></p>
+            <p>The cheater guesses c*, chooses x<sub>z</sub>, and backs out <code>y<sub>t</sub> = x<sub>z</sub><sup>e</sup>/y<sup>c*</sup></code>. It receives only public <code>y, e, N</code>—never x. The verifier samples c after that commitment exists.</p>
+            <div class="params-grid" style="margin-top:12px">
+              <div class="param-box"><div class="hash-label">Attempts</div><code id="gq-cheat-attempts">—</code></div>
+              <div class="param-box"><div class="hash-label">Acceptances</div><code id="gq-cheat-accepts">—</code></div>
+              <div class="param-box"><div class="hash-label">Guessed c*</div><code id="gq-cheat-guess">—</code></div>
+              <div class="param-box"><div class="hash-label">Verifier c</div><code id="gq-cheat-c">—</code></div>
+            </div>
+            <div class="table-scroll" tabindex="0">
+              <table class="commit-table" aria-label="GQ cheating transcript">
+                <thead><tr><th>Value</th><th>Computed output</th></tr></thead>
+                <tbody>
+                  <tr><td>forged y<sub>t</sub></td><td><code id="gq-cheat-yt" class="long-value" data-value="">—</code></td></tr>
+                  <tr><td>chosen x<sub>z</sub></td><td><code id="gq-cheat-xz" class="long-value" data-value="">—</code></td></tr>
+                  <tr><td>left side</td><td><code id="gq-cheat-lhs" class="long-value" data-value="">—</code></td></tr>
+                  <tr><td>right side</td><td><code id="gq-cheat-rhs" class="long-value" data-value="">—</code></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p id="gq-cheat-checks" class="hint">Verifier equation: not run · group membership: not run.</p>
+            <div id="gq-cheat-verdict" class="sigma-verdict" data-verdict="gq-cheater" data-state="pending" role="status" aria-live="polite">Run an honest proof first, then try the public-data-only cheater.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="prose" aria-labelledby="sources-heading">
+        <h2 id="sources-heading">Sources and next seams</h2>
+        <p>The equations and theorem labels follow Boneh–Shoup v0.6: Fig. 19.6 and Theorem 19.9 (Okamoto), Fig. 19.10 and Theorem 19.13 (GQ), Theorem 19.21 (witness independence), Theorem 19.23 (active security), Fact 10.3, and Theorem 10.6 (Shamir’s trick). RFC 3526 §3 publishes p and generator 2; this exhibit squares it to g = 4 for the order-q subgroup. The RFC does not claim q is prime, so the unit suite independently tests both p and q.</p>
+        <p>The original papers are Tatsuaki Okamoto, “Provably Secure and Practical Identification Schemes and Corresponding Signature Schemes,” CRYPTO ’92, pp. 31–53, and Louis C. Guillou &amp; Jean-Jacques Quisquater, “A Practical Zero-Knowledge Protocol Fitted to Security Microprocessor Minimizing Both Transmission and Memory,” EUROCRYPT ’88, pp. 123–128. The latter is distinct from the CRYPTO ’89 cave-story citation in Exhibit 01.</p>
+        <p>Related demos: <a href="https://systemslibrarian.github.io/crypto-lab-schnorr-forge/" target="_blank" rel="noopener noreferrer">Schnorr Forge</a> shows same-commitment nonce reuse as key recovery; <a href="https://systemslibrarian.github.io/crypto-lab-threshold-decrypt/" target="_blank" rel="noopener noreferrer">Threshold Decrypt</a> shows Chaum–Pedersen partial-decryption proofs; <a href="https://systemslibrarian.github.io/crypto-lab-credential-veil/" target="_blank" rel="noopener noreferrer">Credential Veil</a> implements a Chaum–Pedersen OR proof; and <a href="https://systemslibrarian.github.io/crypto-lab-rsa-forge/" target="_blank" rel="noopener noreferrer">RSA Forge</a> explores RSA failures.</p>
+        <!-- [extension] Exercise 19.6: enlarge the GQ challenge space. -->
+        <!-- [extension] Apply Fiat–Shamir to Okamoto and GQ; link Exhibit 05. -->
+        <!-- [extension] Compose Okamoto AND GQ in one proof. -->
+        <p><strong>Extension seams:</strong> enlarge GQ’s challenge space as in Exercise 19.6; make both protocols non-interactive with <a href="fiat-shamir.html">Exhibit 05’s Fiat–Shamir transform</a>; or build an AND composition proving both statements together.</p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <a href="https://github.com/systemslibrarian/crypto-lab-zk-proof-lab" target="_blank" rel="noopener noreferrer">View on GitHub</a> · <a href="../tests/logic-smoke.html">Run Tests</a> · v1.0 · ZK Proof Lab by <a href="https://github.com/systemslibrarian" target="_blank" rel="noopener noreferrer">systemslibrarian</a>
+    </footer>
+  </div>
+
+  <script type="module" src="../js/main.js"></script>
+  <script type="module" src="../js/sigma-ui.js"></script>
+</body>
+</html>

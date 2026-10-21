@@ -6,7 +6,8 @@ const STOPS = [
   { sel: 'a[href="exhibits/schnorr.html"]', title: 'Exhibit 03 — Schnorr', body: 'Real modular arithmetic. Step through each phase, change the secret x, and watch the proof balance.' },
   { sel: 'a[href="exhibits/commit-reveal.html"]', title: 'Exhibit 04 — Commit-Reveal', body: 'Lock a hidden bid as a real SHA-256 hash, then reveal it — any tampering is caught.' },
   { sel: 'a[href="exhibits/fiat-shamir.html"]', title: 'Exhibit 05 — Fiat-Shamir', body: 'Make a proof non-interactive by deriving the challenge from a hash of the transcript.' },
-  { sel: 'a[href="exhibits/snark.html"]', title: 'Exhibit 06 — zk-SNARK', body: 'See setup, proving, and verification with public/private input separation in one toy pipeline.' }
+  { sel: 'a[href="exhibits/snark.html"]', title: 'Exhibit 06 — zk-SNARK', body: 'See setup, proving, and verification with public/private input separation in one toy pipeline.' },
+  { sel: 'a[href="exhibits/sigma-family.html"]', title: 'Exhibit 07 — Beyond Schnorr', body: 'Use real 2048-bit arithmetic, rewind two Sigma protocols, and watch a tiny GQ challenge space fail.' }
 ];
 
 function prefersReducedMotion() {

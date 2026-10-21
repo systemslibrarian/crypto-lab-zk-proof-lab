@@ -8,6 +8,7 @@ const pages = [
   '../exhibits/commit-reveal.html',
   '../exhibits/fiat-shamir.html',
   '../exhibits/snark.html',
+  '../exhibits/sigma-family.html',
   '../exhibits/transcript-lab.html',
   '../exhibits/scenario-presets.html'
 ];
@@ -22,6 +23,7 @@ const pageScripts = {
   '../exhibits/commit-reveal.html': '../js/commit.js',
   '../exhibits/fiat-shamir.html': '../js/fiat-shamir.js',
   '../exhibits/snark.html': '../js/snark.js',
+  '../exhibits/sigma-family.html': '../js/sigma.js',
   '../exhibits/transcript-lab.html': '../js/transcript-lab.js'
 };
 
@@ -29,7 +31,7 @@ const pageScripts = {
 // calls one, the page's honesty banner has to name it.
 const primitives = [
   { name: 'SHA-256', usedBy: /sha256hex\s*\(|crypto\.subtle\.digest\s*\(/, namedBy: /SHA-?\s*256/i },
-  { name: 'modular arithmetic', usedBy: /\bmodpow\s*\(|\bschnorrVerify\s*\(/, namedBy: /modular[\s-]?arithmetic|mod\s*p\b|modular/i }
+  { name: 'modular arithmetic', usedBy: /\bmodpow(?:Big)?\s*\(|\bschnorrVerify\s*\(/, namedBy: /modular[\s-]?arithmetic|mod\s*p\b|modular|BigInt equations/i }
 ];
 
 // Nothing may claim to be real crypto if its script computes none.

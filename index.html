@@ -140,7 +140,7 @@
       <div class="cl-hero-main">
         <h1 class="cl-hero-title">ZK Proof Lab</h1>
         <p class="cl-hero-sub">Zero-Knowledge Proofs · Interactive · Fiat-Shamir · SNARK</p>
-        <p class="cl-hero-desc">Walk interactive proofs (Ali Baba cave, graph 3-coloring, Schnorr) through commit-challenge-response, then collapse them into non-interactive Fiat-Shamir and SNARK-shaped pipelines with real in-browser hashing and modular arithmetic.</p>
+        <p class="cl-hero-desc">Walk interactive proofs (Ali Baba cave, graph 3-coloring, Schnorr, Okamoto, and GQ) through commit-challenge-response, then collapse them into non-interactive Fiat-Shamir and SNARK-shaped pipelines with real in-browser hashing and modular arithmetic.</p>
       </div>
       <aside class="cl-hero-why" aria-label="Why it matters">
         <span class="cl-hero-why-label">WHY IT MATTERS</span>
@@ -156,6 +156,7 @@
         <a class="nav-link" href="exhibits/commit-reveal.html">Exhibit 04</a>
         <a class="nav-link" href="exhibits/fiat-shamir.html">Exhibit 05</a>
         <a class="nav-link" href="exhibits/snark.html">Exhibit 06</a>
+        <a class="nav-link" href="exhibits/sigma-family.html">Exhibit 07</a>
         <a class="nav-link" href="exhibits/scenario-presets.html">Scenarios</a>
       </nav>
 
@@ -188,7 +189,7 @@
         </div>
       </section>
 
-      <div class="trust-banner trust-real global-honesty"><strong>Cryptographic honesty:</strong> the modular-arithmetic checks and Web Crypto primitives in Exhibits 02, 03, 04, and 05 are real (real <code>SHA-256</code> commitments and Schnorr/Fiat-Shamir verification). Exhibits 01 and 06 are clearly-labelled conceptual models. Parameters are intentionally small for educational clarity and browser performance, not production security levels.</div>
+      <div class="trust-banner trust-real global-honesty"><strong>Cryptographic honesty:</strong> the modular-arithmetic checks and Web Crypto primitives in Exhibits 02, 03, 04, 05, and 07 are real. Exhibit 07 runs exact BigInt arithmetic over a published 2048-bit group and a fresh WebCrypto RSA modulus; Exhibits 01 and 06 are clearly-labelled conceptual models.</div>
 
       <section class="lobby-grid" aria-label="Exhibit selector">
         <a class="card" href="exhibits/cave.html">
@@ -225,6 +226,12 @@
           <div class="ex-row"><span class="ex-num">EXHIBIT 06</span><span class="badge badge-sim">⬡ PEDAGOGICAL SNARK MODEL</span></div>
           <h2 class="card-title">zk-SNARK Intuition</h2>
           <p class="card-desc">See setup, proving, and verification flow with public/private input separation in one toy pipeline.</p>
+        </a>
+
+        <a class="card" href="exhibits/sigma-family.html">
+          <div class="ex-row"><span class="ex-num">EXHIBIT 07</span><span class="badge badge-real">● REAL BIGINT ARITHMETIC · 2048-BIT</span></div>
+          <h2 class="card-title">Beyond Schnorr</h2>
+          <p class="card-desc">Rewind Okamoto and GQ proofs to extract a pair of exponents or an RSA root, then measure when a tiny challenge space lets a rootless prover pass.</p>
         </a>
       </section>
     </main>

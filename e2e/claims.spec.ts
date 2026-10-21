@@ -69,6 +69,89 @@ const confidencePct = (rounds: number, cheatProb: number): string =>
 const cheatPct = (rounds: number, cheatProb: number, digits: number): string =>
   `${(Math.pow(cheatProb, rounds) * 100).toFixed(digits)}%`;
 
+const RFC3526_GROUP14_P = BigInt(
+  '0x' +
+  'FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1' +
+  '29024E088A67CC74020BBEA63B139B22514A08798E3404DD' +
+  'EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245' +
+  'E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED' +
+  'EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D' +
+  'C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F' +
+  '83655D23DCA3AD961C62F356208552BB9ED529077096966D' +
+  '670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B' +
+  'E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9' +
+  'DE2BCBF6955817183995497CEA956AE515D2261898FA0510' +
+  '15728E5A8AACAA68FFFFFFFFFFFFFFFF',
+);
+
+const mod = (value: bigint, modulus: bigint): bigint =>
+  ((value % modulus) + modulus) % modulus;
+
+function gcdBig(a: bigint, b: bigint): bigint {
+  let x = a < 0n ? -a : a;
+  let y = b < 0n ? -b : b;
+  while (y !== 0n) [x, y] = [y, x % y];
+  return x;
+}
+
+function inverseBig(value: bigint, modulus: bigint): bigint {
+  let oldR = mod(value, modulus);
+  let r = modulus;
+  let oldS = 1n;
+  let s = 0n;
+  while (r !== 0n) {
+    const q = oldR / r;
+    [oldR, r] = [r, oldR - q * r];
+    [oldS, s] = [s, oldS - q * s];
+  }
+  expect(oldR, 'value must have a modular inverse').toBe(1n);
+  return mod(oldS, modulus);
+}
+
+async function dataBig(page: Page, selector: string): Promise<bigint> {
+  const raw = await page.locator(selector).getAttribute('data-value');
+  expect(raw, `${selector} must expose its full computed integer`).toMatch(/^-?\d+$/);
+  return BigInt(raw!);
+}
+
+function independentH(seed: string, p: bigint): bigint {
+  const blocks: Buffer[] = [];
+  let length = 0;
+  for (let counter = 0; length < 264; counter += 1) {
+    const suffix = Buffer.alloc(4);
+    suffix.writeUInt32BE(counter);
+    const block = createHash('sha256').update(seed, 'utf8').update(suffix).digest();
+    blocks.push(block);
+    length += block.length;
+  }
+  const expanded = BigInt(`0x${Buffer.concat(blocks).subarray(0, 264).toString('hex')}`);
+  return modpow(expanded % p, 2n, p);
+}
+
+function toyTranscriptSupport(
+  witness: { alpha: bigint; beta: bigint },
+  adaptive: boolean,
+): string[] {
+  const p = 47n;
+  const q = 23n;
+  const g = 4n;
+  const h = 9n;
+  const u = modpow(g, witness.alpha, p) * modpow(h, witness.beta, p) % p;
+  const out: string[] = [];
+  for (let alphaT = 0n; alphaT < q; alphaT += 1n) {
+    for (let betaT = 0n; betaT < q; betaT += 1n) {
+      const uT = modpow(g, alphaT, p) * modpow(h, betaT, p) % p;
+      const challenges = adaptive
+        ? [uT % q]
+        : Array.from({ length: Number(q) }, (_, index) => BigInt(index));
+      for (const c of challenges) {
+        out.push(`${u}:${uT}:${c}:${mod(alphaT + witness.alpha * c, q)}:${mod(betaT + witness.beta * c, q)}`);
+      }
+    }
+  }
+  return out.sort();
+}
+
 // ---------------------------------------------------------------------------
 // Schnorr identification
 // ---------------------------------------------------------------------------
@@ -227,6 +310,240 @@ test.describe('Schnorr identification', () => {
     expect(run.result).toContain('✓ VERIFIED');
     const lines = await logLines(page, 's-log');
     expect(lines.filter((line) => /^Step [1-4] —/.test(line))).toHaveLength(4);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Exhibit 07: Okamoto representations and Guillou–Quisquater RSA roots
+// ---------------------------------------------------------------------------
+
+test.describe('Beyond Schnorr: computed claims', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('exhibits/sigma-family.html');
+    await expect(page.locator('#ok-run')).toBeEnabled({ timeout: 20_000 });
+  });
+
+  test('the RFC group, deterministic h, and Okamoto verifier equation are independently recomputed', async ({ page }) => {
+    const claimIds = await page.locator('[data-claim]').evaluateAll((nodes) =>
+      nodes.map((node) => (node as HTMLElement).dataset.claim),
+    );
+    expect(claimIds).toEqual([
+      'special-soundness-intro',
+      'okamoto-statement',
+      'h-derivation',
+      'okamoto-witness-scope',
+      'okamoto-active-security',
+      'gq-statement',
+      'gq-small-e-negative',
+    ]);
+
+    const p = await dataBig(page, '#ok-p');
+    const q = await dataBig(page, '#ok-q');
+    const g = BigInt(await textOf(page, '#ok-g'));
+    const h = await dataBig(page, '#ok-h');
+    const seed = await textOf(page, '#ok-seed');
+    expect(p).toBe(RFC3526_GROUP14_P);
+    expect(q).toBe((p - 1n) / 2n);
+    expect(p.toString(2)).toHaveLength(2048);
+    expect(g).toBe(4n);
+    expect(modpow(g, q, p)).toBe(1n);
+    expect(h).toBe(independentH(seed, p));
+    expect(h).not.toBe(1n);
+    expect(modpow(h, q, p)).toBe(1n);
+
+    await page.locator('#ok-run').click();
+    await expect(page.locator('#ok-verdict')).toHaveAttribute('data-state', 'pass');
+    const u = await dataBig(page, '#ok-u');
+    const uT = await dataBig(page, '#ok-ut');
+    const c = await dataBig(page, '#ok-c');
+    const zAlpha = await dataBig(page, '#ok-za');
+    const zBeta = await dataBig(page, '#ok-zb');
+    const shownLhs = await dataBig(page, '#ok-lhs');
+    const shownRhs = await dataBig(page, '#ok-rhs');
+    const lhs = modpow(g, zAlpha, p) * modpow(h, zBeta, p) % p;
+    const rhs = uT * modpow(u, c, p) % p;
+    expect(shownLhs).toBe(lhs);
+    expect(shownRhs).toBe(rhs);
+    expect(lhs).toBe(rhs);
+    expect(modpow(u, q, p)).toBe(1n);
+    expect(modpow(uT, q, p)).toBe(1n);
+    await expect(page.locator('#ok-verdict')).toContainText('PROOF ACCEPTED');
+  });
+
+  test('Okamoto rewind and both witness-independence experiments expose their complete arithmetic', async ({ page }) => {
+    test.setTimeout(120_000);
+    await page.locator('#ok-run').click();
+    await expect(page.locator('#ok-verdict')).toHaveAttribute('data-state', 'pass');
+    const p = await dataBig(page, '#ok-p');
+    const q = await dataBig(page, '#ok-q');
+    const g = BigInt(await textOf(page, '#ok-g'));
+    const h = await dataBig(page, '#ok-h');
+    const u = await dataBig(page, '#ok-u');
+    const c = await dataBig(page, '#ok-c');
+    const zAlpha = await dataBig(page, '#ok-za');
+    const zBeta = await dataBig(page, '#ok-zb');
+
+    await page.locator('#ok-rewind').click();
+    await expect(page.locator('#ok-extract-verdict')).toHaveAttribute('data-state', 'alarm');
+    const c2 = await dataBig(page, '#ok-c2');
+    const zAlpha2 = await dataBig(page, '#ok-za2');
+    const zBeta2 = await dataBig(page, '#ok-zb2');
+    const alphaHat = await dataBig(page, '#ok-alpha-hat');
+    const betaHat = await dataBig(page, '#ok-beta-hat');
+    const reconstructed = await dataBig(page, '#ok-reconstructed');
+    expect(c2).not.toBe(c);
+    const invDelta = inverseBig(c - c2, q);
+    expect(alphaHat).toBe(mod((zAlpha - zAlpha2) * invDelta, q));
+    expect(betaHat).toBe(mod((zBeta - zBeta2) * invDelta, q));
+    expect(reconstructed).toBe(modpow(g, alphaHat, p) * modpow(h, betaHat, p) % p);
+    expect(reconstructed).toBe(u);
+    await expect(page.locator('#ok-extract-verdict')).toContainText('protocol working as designed: special soundness');
+
+    await page.locator('#toy-enumerate').click();
+    await expect(page.locator('#toy-equality-verdict')).toHaveAttribute('data-state', 'pass');
+    const registered = toyTranscriptSupport({ alpha: 5n, beta: 7n }, false);
+    const alternate = toyTranscriptSupport({ alpha: 9n, beta: 8n }, false);
+    expect(registered).toHaveLength(23 * 23 * 23);
+    expect(alternate).toHaveLength(23 * 23 * 23);
+    expect(createHash('sha256').update(registered.join('|')).digest('hex')).toBe(
+      createHash('sha256').update(alternate.join('|')).digest('hex'),
+    );
+    expect(await intOf(page, '#toy-nonces-a')).toBe(23 * 23);
+    expect(await intOf(page, '#toy-challenges-a')).toBe(23);
+    expect(await intOf(page, '#toy-count-a')).toBe(23 * 23 * 23);
+    expect(await intOf(page, '#toy-count-b')).toBe(23 * 23 * 23);
+
+    const fixedA = `${mod(3n + 5n, 23n)}:${mod(8n + 7n, 23n)}`;
+    const fixedB = `${mod(3n + 9n, 23n)}:${mod(8n + 8n, 23n)}`;
+    expect(fixedA).not.toBe(fixedB);
+    await expect(page.locator('#toy-equality-verdict')).toContainText('fixed-nonce control is unequal');
+
+    await page.locator('label[for="toy-adaptive"]').click();
+    await expect(page.locator('#toy-equality-verdict')).toHaveAttribute('data-state', 'pending');
+    await page.locator('#toy-enumerate').click();
+    const adaptiveA = toyTranscriptSupport({ alpha: 5n, beta: 7n }, true);
+    const adaptiveB = toyTranscriptSupport({ alpha: 9n, beta: 8n }, true);
+    expect(adaptiveA).toHaveLength(23 * 23);
+    expect(createHash('sha256').update(adaptiveA.join('|')).digest('hex')).toBe(
+      createHash('sha256').update(adaptiveB.join('|')).digest('hex'),
+    );
+    expect(await intOf(page, '#toy-challenges-a')).toBe(1);
+    expect(await intOf(page, '#toy-count-a')).toBe(23 * 23);
+
+    const dlog = BigInt(await textOf(page, '#toy-dlog'));
+    expect(dlog).toBe(mod((5n - 9n) * inverseBig(8n - 7n, 23n), 23n));
+    expect(BigInt(await textOf(page, '#toy-dlog-check'))).toBe(modpow(4n, dlog, 47n));
+    expect(BigInt(await textOf(page, '#toy-dlog-check'))).toBe(9n);
+    expect(await textOf(page, '#toy-second-lhs')).toBe(await textOf(page, '#toy-second-rhs'));
+    await expect(page.locator('[data-claim="okamoto-witness-scope"]')).toContainText(
+      'proves knowledge of a representation of u, not of the registered one',
+    );
+  });
+
+  test('GQ verification, Shamir extraction, 65537 counter, and retirement all follow printed values', async ({ page }) => {
+    test.setTimeout(300_000);
+    await page.locator('#gq-run').click();
+    await expect(page.locator('#gq-verdict')).toHaveAttribute('data-state', 'pass', { timeout: 120_000 });
+    const e = BigInt(await page.locator('#gq-e').inputValue());
+    const N = await dataBig(page, '#gq-n');
+    const y = await dataBig(page, '#gq-y');
+    const yT = await dataBig(page, '#gq-yt');
+    const c = await dataBig(page, '#gq-c');
+    const xZ = await dataBig(page, '#gq-xz');
+    const shownLhs = await dataBig(page, '#gq-lhs');
+    const shownRhs = await dataBig(page, '#gq-rhs');
+    expect(e).toBe(65537n);
+    expect(N.toString(2)).toHaveLength(2048);
+    expect(gcdBig(y, N)).toBe(1n);
+    expect(gcdBig(yT, N)).toBe(1n);
+    expect(gcdBig(xZ, N)).toBe(1n);
+    expect(shownLhs).toBe(modpow(xZ, e, N));
+    expect(shownRhs).toBe(yT * modpow(y, c, N) % N);
+    expect(shownLhs).toBe(shownRhs);
+
+    await page.locator('#gq-rewind').click();
+    await expect(page.locator('#gq-extract-verdict')).toHaveAttribute('data-state', 'alarm');
+    const c2 = await dataBig(page, '#gq-c2');
+    const deltaC = await dataBig(page, '#gq-dc');
+    const s = await dataBig(page, '#gq-s');
+    const t = await dataBig(page, '#gq-t');
+    const root = await dataBig(page, '#gq-root');
+    const rootCheck = await dataBig(page, '#gq-root-check');
+    expect(deltaC).toBe(c - c2);
+    expect(e * s + deltaC * t).toBe(1n);
+    expect(rootCheck).toBe(modpow(root, e, N));
+    expect(rootCheck).toBe(y);
+
+    await page.locator('#gq-cheat').click();
+    await expect(page.locator('#gq-cheat-verdict')).not.toHaveAttribute('data-state', 'busy', { timeout: 120_000 });
+    expect(await intOf(page, '#gq-cheat-attempts')).toBe(1000);
+    const acceptances = await intOf(page, '#gq-cheat-accepts');
+    expect(acceptances).toBeGreaterThanOrEqual(0);
+    expect(acceptances).toBeLessThanOrEqual(1000);
+    await expect(page.locator('#gq-cheat-verdict')).toContainText(`${acceptances} of 1,000`);
+    await expect(page.locator('#gq-cheat-verdict')).toContainText('1,000/65,537');
+
+    const before = await page.locator('#gq-y').getAttribute('data-value');
+    await page.locator('#gq-e').selectOption('65537');
+    await page.locator('#gq-e').dispatchEvent('change');
+    await expect(page.locator('#gq-verdict')).toHaveAttribute('data-state', 'pass');
+    expect(await page.locator('#gq-y').getAttribute('data-value')).toBe(before);
+
+    await page.locator('#gq-e').selectOption('3');
+    await expect(page.locator('#gq-broken-warning')).toBeVisible();
+    await expect(page.locator('#gq-verdict')).toHaveAttribute('data-state', 'pending');
+    await expect(page.locator('#gq-extract-verdict')).toHaveAttribute('data-state', 'pending');
+    await expect(page.locator('#gq-cheat-verdict')).toHaveAttribute('data-state', 'pending');
+    await expect(page.locator('#gq-y')).toHaveAttribute('data-value', '');
+    await expect(page.locator('#gq-retired')).toContainText('every prior GQ verdict were retired');
+    await page.locator('#gq-e').selectOption('65537');
+    await expect(page.locator('#gq-broken-warning')).toBeHidden();
+  });
+
+  test('the e=3 evidence fixture accepts a well-formed proof from a prover with no root', async ({ page }) => {
+    test.setTimeout(300_000);
+    await page.locator('#gq-e').selectOption('3');
+    await expect(page.locator('#gq-broken-warning')).toBeVisible();
+    await page.locator('#gq-run').click();
+    await expect(page.locator('#gq-verdict')).toHaveAttribute('data-state', 'pass', { timeout: 180_000 });
+    await page.locator('#gq-rewind').click();
+    await expect(page.locator('#gq-extract-verdict')).toHaveAttribute('data-state', 'alarm');
+    await page.locator('#gq-cheat').click();
+    await expect(page.locator('#gq-cheat-verdict')).toHaveAttribute('data-state', 'alarm', { timeout: 120_000 });
+
+    const N = await dataBig(page, '#gq-n');
+    const y = await dataBig(page, '#gq-y');
+    const yT = await dataBig(page, '#gq-cheat-yt');
+    const xZ = await dataBig(page, '#gq-cheat-xz');
+    const e = BigInt(await page.locator('#gq-e').inputValue());
+    const guessed = BigInt(await textOf(page, '#gq-cheat-guess'));
+    const challenge = BigInt(await textOf(page, '#gq-cheat-c'));
+    const lhs = await dataBig(page, '#gq-cheat-lhs');
+    const rhs = await dataBig(page, '#gq-cheat-rhs');
+    expect(e).toBe(3n);
+    expect(await intOf(page, '#gq-cheat-attempts')).toBeGreaterThanOrEqual(1);
+    expect(await intOf(page, '#gq-cheat-accepts')).toBe(1);
+    expect(guessed).toBeGreaterThanOrEqual(0n);
+    expect(guessed).toBeLessThan(e);
+    expect(challenge).toBe(guessed);
+    expect(gcdBig(y, N)).toBe(1n);
+    expect(gcdBig(yT, N)).toBe(1n);
+    expect(gcdBig(xZ, N)).toBe(1n);
+    expect(lhs).toBe(modpow(xZ, e, N));
+    expect(rhs).toBe(yT * modpow(y, challenge, N) % N);
+    expect(lhs).toBe(rhs);
+    await expect(page.locator('#gq-cheat-checks')).toHaveText(
+      'Verifier equation: holds · group membership: all public values are well-formed in Z*_N.',
+    );
+    await expect(page.locator('#gq-cheat-verdict')).toHaveText(
+      '⚠ PROOF ACCEPTED — AND THE PROVER HOLDS NO ROOT',
+    );
+    await expect(page.locator('#gq-negative-claim')).toContainText(
+      'With a small exponent e, an accepted GQ proof does not show the prover knows an e-th root: a cheater who holds only y passes about one time in e.',
+    );
+    expect(await page.locator('[data-verdict^="gq-"]').evaluateAll((nodes) =>
+      nodes.map((node) => (node as HTMLElement).dataset.state),
+    )).toEqual(['pass', 'alarm', 'alarm']);
   });
 });
 

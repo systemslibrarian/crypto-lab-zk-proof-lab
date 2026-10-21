@@ -187,6 +187,20 @@ button{font-family:var(--mono);font-size:12px;padding:10px 15px;border-radius:6p
 .big-svg{width:100%;height:auto;max-height:360px}
 .back-link{display:inline-flex;align-items:center;gap:7px;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--tx);border:1px solid var(--bord);padding:11px 12px;border-radius:999px;min-height:44px;text-decoration:none}
 .back-link:hover{color:var(--acc2);border-color:var(--acc)}
+.sigma-section{margin:28px 0;padding-top:4px}
+.sigma-section h2{font-family:var(--sans);font-size:24px;line-height:1.25;color:var(--tx);margin:4px 0 6px}
+.sigma-act{font-size:11px;letter-spacing:.14em;color:var(--acc2);font-weight:700}
+.sigma-lead{color:var(--tx2);margin:0 0 16px;max-width:900px}
+#gq-e{max-width:100%}
+.sigma-value-line{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;min-width:0}
+.long-value{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--acc2)}
+.copy-value{padding:7px 10px;min-height:36px;font-size:10px;white-space:nowrap}
+.sigma-verdict{margin-top:12px;padding:11px 13px;border-radius:5px;border:1px solid var(--bord);background:var(--elev);color:var(--tx);font-weight:600}
+.sigma-verdict[data-state='pass']{border-color:var(--ok);background:rgba(52,211,153,.08);color:var(--ok)}
+.sigma-verdict[data-state='alarm']{border-color:var(--err);background:rgba(248,113,113,.09);color:var(--err)}
+.sigma-verdict[data-state='fail']{border-color:var(--err);background:rgba(248,113,113,.09);color:var(--err)}
+.sigma-verdict[data-state='busy']{border-color:var(--acc);color:var(--acc2)}
+@media(max-width:640px){.sigma-value-line{grid-template-columns:minmax(0,1fr)}.copy-value{width:100%}.sigma-section h2{font-size:21px}}
 @media(max-width:640px){.site-shell{padding:0 14px 28px}.site-header{padding:16px 52px 12px 0;gap:12px}.brand-title{font-size:26px}.brand-sub{font-size:14px}.hero-panel{padding:16px}.hero-lead{font-size:20px}.hero-note{font-size:13px}.top-nav{width:100%}.nav-link{flex:1 1 calc(50% - 10px)}.resource-link{flex:1 1 calc(50% - 8px)}.ex-title{font-size:24px}.panel .pb{padding:12px}.controls{flex-direction:column}.controls button{width:100%}.conf-label{flex-wrap:wrap}.footer{line-height:1.8}.txa{font-size:16px}.commit-table{min-width:420px}}
 /* ---- Gold-standard polish layer ---- */
 .step-card{animation:stepIn .42s cubic-bezier(.22,1,.36,1)}

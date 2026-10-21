@@ -13,6 +13,7 @@ export default defineConfig({
         graphColoring: resolve(__dirname, 'exhibits/graph-coloring.html'),
         scenarioPresets: resolve(__dirname, 'exhibits/scenario-presets.html'),
         schnorr: resolve(__dirname, 'exhibits/schnorr.html'),
+        sigmaFamily: resolve(__dirname, 'exhibits/sigma-family.html'),
         snark: resolve(__dirname, 'exhibits/snark.html'),
         transcriptLab: resolve(__dirname, 'exhibits/transcript-lab.html'),
         logicSmoke: resolve(__dirname, 'tests/logic-smoke.html'),

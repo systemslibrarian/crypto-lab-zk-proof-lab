@@ -201,6 +201,62 @@ export function modpow(base, exp, mod) {
 }
 
 /**
+ * Exact modular exponentiation for values that must remain BigInt end to end.
+ * The legacy Number-returning `modpow` above is intentionally unchanged.
+ *
+ * @param {bigint} base
+ * @param {bigint} exp
+ * @param {bigint} modulus
+ * @returns {bigint}
+ */
+export function modpowBig(base, exp, modulus) {
+  if (modulus <= 0n) {
+    throw new RangeError('modulus must be positive');
+  }
+  if (exp < 0n) {
+    throw new RangeError('modpowBig exponent must be non-negative');
+  }
+  let result = 1n % modulus;
+  let currentBase = ((base % modulus) + modulus) % modulus;
+  let currentExp = exp;
+  while (currentExp > 0n) {
+    if (currentExp & 1n) {
+      result = result * currentBase % modulus;
+    }
+    currentExp >>= 1n;
+    currentBase = currentBase * currentBase % modulus;
+  }
+  return result;
+}
+
+/**
+ * Extended Euclidean algorithm over BigInt. The returned coefficients satisfy
+ * `a*x + b*y = gcd`, with a non-negative gcd.
+ *
+ * @param {bigint} a
+ * @param {bigint} b
+ * @returns {{ gcd: bigint, x: bigint, y: bigint }}
+ */
+export function egcd(a, b) {
+  let oldR = a;
+  let r = b;
+  let oldS = 1n;
+  let s = 0n;
+  let oldT = 0n;
+  let t = 1n;
+  while (r !== 0n) {
+    const quotient = oldR / r;
+    [oldR, r] = [r, oldR - quotient * r];
+    [oldS, s] = [s, oldS - quotient * s];
+    [oldT, t] = [t, oldT - quotient * t];
+  }
+  if (oldR < 0n) {
+    return { gcd: -oldR, x: -oldS, y: -oldT };
+  }
+  return { gcd: oldR, x: oldS, y: oldT };
+}
+
+/**
  * @typedef {Object} SchnorrParams
  * @property {number} g generator
  * @property {number} p prime modulus

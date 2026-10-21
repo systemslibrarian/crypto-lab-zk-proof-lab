@@ -13,6 +13,8 @@
   },
   "include": [
     "js/shared.js",
+    "js/sigma.js",
+    "js/sigma-ui.js",
     "js/extractor.js",
     "tests/unit/**/*.ts",
     "vite.config.ts"
