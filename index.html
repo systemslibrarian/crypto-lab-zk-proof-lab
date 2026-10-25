@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Interactive zero-knowledge proof exhibits explaining the Ali Baba cave, graph coloring, Schnorr identification, and SHA-256 commit-reveal.">
+  <meta name="description" content="Interactive zero-knowledge proof exhibits explaining the Ali Baba cave, graph coloring, Schnorr identification, SHA-256 commit-reveal, Okamoto and GQ, and the sum-check and GKR interactive proofs.">
   <meta name="theme-color" content="#070b12">
   <title>ZK Proof Lab</title>
   <script>
@@ -139,7 +139,7 @@
     <header class="cl-hero">
       <div class="cl-hero-main">
         <h1 class="cl-hero-title">ZK Proof Lab</h1>
-        <p class="cl-hero-sub">Zero-Knowledge Proofs · Interactive · Fiat-Shamir · SNARK</p>
+        <p class="cl-hero-sub">Zero-Knowledge Proofs · Interactive · Fiat-Shamir · SNARK · Sum-Check</p>
         <p class="cl-hero-desc">Walk interactive proofs (Ali Baba cave, graph 3-coloring, Schnorr, Okamoto, and GQ) through commit-challenge-response, then collapse them into non-interactive Fiat-Shamir and SNARK-shaped pipelines with real in-browser hashing and modular arithmetic.</p>
       </div>
       <aside class="cl-hero-why" aria-label="Why it matters">
@@ -157,6 +157,7 @@
         <a class="nav-link" href="exhibits/fiat-shamir.html">Exhibit 05</a>
         <a class="nav-link" href="exhibits/snark.html">Exhibit 06</a>
         <a class="nav-link" href="exhibits/sigma-family.html">Exhibit 07</a>
+        <a class="nav-link" href="exhibits/sumcheck-gkr.html">Exhibit 08</a>
         <a class="nav-link" href="exhibits/scenario-presets.html">Scenarios</a>
       </nav>
 
@@ -189,7 +190,7 @@
         </div>
       </section>
 
-      <div class="trust-banner trust-real global-honesty"><strong>Cryptographic honesty:</strong> the modular-arithmetic checks and Web Crypto primitives in Exhibits 02, 03, 04, 05, and 07 are real. Exhibit 07 runs exact BigInt arithmetic over a published 2048-bit group and a fresh WebCrypto RSA modulus; Exhibits 01 and 06 are clearly-labelled conceptual models.</div>
+      <div class="trust-banner trust-real global-honesty"><strong>Cryptographic honesty:</strong> the modular-arithmetic checks and Web Crypto primitives in Exhibits 02, 03, 04, 05, 07 and 08 are real. Exhibit 07 runs exact BigInt arithmetic over a published 2048-bit group and a fresh WebCrypto RSA modulus; Exhibit 08 runs the sum-check interactive proof and a bounded GKR layer walk in exact prime-field arithmetic, and is neither zero-knowledge nor a SNARK; Exhibits 01 and 06 are clearly-labelled conceptual models.</div>
 
       <section class="lobby-grid" aria-label="Exhibit selector">
         <a class="card" href="exhibits/cave.html">
@@ -232,6 +233,12 @@
           <div class="ex-row"><span class="ex-num">EXHIBIT 07</span><span class="badge badge-real">● REAL BIGINT ARITHMETIC · 2048-BIT</span></div>
           <h2 class="card-title">Beyond Schnorr</h2>
           <p class="card-desc">Rewind Okamoto and GQ proofs to extract a pair of exponents or an RSA root, then measure when a tiny challenge space lets a rootless prover pass.</p>
+        </a>
+
+        <a class="card" href="exhibits/sumcheck-gkr.html">
+          <div class="ex-row"><span class="ex-num">EXHIBIT 08</span><span class="badge badge-real">● REAL F<sub>p</sub> ARITHMETIC · INTERACTIVE PROOF</span></div>
+          <h2 class="card-title">Sum-Check and GKR</h2>
+          <p class="card-desc">Verify a sum over 2<sup>v</sup> points with v short polynomials and one evaluation, break it with every lie the checks exist to catch, then reuse it to walk a small circuit from outputs to inputs. Not zero-knowledge, not a SNARK.</p>
         </a>
       </section>
     </main>

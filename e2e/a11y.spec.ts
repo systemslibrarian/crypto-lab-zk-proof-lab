@@ -4,7 +4,7 @@ import { NARROW, PAGES, WIDE, runPage } from './gate';
 /**
  * WCAG A/AA gate for the ZK Proof Lab.
  *
- * Ten shipped pages — the lobby, seven exhibits, the transcript replay lab and
+ * Eleven shipped pages — the lobby, eight exhibits, the transcript replay lab and
  * the scenario index — each run in four configurations: {dark, light} ×
  * {desktop 1280, phone 320}. Inside each configuration the page is driven
  * through the states it can actually reach and scanned after every single step.

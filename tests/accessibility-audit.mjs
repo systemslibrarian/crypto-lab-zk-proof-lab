@@ -13,6 +13,7 @@ const pages = [
   '/exhibits/fiat-shamir.html',
   '/exhibits/snark.html',
   '/exhibits/sigma-family.html',
+  '/exhibits/sumcheck-gkr.html',
   '/exhibits/transcript-lab.html',
   '/exhibits/scenario-presets.html'
 ];

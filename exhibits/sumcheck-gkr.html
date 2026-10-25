@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Execute the sum-check interactive proof over a prime field, break it with wrong sums, inconsistent rounds, excessive degrees and malformed transcripts, then reuse it for a bounded GKR layer walk over a small arithmetic circuit.">
+  <meta name="theme-color" content="#070b12">
+  <title>Exhibit 08 · Sum-Check and GKR · ZK Proof Lab</title>
+  <script>
+    // Dark is the only theme. Pin it before first paint, and overwrite any
+    // 'light' a visitor stored back when the header carried a theme toggle.
+    (function () {
+      try {
+        localStorage.setItem('theme', 'dark');
+      } catch (e) {}
+      document.documentElement.setAttribute('data-theme', 'dark');
+    })();
+  </script>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="site-shell wrap">
+    <header class="site-header">
+      <div>
+        <a class="back-link" href="../index.html">← Back to Lab</a>
+        <div class="brand-kicker" style="margin-top:10px">ZK Proof Lab</div>
+        <h1 class="brand-title">Exhibit 08 · Sum-Check and GKR</h1>
+      </div>
+      <nav class="top-nav" aria-label="Exhibits">
+        <a class="nav-link" href="cave.html">01</a>
+        <a class="nav-link" href="graph-coloring.html">02</a>
+        <a class="nav-link" href="schnorr.html">03</a>
+        <a class="nav-link" href="commit-reveal.html">04</a>
+        <a class="nav-link" href="fiat-shamir.html">05</a>
+        <a class="nav-link" href="snark.html">06</a>
+        <a class="nav-link" href="sigma-family.html">07</a>
+        <a class="nav-link active" href="sumcheck-gkr.html">08</a>
+        <a class="nav-link" href="transcript-lab.html">Lab</a>
+        <a class="nav-link" href="scenario-presets.html">Scenarios</a>
+        <a class="nav-link" href="../tests/logic-smoke.html">Tests</a>
+        <a class="nav-link" href="https://github.com/systemslibrarian/crypto-lab-zk-proof-lab" target="_blank" rel="noopener noreferrer">GitHub</a>
+      </nav>
+    </header>
+
+    <main class="exhibit">
+      <div class="ex-header">
+        <div class="ex-row"><span class="ex-num">EXHIBIT 08</span><span class="badge badge-real">● REAL F<sub>p</sub> ARITHMETIC · INTERACTIVE PROOF</span></div>
+        <div class="ex-title">Sum-check and a GKR layer walk</div>
+        <div class="ex-sub">A verifier checks a sum over 2<sup>v</sup> points with v short messages and one evaluation, then reuses that check to walk a small arithmetic circuit from its outputs to its inputs.</div>
+      </div>
+      <div class="props">
+        <span class="prop prop-c">✓ Completeness</span>
+        <span class="prop prop-s">✓ Act A error ≤ v·d / |F| under fresh uniform challenges unpredictable until each message is fixed</span>
+        <span class="prop prop-z">✗ Not zero-knowledge · not a SNARK</span>
+      </div>
+
+      <div class="resource-links" role="group" aria-label="Exhibit resources">
+        <a class="resource-link" href="https://doi.org/10.1145/146585.146605" target="_blank" rel="noopener noreferrer">LFKN · J. ACM 1992</a>
+        <a class="resource-link" href="https://doi.org/10.1145/1374376.1374396" target="_blank" rel="noopener noreferrer">GKR · STOC 2008</a>
+        <a class="resource-link" href="https://eccc.weizmann.ac.il/report/2017/108/" target="_blank" rel="noopener noreferrer">GKR full version · ECCC TR17-108</a>
+        <a class="resource-link" href="https://people.cs.georgetown.edu/jthaler/ProofsArgsAndZK.pdf" target="_blank" rel="noopener noreferrer">Thaler · Proofs, Arguments, and ZK</a>
+      </div>
+
+      <section class="prose" data-claim="sumcheck-intro">
+        <p>Adding up a polynomial over every corner of a Boolean cube takes 2<sup>v</sup> evaluations. The sum-check protocol lets a verifier accept that total after reading v small polynomials, checking two things about each, and evaluating the original polynomial once at a point the prover never got to choose.</p>
+        <p>This is an interactive proof of a <em>sum</em> and, in Act B, of a <em>circuit evaluation</em>. It hides nothing from the verifier, so it is not zero-knowledge, and it is interactive, so it is not a SNARK. Every number on this page is computed by the run you trigger; nothing is read from a script of expected answers.</p>
+      </section>
+
+      <div class="trust-banner trust-real global-honesty"><strong>Cryptographic honesty:</strong> every value below comes from exact BigInt modular arithmetic in the prime field you select. The verifier checks a degree bound and a recurrence in every round and draws each challenge only after that round's message is fixed. The tiny-field census is a complete enumeration for teaching, not a security parameter. This is inspectable teaching code for an interactive proof: it is not zero-knowledge, not a SNARK, and not a constant-time library.</div>
+
+      <div id="sc-input-error" class="narration" role="alert" hidden></div>
+
+      <section class="sigma-section" aria-labelledby="sumcheck-heading">
+        <div class="sigma-act">ACT A</div>
+        <h2 id="sumcheck-heading">Sum-check · prove a sum over {0,1}<sup>v</sup> without listing it</h2>
+        <p class="sigma-lead" data-claim="sumcheck-statement">The statement is <code>H = Σ<sub>x ∈ {0,1}<sup>v</sup></sub> g(x)</code> for a public polynomial g over the prime field F<sub>p</sub>. In round j the prover sends a univariate polynomial s<sub>j</sub>(X<sub>j</sub>) and the verifier checks its degree against deg<sub>j</sub>(g) and the recurrence <code>s<sub>j</sub>(0) + s<sub>j</sub>(1) = s<sub>j−1</sub>(r<sub>j−1</sub>)</code> before drawing r<sub>j</sub>. After round v it evaluates g once at (r<sub>1</sub>, …, r<sub>v</sub>).</p>
+
+        <div class="panel" style="margin-bottom:14px">
+          <div class="ph">STATEMENT · FIELD, POLYNOMIAL, VERIFIER RANDOMNESS</div>
+          <div class="pb">
+            <div class="param-control">
+              <label for="sc-field">Prime field F<sub>p</sub>:</label>
+              <select id="sc-field" class="param-select">
+                <option value="2147483647" selected>p = 2147483647 (2^31 − 1)</option>
+                <option value="65537">p = 65537</option>
+                <option value="101">p = 101</option>
+                <option value="13">p = 13 (tiny: exhaustive census)</option>
+                <option value="7">p = 7 (tiny: exhaustive census)</option>
+                <option value="5">p = 5 (tiny: the bound goes vacuous)</option>
+              </select>
+            </div>
+            <div class="param-control">
+              <label for="sc-preset">Polynomial g:</label>
+              <select id="sc-preset" class="param-select">
+                <option value="2*x1^3 + x1*x3 + x2*x3" selected>2*x1^3 + x1*x3 + x2*x3 (Thaler §4.1 example)</option>
+                <option value="x1*x2 + 3*x1^2">x1*x2 + 3*x1^2 (two variables, degrees 2 and 1)</option>
+                <option value="x1*x2*x3 + x2*x4 + 5">x1*x2*x3 + x2*x4 + 5 (multilinear, four variables)</option>
+                <option value="custom">custom (edit the text below)</option>
+              </select>
+            </div>
+            <label for="sc-custom" class="hash-label">Polynomial text: terms joined by + or −, factors x1 … x6 with an optional ^n (n ≤ 8), integer coefficients</label>
+            <textarea id="sc-custom" class="txa" rows="2" spellcheck="false">2*x1^3 + x1*x3 + x2*x3</textarea>
+            <div class="controls">
+              <button class="bs" id="sc-parse" type="button">Apply polynomial</button>
+            </div>
+            <fieldset class="param-control" style="border:0;padding:0">
+              <legend class="hash-label">Verifier randomness</legend>
+              <span class="tog-wrap"><input type="radio" name="sc-random" id="sc-random-fresh" value="fresh" checked> <label for="sc-random-fresh">Fresh: crypto.getRandomValues, the coins an interactive verifier actually uses</label></span>
+              <span class="tog-wrap"><input type="radio" name="sc-random" id="sc-random-seeded" value="seeded"> <label for="sc-random-seeded">Deterministic teaching seed — replayable, <strong>not</strong> secure verifier randomness</label></span>
+              <label for="sc-seed" class="hint">Seed</label>
+              <input id="sc-seed" class="txa" style="min-height:44px;width:auto;flex:0 1 220px" type="text" value="lesson-1" spellcheck="false">
+            </fieldset>
+            <div class="params-grid">
+              <div class="param-box"><div class="hash-label">|F| = p</div><code id="sc-p" data-value="">—</code></div>
+              <div class="param-box"><div class="hash-label">variables v</div><code id="sc-v" data-value="">—</code></div>
+              <div class="param-box"><div class="hash-label">degree bounds deg<sub>j</sub>(g)</div><code id="sc-degrees" data-value="">—</code></div>
+              <div class="param-box"><div class="hash-label">points listed, 2<sup>v</sup></div><code id="sc-points" data-value="">—</code></div>
+              <div class="param-box"><div class="hash-label">H = Σ g over {0,1}<sup>v</sup></div><code id="sc-sum" data-value="">—</code></div>
+              <div class="param-box"><div class="hash-label">soundness bound v·d / |F|</div><code id="sc-bound" data-value="">—</code></div>
+            </div>
+            <p class="hint" data-claim="sum-derivation">H above is computed by listing all 2<sup>v</sup> corners and adding g at each — the work the verifier wants to avoid. The protocol below accepts or rejects the prover's claim with one evaluation of g, and the test suite re-derives H with its own code rather than trusting this number.</p>
+            <p class="hint" id="sc-randomness-label" role="status" aria-live="polite">Randomness: fresh verifier randomness.</p>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-bottom:14px">
+          <div class="ph">PROVER STRATEGY · THE VERIFIER NEVER SEES THIS CHOICE</div>
+          <div class="pb">
+            <div class="param-control">
+              <label for="sc-strategy">Prover:</label>
+              <select id="sc-strategy" class="param-select">
+                <option value="honest" selected>honest</option>
+                <option value="wrong-sum-naive">wrong sum, honest messages</option>
+                <option value="wrong-sum-carried">wrong sum, lie carried through every recurrence</option>
+                <option value="inconsistent-round">inconsistent message at round j</option>
+                <option value="excessive-degree">message above the degree bound at round j</option>
+                <option value="lagrange-degree-attack">full-field interpolant (degree ≤ p−1; tiny fields only)</option>
+              </select>
+              <label for="sc-strategy-round">round j</label>
+              <input id="sc-strategy-round" class="txa" style="min-height:44px;width:auto;flex:0 1 90px" type="number" min="1" value="2">
+              <label for="sc-strategy-offset">offset δ</label>
+              <input id="sc-strategy-offset" class="txa" style="min-height:44px;width:auto;flex:0 1 110px" type="number" min="1" value="1">
+            </div>
+            <p class="hint" id="sc-strategy-hint">The honest prover sends s<sub>j</sub> exactly as the recurrence demands.</p>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button class="bp" id="sc-run" type="button">▶ Run the protocol</button>
+          <button class="bs" id="sc-step" type="button">Next step</button>
+          <button class="bs" id="sc-reset" type="button">Reset transcript</button>
+        </div>
+
+        <div class="panel" style="margin-bottom:14px">
+          <div class="ph">TRANSCRIPT · ONE ROUND PER VARIABLE, CHALLENGE DRAWN AFTER THE CHECK</div>
+          <div class="pb">
+            <div id="sc-narration" class="narration" role="status" aria-live="polite">No protocol run yet. The prover will first announce its claimed sum.</div>
+            <div class="table-scroll" tabindex="0">
+              <table class="commit-table" id="sc-rounds" aria-label="Sum-check transcript">
+                <thead><tr><th>Round</th><th>Prover sends s<sub>j</sub>(X<sub>j</sub>)</th><th>Degree ≤ bound</th><th>s<sub>j</sub>(0)+s<sub>j</sub>(1)</th><th>Expected</th><th>Verifier check</th><th>Challenge r<sub>j</sub></th></tr></thead>
+                <tbody id="sc-rounds-body"><tr class="sc-placeholder"><td colspan="7">No rounds yet — run or step the protocol.</td></tr></tbody>
+              </table>
+            </div>
+            <p class="hint" id="sc-claim-line">Claimed sum: —</p>
+            <p class="hint" id="sc-final-line">Final evaluation: not reached.</p>
+            <div id="sc-verdict" class="sigma-verdict" data-verdict="sumcheck" data-state="pending" role="status" aria-live="polite">Run the protocol to compute a verdict.</div>
+            <div class="vl" id="sc-omniscient"><strong>Prover-side narration</strong> (the verifier never reads this): no run yet.</div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-bottom:14px">
+          <div class="ph">BREAK IT YOURSELF · REPLAY A TRANSCRIPT, THEN DAMAGE IT</div>
+          <div class="pb">
+            <p>A finished run records each round's message and challenge, but not event timestamps. Replaying it re-runs structural and algebraic checks: a missing or swapped round, a challenge with no message, a value outside the field, or an edited message is refused by name. Replay cannot prove that a recorded challenge was historically sampled after the message or was unpredictable; the live verifier's phase guard and fresh-random mode enforce those separate requirements.</p>
+            <label for="sc-transcript-json" class="hash-label">Transcript JSON (editable)</label>
+            <textarea id="sc-transcript-json" class="txa" rows="6" spellcheck="false" placeholder="Run the protocol to record a transcript here."></textarea>
+            <div class="controls">
+              <button class="bp" id="sc-replay" type="button">Replay transcript</button>
+              <button class="bd" id="sc-mutate-truncate" type="button">Drop the last round</button>
+              <button class="bd" id="sc-mutate-swap" type="button">Swap rounds 1 and 2</button>
+              <button class="bd" id="sc-mutate-coefficient" type="button">Edit s<sub>1</sub> after r<sub>1</sub> was drawn, keeping s<sub>1</sub>(0)+s<sub>1</sub>(1)</button>
+              <button class="bd" id="sc-mutate-noncanonical" type="button">Set a coefficient to p</button>
+              <button class="bd" id="sc-mutate-challenge-first" type="button">Delete a message but retain its challenge</button>
+              <button class="bd" id="sc-mutate-bounds" type="button">Loosen the degree bounds</button>
+            </div>
+            <div id="sc-replay-verdict" class="sigma-verdict" data-verdict="replay" data-state="pending" role="status" aria-live="polite">No transcript replayed yet.</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="ph">TINY-FIELD CENSUS · EVERY CHALLENGE VECTOR, EVERY VERDICT</div>
+          <div class="pb">
+            <p data-claim="census-scope">Over a field of 13 or fewer elements the page can run the real verifier on <em>every</em> challenge vector and count what happens. That is a complete teaching enumeration, not a security parameter: the bound v·d / |F| only means something when |F| is enormous compared with v·d.</p>
+            <div class="controls">
+              <button class="bp" id="sc-census" type="button">Enumerate every challenge vector</button>
+            </div>
+            <p class="hint" id="sc-census-hint">Select p = 13, 7 or 5 above to enable the census.</p>
+            <div class="table-scroll" tabindex="0">
+              <table class="commit-table" aria-label="Exhaustive census over a tiny field">
+                <thead><tr><th>Prover</th><th>Accepted</th><th>Rejected by degree</th><th>Rejected by recurrence</th><th>Rejected at final evaluation</th><th>Of</th></tr></thead>
+                <tbody>
+                  <tr><td>honest</td><td id="census-honest-accepted">—</td><td id="census-honest-degree">—</td><td id="census-honest-recurrence">—</td><td id="census-honest-final">—</td><td id="census-honest-total">—</td></tr>
+                  <tr><td>wrong sum, carried lie with explicitly counted roots</td><td id="census-lie-accepted">—</td><td id="census-lie-degree">—</td><td id="census-lie-recurrence">—</td><td id="census-lie-final">—</td><td id="census-lie-total">—</td></tr>
+                  <tr><td>full-field interpolant for s<sub>1</sub> (degree ≤ p−1)</td><td id="census-attack-accepted">—</td><td id="census-attack-degree">—</td><td id="census-attack-recurrence">—</td><td id="census-attack-final">—</td><td id="census-attack-total">—</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="vl" id="census-readout"><strong>Readout:</strong> no census yet. The carried lie succeeds exactly when some r<sub>j</sub> lands on one of that round's explicitly constructed roots, so its accepted count is p<sup>v</sup> − Π<sub>j</sub>(p − roots<sub>j</sub>). The v·d / |F| theorem uses degree bounds, not an assumed root count. The interpolant agrees with the honest s<sub>1</sub> on p − 1 field points; it is refused on degree only when p − 1 exceeds the public X<sub>1</sub> bound.</div>
+            <div id="sc-census-verdict" class="sigma-verdict" data-verdict="census" data-state="pending" role="status" aria-live="polite">Run the census to compare the counts with the bound.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="sigma-section" aria-labelledby="gkr-heading">
+        <div class="sigma-act">ACT B</div>
+        <h2 id="gkr-heading">GKR layer walk · one fixed circuit, two layer reductions, one terminal evaluation</h2>
+        <p class="sigma-lead" data-claim="gkr-statement">The statement is <code>C(x) = (y<sub>0</sub>, y<sub>1</sub>)</code> for the fixed two-layer circuit below. Each layer i turns the claim <code>W̃<sub>i</sub>(z<sub>i</sub>) = m<sub>i</sub></code> into a sum-check over the wiring identity <code>W̃<sub>i</sub>(z) = Σ<sub>b,c</sub> add̃<sub>i</sub>(z,b,c)·(W̃<sub>i+1</sub>(b) + W̃<sub>i+1</sub>(c)) + mult̃<sub>i</sub>(z,b,c)·W̃<sub>i+1</sub>(b)·W̃<sub>i+1</sub>(c)</code>, then reduces the two evaluations the verifier cannot make to one claim on a random point of the line through them. At the input layer the verifier evaluates W̃<sub>2</sub> itself from the public inputs.</p>
+
+        <div class="panel" style="margin-bottom:14px">
+          <div class="ph">THE CIRCUIT · FIXED WIRING, EDITABLE INPUTS, VALUES RECOMPUTED GATE BY GATE</div>
+          <div class="pb">
+            <div class="param-control">
+              <label for="gkr-x0">x<sub>0</sub></label><input id="gkr-x0" class="txa" style="min-height:44px;width:auto;flex:0 1 120px" type="number" min="0" value="3">
+              <label for="gkr-x1">x<sub>1</sub></label><input id="gkr-x1" class="txa" style="min-height:44px;width:auto;flex:0 1 120px" type="number" min="0" value="2">
+              <label for="gkr-x2">x<sub>2</sub></label><input id="gkr-x2" class="txa" style="min-height:44px;width:auto;flex:0 1 120px" type="number" min="0" value="3">
+              <label for="gkr-x3">x<sub>3</sub></label><input id="gkr-x3" class="txa" style="min-height:44px;width:auto;flex:0 1 120px" type="number" min="0" value="1">
+              <button class="bs" id="gkr-evaluate" type="button">Evaluate the circuit</button>
+            </div>
+            <div class="table-scroll" tabindex="0">
+              <table class="commit-table" aria-label="Circuit gates and values">
+                <thead><tr><th>Layer</th><th>Gate label</th><th>Operation</th><th>Reads (in<sub>1</sub>, in<sub>2</sub>) in the layer below</th><th>Value</th></tr></thead>
+                <tbody>
+                  <tr><td>2 (inputs)</td><td>(0,0) (0,1) (1,0) (1,1)</td><td>input</td><td>—</td><td><code id="gkr-val-2" data-value="">—</code></td></tr>
+                  <tr><td>1</td><td>(0,0)</td><td>add</td><td>(0,0), (0,1)</td><td><code id="gkr-val-1-0" data-value="">—</code></td></tr>
+                  <tr><td>1</td><td>(0,1)</td><td>mult</td><td>(0,1), (1,0)</td><td><code id="gkr-val-1-1" data-value="">—</code></td></tr>
+                  <tr><td>1</td><td>(1,0)</td><td>add</td><td>(1,0), (1,1)</td><td><code id="gkr-val-1-2" data-value="">—</code></td></tr>
+                  <tr><td>1</td><td>(1,1)</td><td>mult</td><td>(0,0), (1,1)</td><td><code id="gkr-val-1-3" data-value="">—</code></td></tr>
+                  <tr><td>0 (outputs)</td><td>(0)</td><td>mult</td><td>(0,0), (0,1)</td><td><code id="gkr-val-0-0" data-value="">—</code></td></tr>
+                  <tr><td>0 (outputs)</td><td>(1)</td><td>add</td><td>(1,0), (1,1)</td><td><code id="gkr-val-0-1" data-value="">—</code></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="hint">Wiring predicates the verifier derives for itself: <code id="gkr-wiring">—</code></p>
+            <p class="hint" id="gkr-bound" data-value="">Raw union sum for this walk: —</p>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-bottom:14px">
+          <div class="ph">PROVER STRATEGY · THE VERIFIER HOLDS ONLY THE CIRCUIT, THE INPUTS AND ITS COINS</div>
+          <div class="pb">
+            <div class="param-control">
+              <label for="gkr-strategy">Prover:</label>
+              <select id="gkr-strategy" class="param-select">
+                <option value="honest" selected>honest</option>
+                <option value="wrong-output">claims a wrong output y<sub>0</sub></option>
+                <option value="corrupt-gate">computes gate (0,1) of layer 1 wrongly and proceeds from that table</option>
+                <option value="corrupt-wiring">uses a circuit copy where gate (0,1) of layer 1 reads (0,1),(1,1)</option>
+                <option value="invalid-line-degree">sends a line polynomial above degree k at layer 0</option>
+                <option value="invalid-line-value">sends a line polynomial with the right endpoints but a wrong interior at layer 0</option>
+                <option value="invalid-line-last">sends a wrong-interior line polynomial at the last layer</option>
+              </select>
+            </div>
+            <p class="hint" id="gkr-strategy-hint">The honest prover evaluates the circuit, sends its outputs, and answers every sum-check from the true tables.</p>
+            <div class="controls">
+              <button class="bp" id="gkr-run" type="button">▶ Run the layer walk</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-bottom:14px">
+          <div class="ph">THE WALK · OUTPUT CLAIM, LAYER 0 → 1, LAYER 1 → 2, TERMINAL CHECK</div>
+          <div class="pb">
+            <div id="gkr-narration" class="narration" role="status" aria-live="polite">No walk run yet.</div>
+            <div id="gkr-trace"></div>
+            <div id="gkr-verdict" class="sigma-verdict" data-verdict="gkr" data-state="pending" role="status" aria-live="polite">Run the walk to compute a verdict.</div>
+            <p class="hint" id="gkr-claim-scope" data-claim="gkr-scope"><strong>What this run is and is not.</strong> Executed: the bare-bones layer reduction for exactly the two layers of this circuit — one sum-check per layer over 4 variables with degree bound 2, one line reduction per layer with degree bound 2, and a terminal evaluation of the input layer's multilinear extension by the verifier. Not executed: the log-space-uniformity machinery, the sublinear verifier, Fiat–Shamir, or any general theorem; this verifier evaluates add̃ and mult̃ by enumerating all six gates.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="prose" aria-labelledby="sources-heading">
+        <h2 id="sources-heading">Sources, and what is adapted</h2>
+        <p>The sum-check technique is Lund, Fortnow, Karloff and Nisan, “Algebraic Methods for Interactive Proof Systems,” J. ACM 39(4), 1992 (author version read here: §3 “The Protocol” — Theorem 1, Lemma 4 and the formal Expand/Shrink protocol — and §4 “Extensions”). That paper states the protocol for the permanent; the one-variable-per-round sum over {0,1}<sup>v</sup> executed here is the form in which Shamir and Babai–Fortnow applied it, which Goldwasser, Kalai and Rothblum restate as Figure 2 and prove as Lemma 2.5 (error m·d/|F|) in the full version of “Delegating Computation: Interactive Proofs for Muggles,” ECCC TR17-108 (revision 1, 2017; STOC 2008 extended abstract). Act B follows that full version's §3.1 (layered circuit, add<sub>i</sub>/mult<sub>i</sub> as equations (4) and (5), Ṽ<sub>i</sub>), §3.2 (the i'th phase: sum-check, then the line step 1–4, then the final verification) and §3.3 (soundness 7mdδ/|F|).</p>
+        <p>Two adaptations are deliberate. GKR's bare-bones protocol sums over H<sup>m</sup> for an extension field H of GF(2) with low-degree extensions of degree δ and an extra β̃ factor; this page takes H = {0,1} and the multilinear extensions, the simplification Thaler attributes to his own 2015 work and to Cormode–Mitzenmacher–Thaler (Thaler, <em>Proofs, Arguments, and Zero-Knowledge</em>, 18 July 2023, §3.5 Lemma 3.6, §4.1 Proposition 4.1, §4.6.4 Lemma 4.7, Remark 4.4 and Figure 4.13). GKR's line reduction uses two fixed distinct points t<sub>1</sub>, t<sub>2</sub>; this page uses ℓ(0) = b*, ℓ(1) = c*. The raw union sum printed in Act B is computed for this circuit from those adapted degrees, not copied from either paper. It is a probability bound only with fresh, independent, uniformly sampled verifier challenges that remain unpredictable until the owning prover message is fixed; it is capped at 1 and labelled vacuous when the raw sum reaches 1. Predictable seeded runs do not inherit that theorem.</p>
+        <p>Related demos: <a href="fiat-shamir.html">Exhibit 05</a> shows how a hash would replace the verifier's coins — this page never does that; <a href="snark.html">Exhibit 06</a> is the conceptual SNARK pipeline this protocol is not; <a href="https://systemslibrarian.github.io/crypto-lab-stark-tower/" target="_blank" rel="noopener noreferrer">STARK Tower</a> builds the FRI side of transparent proofs; <a href="https://systemslibrarian.github.io/crypto-lab-zk-arena/" target="_blank" rel="noopener noreferrer">ZK Arena</a> compares proof systems that put sum-check and its relatives to work.</p>
+        <!-- [extension] Fiat–Shamir the sum-check verifier's coins and show the resulting non-interactive transcript; link Exhibit 05. -->
+        <!-- [extension] A deeper or data-parallel circuit with the verifier evaluating add̃/mult̃ from a wiring formula rather than by enumeration. -->
+        <p><strong>Extension seams:</strong> apply the <a href="fiat-shamir.html">Exhibit 05</a> transform to the verifier's coins and show the transcript it produces; or grow the circuit and give the verifier a wiring formula so add̃ and mult̃ no longer cost a pass over every gate.</p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <a href="https://github.com/systemslibrarian/crypto-lab-zk-proof-lab" target="_blank" rel="noopener noreferrer">View on GitHub</a> · <a href="../tests/logic-smoke.html">Run Tests</a> · v1.0 · ZK Proof Lab by <a href="https://github.com/systemslibrarian" target="_blank" rel="noopener noreferrer">systemslibrarian</a>
+    </footer>
+  </div>
+
+  <script type="module" src="../js/main.js"></script>
+  <script type="module" src="../js/sumcheck-ui.js"></script>
+</body>
+</html>

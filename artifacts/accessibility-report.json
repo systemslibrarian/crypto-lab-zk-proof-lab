@@ -1,5 +1,5 @@
 {
-  "baseUrl": "http://127.0.0.1:8001",
+  "baseUrl": "http://127.0.0.1:8000",
   "totalViolations": 0,
   "summary": [
     {
@@ -59,6 +59,13 @@
       "violations": []
     },
     {
+      "route": "/exhibits/sumcheck-gkr.html",
+      "colorScheme": "light",
+      "viewport": "desktop",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
       "route": "/exhibits/transcript-lab.html",
       "colorScheme": "light",
       "viewport": "desktop",
@@ -129,6 +136,13 @@
       "violations": []
     },
     {
+      "route": "/exhibits/sumcheck-gkr.html",
+      "colorScheme": "light",
+      "viewport": "mobile",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
       "route": "/exhibits/transcript-lab.html",
       "colorScheme": "light",
       "viewport": "mobile",
@@ -199,6 +213,13 @@
       "violations": []
     },
     {
+      "route": "/exhibits/sumcheck-gkr.html",
+      "colorScheme": "dark",
+      "viewport": "desktop",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
       "route": "/exhibits/transcript-lab.html",
       "colorScheme": "dark",
       "viewport": "desktop",
@@ -263,6 +284,13 @@
     },
     {
       "route": "/exhibits/sigma-family.html",
+      "colorScheme": "dark",
+      "viewport": "mobile",
+      "violationCount": 0,
+      "violations": []
+    },
+    {
+      "route": "/exhibits/sumcheck-gkr.html",
       "colorScheme": "dark",
       "viewport": "mobile",
       "violationCount": 0,

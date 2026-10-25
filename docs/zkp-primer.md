@@ -8,7 +8,7 @@ Soundness: If the prover does not know the witness, they should only pass with s
 
 Zero-knowledge: The verifier should learn nothing beyond the truth of the statement being proved.
 
-## How The Four Exhibits Map
+## How The Exhibits Map
 
 ## Exhibit 01 - Ali Baba Cave (Conceptual)
 
@@ -34,6 +34,13 @@ Zero-knowledge: The verifier should learn nothing beyond the truth of the statem
 - Hiding: Computational, and supplied by the nonce rather than by the hash. Bids are drawn from $100-$999, a 900-value space, so hash(bid) with no nonce would hide nothing: enumerate all 900 candidates and read the bid off the table. The fresh 32-byte nonce is what puts the preimage beyond search. Even then the guarantee rests on SHA-256 being hard to invert. A Pedersen commitment inverts the tradeoff: perfect hiding (even against an unbounded adversary), computational binding.
 - Caveat: under `?seed=...` the nonce comes from a deterministic RNG seeded from the URL, so in preset-replay mode it is not secret and hiding does not hold.
 - Verification: During reveal, anyone recomputes SHA-256 and checks exact digest equality.
+
+## Exhibit 08 - Sum-Check and GKR (Real Arithmetic, Not Zero-Knowledge)
+
+- Completeness: an honest prover's round polynomials are the true partial sums, so every recurrence s_j(0) + s_j(1) = s_{j-1}(r_{j-1}) holds and the final evaluation g(r_1, ..., r_v) equals s_v(r_v).
+- Soundness: a false claim forces some round polynomial to differ from the true partial sum, and two distinct polynomials of degree at most d agree on at most d of the |F| challenges, so the verifier is fooled with probability at most v·d/|F| (Lund–Fortnow–Karloff–Nisan; Goldwasser–Kalai–Rothblum Lemma 2.5). The degree bound is what makes that count: a degree-(p − 1) interpolant can agree with the honest message everywhere but one point.
+- Zero-knowledge: none, and the page says so. The transcript reveals the partial sums of g, and the GKR walk reveals evaluations of every layer's multilinear extension. This exhibit teaches verifiable computation, not hiding.
+- GKR: one bounded layer walk over a fixed two-layer circuit. Each layer is one sum-check over the wiring identity plus one line reduction; the verifier itself evaluates the input layer's multilinear extension at the end. The uniformity machinery and sublinear verifier of the paper are not implemented.
 
 ## Real vs Simulated Labeling
 
