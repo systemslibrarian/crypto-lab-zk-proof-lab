@@ -14,6 +14,7 @@ const targets = [
   { route: '/exhibits/fiat-shamir.html', name: 'exhibit-05-fiat-shamir' },
   { route: '/exhibits/snark.html', name: 'exhibit-06-snark' },
   { route: '/exhibits/sigma-family.html', name: 'exhibit-07-sigma-family' },
+  { route: '/exhibits/sumcheck-gkr.html', name: 'exhibit-08-sumcheck-gkr' },
   { route: '/exhibits/transcript-lab.html', name: 'transcript-lab' },
   { route: '/exhibits/scenario-presets.html', name: 'scenario-presets' }
 ];

@@ -16,6 +16,11 @@
     "js/sigma.js",
     "js/sigma-ui.js",
     "js/extractor.js",
+    "js/field.js",
+    "js/polynomial.js",
+    "js/sumcheck.js",
+    "js/gkr.js",
+    "js/sumcheck-ui.js",
     "tests/unit/**/*.ts",
     "vite.config.ts"
   ],

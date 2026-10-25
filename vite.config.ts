@@ -14,6 +14,7 @@ export default defineConfig({
         scenarioPresets: resolve(__dirname, 'exhibits/scenario-presets.html'),
         schnorr: resolve(__dirname, 'exhibits/schnorr.html'),
         sigmaFamily: resolve(__dirname, 'exhibits/sigma-family.html'),
+        sumcheckGkr: resolve(__dirname, 'exhibits/sumcheck-gkr.html'),
         snark: resolve(__dirname, 'exhibits/snark.html'),
         transcriptLab: resolve(__dirname, 'exhibits/transcript-lab.html'),
         logicSmoke: resolve(__dirname, 'tests/logic-smoke.html'),

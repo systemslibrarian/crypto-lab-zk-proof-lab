@@ -9,6 +9,7 @@ const pages = [
   '../exhibits/fiat-shamir.html',
   '../exhibits/snark.html',
   '../exhibits/sigma-family.html',
+  '../exhibits/sumcheck-gkr.html',
   '../exhibits/transcript-lab.html',
   '../exhibits/scenario-presets.html'
 ];
@@ -24,6 +25,8 @@ const pageScripts = {
   '../exhibits/fiat-shamir.html': '../js/fiat-shamir.js',
   '../exhibits/snark.html': '../js/snark.js',
   '../exhibits/sigma-family.html': '../js/sigma.js',
+  // Exhibit 08's arithmetic lives in field.js; sumcheck.js and gkr.js build on it.
+  '../exhibits/sumcheck-gkr.html': '../js/field.js',
   '../exhibits/transcript-lab.html': '../js/transcript-lab.js'
 };
 
@@ -92,6 +95,7 @@ const verdictScripts = [
   '../js/graph.js',
   '../js/schnorr.js',
   '../js/snark.js',
+  '../js/sumcheck-ui.js',
   '../js/transcript-lab.js'
 ];
 

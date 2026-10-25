@@ -7,7 +7,8 @@ const STOPS = [
   { sel: 'a[href="exhibits/commit-reveal.html"]', title: 'Exhibit 04 — Commit-Reveal', body: 'Lock a hidden bid as a real SHA-256 hash, then reveal it — any tampering is caught.' },
   { sel: 'a[href="exhibits/fiat-shamir.html"]', title: 'Exhibit 05 — Fiat-Shamir', body: 'Make a proof non-interactive by deriving the challenge from a hash of the transcript.' },
   { sel: 'a[href="exhibits/snark.html"]', title: 'Exhibit 06 — zk-SNARK', body: 'See setup, proving, and verification with public/private input separation in one toy pipeline.' },
-  { sel: 'a[href="exhibits/sigma-family.html"]', title: 'Exhibit 07 — Beyond Schnorr', body: 'Use real 2048-bit arithmetic, rewind two Sigma protocols, and watch a tiny GQ challenge space fail.' }
+  { sel: 'a[href="exhibits/sigma-family.html"]', title: 'Exhibit 07 — Beyond Schnorr', body: 'Use real 2048-bit arithmetic, rewind two Sigma protocols, and watch a tiny GQ challenge space fail.' },
+  { sel: 'a[href="exhibits/sumcheck-gkr.html"]', title: 'Exhibit 08 — Sum-Check and GKR', body: 'Run the sum-check interactive proof round by round, damage its transcript, and reuse it to verify a small circuit layer by layer.' }
 ];
 
 function prefersReducedMotion() {
