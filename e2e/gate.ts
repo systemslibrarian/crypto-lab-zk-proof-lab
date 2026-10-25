@@ -986,7 +986,7 @@ const SUMCHECK_GKR: PageSpec = {
     await scan(page, at('honest transcript replayed'));
     for (const [id, label] of [
       ['sc-mutate-truncate', 'truncated transcript refused'],
-      ['sc-mutate-challenge-first', 'challenge-before-message transcript refused'],
+      ['sc-mutate-challenge-first', 'challenge-without-message transcript refused'],
     ] as const) {
       await page.locator('#sc-run').click();
       await page.locator(`#${id}`).click();
@@ -1009,7 +1009,7 @@ const SUMCHECK_GKR: PageSpec = {
     await page.locator('#sc-strategy').selectOption('lagrange-degree-attack');
     await page.locator('#sc-run').click();
     await expect(page.locator('#sc-verdict')).toHaveAttribute('data-state', 'fail');
-    await scan(page, at('degree-(p−1) interpolant refused'));
+    await scan(page, at('full-field interpolant refused by degree'));
     await page.locator('#sc-field').selectOption('2147483647');
     await expect(page.locator('#sc-census')).toBeDisabled();
     await page.locator('#sc-strategy').selectOption('honest');

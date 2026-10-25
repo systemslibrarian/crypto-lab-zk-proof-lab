@@ -5,11 +5,12 @@
 
 import { readSeedFromUrl } from './shared.js';
 import { MAX_ENUMERABLE_MODULUS, createField, freshChallengeSource, seededChallengeSource } from './field.js';
-import { evaluatePolynomial, formatPolynomial, formatUnivariate, hypercubeSum, parsePolynomial, partialSumUnivariate, variableDegrees } from './polynomial.js';
+import { evaluatePolynomial, formatPolynomial, formatUnivariate, hypercubeSum, parsePolynomial, partialSumUnivariate, univariateDegree, variableDegrees } from './polynomial.js';
 import {
   MAX_CENSUS_TRANSCRIPTS,
   createSumcheckProver,
   createSumcheckSession,
+  liePolynomialUnit,
   parseTranscript,
   replaySumcheckTranscript,
   serializeTranscript,
@@ -81,6 +82,8 @@ function placeholderRow() {
 const list = (values) => values.map(String).join(', ');
 /** @param {bigint[]} values */
 const dataList = (values) => values.map(String).join(',');
+/** @param {number} degree */
+const degreeText = (degree) => degree < 0 ? '−∞ (zero polynomial)' : String(degree);
 
 // ---------------------------------------------------------------------------
 // Statement: field, polynomial, randomness.
@@ -108,9 +111,10 @@ function renderStatement() {
   setValue('sc-sum', sum.toString());
   setValue(
     'sc-bound',
-    `${bound.numerator} / ${bound.denominator} ≈ ${bound.value.toExponential(2)}${bound.vacuous ? ' (≥ 1: vacuous)' : ''}`,
+    `${bound.numerator} / ${bound.denominator} ≈ ${bound.value.toExponential(2)}${bound.vacuous ? ' (≥ 1: vacuous)' : ''}${randomness === 'seeded' ? ' · theorem not applicable to predictable seeded challenges' : ' · fresh independent uniform challenges, unpredictable until each message is fixed'}`,
     `${bound.numerator}/${bound.denominator}`,
   );
+  element('sc-bound').dataset.assumptions = randomness;
   element('sc-randomness-label').textContent = `Randomness: ${challengeSource().label}.`;
   const census = field.p <= MAX_ENUMERABLE_MODULUS && field.p ** BigInt(polynomial.variables) <= BigInt(MAX_CENSUS_TRANSCRIPTS);
   button('sc-census').disabled = !census;
@@ -140,15 +144,24 @@ function applyPolynomial() {
 
 function applyField() {
   const chosen = BigInt(select('sc-field').value);
+  /** @type {PrimeField} */
+  let nextField;
+  /** @type {Polynomial} */
+  let nextPolynomial;
   try {
-    field = createField(chosen);
+    nextField = createField(chosen);
+    // Parse against the candidate field before committing either piece of
+    // state. A previously refused textarea must not leave a new field paired
+    // with the old polynomial and old rendered evidence.
+    nextPolynomial = parsePolynomial(nextField, textarea('sc-custom').value);
     clearInputError();
   } catch (error) {
-    showInputError(`Field not applied: ${error instanceof Error ? error.message : String(error)}`);
+    select('sc-field').value = field.p.toString();
+    showInputError(`Field not applied: ${error instanceof Error ? error.message : String(error)}. The previous field and statement stay in force.`);
     return;
   }
-  // Re-reduce the polynomial's coefficients in the new field.
-  polynomial = parsePolynomial(field, textarea('sc-custom').value);
+  field = nextField;
+  polynomial = nextPolynomial;
   retireSumcheck(`The field changed to F_${field.p}; the previous transcript was retired.`);
   retireGkr(`The field changed to F_${field.p}; the previous walk was retired.`);
   renderStatement();
@@ -169,6 +182,7 @@ function applyRandomness() {
   retireSumcheck('The verifier randomness changed; the previous transcript was retired.');
   retireGkr('The verifier randomness changed; the previous walk was retired.');
   renderStatement();
+  renderGkrBound();
 }
 
 // ---------------------------------------------------------------------------
@@ -178,15 +192,15 @@ function applyRandomness() {
 const STRATEGY_HINTS = {
   honest: 'The honest prover sends s_j exactly as the recurrence demands.',
   'wrong-sum-naive': 'The prover claims H + δ but sends the honest s_1, so s_1(0) + s_1(1) = H and round 1\'s recurrence fails at once.',
-  'wrong-sum-carried': 'The prover claims H + δ and hides the debt in a polynomial that vanishes at d chosen points, so every recurrence holds and only the final evaluation — or a challenge landing on a root — decides.',
+  'wrong-sum-carried': 'The prover claims H + δ and hides the debt in a polynomial with explicitly counted roots (up to the degree and field limit), so every recurrence holds and only the final evaluation — or a challenge landing on a root — decides.',
   'inconsistent-round': 'The prover is honest except at round j, where it adds δ to the constant term; that shifts s_j(0) + s_j(1) by 2δ, so the recurrence against s_{j−1}(r_{j−1}) fails.',
   'excessive-degree': 'At round j the prover adds X^d·X·(X − 1): the recurrence still holds, but the message has degree d + 2 and the degree check refuses it.',
-  'lagrange-degree-attack': 'The prover claims H + δ and sends, for s_1, the degree-(p − 1) interpolant that agrees with the honest s_1 everywhere except at 0. Without a degree bound it would pass whenever r_1 ≠ 0; with one it never does. Tiny fields only.',
+  'lagrange-degree-attack': 'The prover claims H + δ and sends, for s_1, the full-field interpolant of degree at most p − 1 that agrees with the honest s_1 everywhere except at 0. It is a degree-bound attack only when its computed degree exceeds the public X1 bound. Tiny fields only.',
 };
 
 function renderStrategyHint() {
   const kind = select('sc-strategy').value;
-  const hint = STRATEGY_HINTS[/** @type {keyof typeof STRATEGY_HINTS} */ (kind)] ?? '';
+  let hint = STRATEGY_HINTS[/** @type {keyof typeof STRATEGY_HINTS} */ (kind)] ?? '';
   const needsRound = kind === 'inconsistent-round' || kind === 'excessive-degree';
   const needsOffset = kind === 'wrong-sum-naive' || kind === 'wrong-sum-carried' || kind === 'inconsistent-round' || kind === 'lagrange-degree-attack';
   input('sc-strategy-round').disabled = !needsRound;
@@ -195,9 +209,17 @@ function renderStrategyHint() {
   const enumerable = field.p <= MAX_ENUMERABLE_MODULUS;
   const attackOption = [...select('sc-strategy').options].find((option) => option.value === 'lagrange-degree-attack');
   if (attackOption) attackOption.disabled = !enumerable;
-  element('sc-strategy-hint').textContent = kind === 'lagrange-degree-attack' && !enumerable
-    ? `${hint} Select a tiny field to run it.`
-    : hint;
+  if (kind === 'lagrange-degree-attack') {
+    if (!enumerable) {
+      hint = `${hint} Select a tiny field to run it.`;
+    } else {
+      const firstBound = variableDegrees(polynomial)[0];
+      hint += field.p - 1n > BigInt(firstBound)
+        ? ` Here p − 1 = ${field.p - 1n} exceeds the X1 bound ${firstBound}, so the verifier refuses it on degree before drawing r1.`
+        : ` Here p − 1 = ${field.p - 1n} is within the X1 bound ${firstBound}; this is not a degree-bound violation and can pass when r1 ≠ 0. Choose a lower-degree X1 polynomial to demonstrate the guard.`;
+    }
+  }
+  element('sc-strategy-hint').textContent = hint;
 }
 
 /** @returns {ProverStrategy} */
@@ -215,7 +237,7 @@ function readStrategy() {
     case 'wrong-sum-carried':
     case 'lagrange-degree-attack':
       if (offset === 0n) throw new RangeError(`the offset δ reduces to 0 modulo ${field.p}; a lie needs a non-zero offset`);
-      if (kind === 'lagrange-degree-attack' && field.p > MAX_ENUMERABLE_MODULUS) throw new RangeError('the degree-(p−1) interpolant needs a tiny field');
+      if (kind === 'lagrange-degree-attack' && field.p > MAX_ENUMERABLE_MODULUS) throw new RangeError('the full-field interpolant needs a tiny field');
       return { kind, offset };
     case 'inconsistent-round':
       if (!Number.isInteger(round) || round < 1 || round > polynomial.variables) throw new RangeError(`round j must lie in 1..${polynomial.variables}`);
@@ -253,7 +275,7 @@ function retireSumcheck(reason) {
   for (const row of ['honest', 'lie', 'attack']) {
     for (const column of ['accepted', 'degree', 'recurrence', 'final', 'total']) element(`census-${row}-${column}`).textContent = '—';
   }
-  element('census-readout').innerHTML = '<strong>Readout:</strong> no census yet. The carried lie succeeds exactly when some r<sub>j</sub> lands on a root of that round\'s lie polynomial, so its accepted count is p<sup>v</sup> − Π<sub>j</sub>(p − deg<sub>j</sub>(g)), and the bound v·d / |F| counts it with the largest degree in every round. The interpolant agrees with the honest s<sub>1</sub> on p − 1 of the p points yet has degree p − 1, which the degree check refuses every time.';
+  element('census-readout').innerHTML = '<strong>Readout:</strong> no census yet. The carried lie succeeds exactly when some r<sub>j</sub> lands on one of that round\'s explicitly constructed roots, so its accepted count is p<sup>v</sup> − Π<sub>j</sub>(p − roots<sub>j</sub>). The v·d / |F| theorem uses degree bounds, not an assumed root count. The interpolant agrees with the honest s<sub>1</sub> on p − 1 field points; it is refused on degree only when p − 1 exceeds the public X1 bound.';
   setVerdict('sc-census-verdict', 'pending', 'Run the census to compare the counts with the bound.');
 }
 
@@ -275,7 +297,7 @@ function appendRoundRow(body, check) {
   const cells = [
     { className: 'sc-round', text: String(check.round), data: { value: String(check.round) } },
     { className: 'sc-poly', text: check.failedCheck === 'shape' ? '(malformed message)' : formatUnivariate(check.polynomial, `X${check.round}`), data: { value: dataList(check.polynomial) } },
-    { className: 'sc-degree', text: `${check.degree} ≤ ${check.bound}${check.degree > check.bound ? ' ✗' : ' ✓'}`, data: { degree: String(check.degree), bound: String(check.bound) } },
+    { className: 'sc-degree', text: `${degreeText(check.degree)} ≤ ${check.bound}${check.degree > check.bound ? ' ✗' : ' ✓'}`, data: { degree: String(check.degree), bound: String(check.bound) } },
     { className: 'sc-sum01', text: check.sumAt01.toString(), data: { value: check.sumAt01.toString() } },
     { className: 'sc-expected', text: check.expected.toString(), data: { value: check.expected.toString() } },
     { className: 'sc-check', text: check.ok ? `✓ ${check.failedCheck === null ? 'degree and recurrence hold' : ''}`.trim() : `✗ ${check.failedCheck}: ${check.reason}`, data: { ok: String(check.ok), failed: check.failedCheck ?? '' } },
@@ -304,7 +326,7 @@ function renderSession() {
     if (event.kind === 'message') {
       appendRoundRow(body, event.check);
       narration = event.check.ok
-        ? `Round ${event.check.round}: the verifier accepted s${event.check.round} (degree ${event.check.degree} ≤ ${event.check.bound}, s${event.check.round}(0) + s${event.check.round}(1) = ${event.check.expected}) and may now draw r${event.check.round}.`
+        ? `Round ${event.check.round}: the verifier accepted s${event.check.round} (degree ${degreeText(event.check.degree)} ≤ ${event.check.bound}, s${event.check.round}(0) + s${event.check.round}(1) = ${event.check.expected}) and may now draw r${event.check.round}.`
         : `Round ${event.check.round}: the verifier refused the message — ${event.check.reason}.`;
     } else if (event.kind === 'challenge') {
       const cell = body.querySelector(`tr[data-round="${event.round}"] .sc-challenge`);
@@ -332,7 +354,7 @@ function renderSession() {
     const lying = session.claimedSum !== sessionProver.trueSum;
     if (verdict.accepted) {
       setVerdict('sc-verdict', lying ? 'alarm' : 'pass', lying
-        ? `⚠ ACCEPTED — ${verdict.reason}; but the claim ${session.claimedSum} is false (the true sum is ${sessionProver.trueSum}). The challenge landed on a root of the lie: this is the v·d/|F| event.`
+        ? `⚠ ACCEPTED — ${verdict.reason}; but the claim ${session.claimedSum} is false (the true sum is ${sessionProver.trueSum}). The challenge landed on a root of the lie${randomness === 'seeded' ? '; seeded mode is predictable, so this is not a theorem-backed probability experiment' : '; this is an event counted by the v·d/|F| soundness bound'}.`
         : `✓ ACCEPTED — ${verdict.reason}.`);
     } else {
       setVerdict('sc-verdict', 'fail', `✗ REJECTED — ${verdict.reason}.`);
@@ -357,7 +379,7 @@ function renderOmniscient() {
   } else if (strategy.kind === 'lagrange-degree-attack') {
     const honest = partialSumUnivariate(field, polynomial, [], 1);
     const attack = sessionProver.message(1, []);
-    parts.push(`The interpolant has degree ${attack.length - 1} and agrees with the honest s1 on ${univariateAgreement(field, attack, honest)} of ${field.p} field points.`);
+    parts.push(`The interpolant has degree ${degreeText(univariateDegree(attack))} and agrees with the honest s1 on ${univariateAgreement(field, attack, honest)} of ${field.p} field points.`);
   } else if (strategy.kind === 'inconsistent-round' || strategy.kind === 'excessive-degree') {
     parts.push(`The prover's claim is true; the defect is in round ${strategy.round}'s message.`);
   }
@@ -477,7 +499,7 @@ const MUTATIONS = {
     const first = record.rounds?.[0];
     if (!first) return null;
     record.rounds[0] = { round: 1, polynomial: [], challenge: first.challenge };
-    return 'Recorded round 1\'s challenge with no message before it.';
+    return 'Removed round 1\'s message while retaining its challenge.';
   },
   'sc-mutate-bounds': (/** @type {any} */ record) => {
     if (!Array.isArray(record.degreeBounds)) return null;
@@ -512,25 +534,37 @@ async function runCensus() {
     fillCensusRow('lie', lie);
     fillCensusRow('attack', attack);
     const total = BigInt(honest.total);
-    const expectedLie = total - degrees.reduce((product, degree) => product * (field.p - BigInt(degree)), 1n);
+    const rootCounts = degrees.map((degree) => liePolynomialUnit(field, degree).roots.length);
+    const expectedLie = total - rootCounts.reduce((product, roots) => product * (field.p - BigInt(roots)), 1n);
     const bound = soundnessBound(field, degrees);
     const boundCount = bound.vacuous ? total : (bound.numerator * total) / field.p;
     const interpolant = createSumcheckProver({ field, polynomial, strategy: { kind: 'lagrange-degree-attack', offset } }).message(1, []);
+    const interpolantDegree = univariateDegree(interpolant);
+    const attackAboveBound = interpolantDegree > degrees[0];
+    const expectedAttackAccepted = attackAboveBound ? 0n : (field.p - 1n) * (field.p ** BigInt(polynomial.variables - 1));
     const agreement = univariateAgreement(field, interpolant, partialSumUnivariate(field, polynomial, [], 1));
+    const attackReadout = attackAboveBound
+      ? `Interpolant: degree ${interpolantDegree}, agrees with the honest s<sub>1</sub> on ${agreement} of ${field.p} points, rejected on the degree bound ${attack.degree} of ${attack.total} times.`
+      : `Interpolant: degree ${interpolantDegree} is within the public X<sub>1</sub> bound ${degrees[0]}, so this is not a degree-bound violation for this statement. It agrees on ${agreement} of ${field.p} points and accepted ${attack.accepted} of ${attack.total} transcripts (expected ${expectedAttackAccepted}); choose deg<sub>1</sub>(g) &lt; p − 1 to test the degree guard.`;
     element('census-readout').innerHTML = [
       '<strong>Readout:</strong>',
       `honest accepted ${honest.accepted} of ${honest.total}.`,
-      `Carried lie accepted ${lie.accepted}; the closed form p<sup>v</sup> − Π<sub>j</sub>(p − deg<sub>j</sub>) = ${field.p}<sup>${polynomial.variables}</sup> − ${degrees.map((degree) => `(${field.p} − ${degree})`).join('·')} = ${expectedLie}; the bound v·d / |F| = ${bound.numerator}/${bound.denominator} allows at most ${bound.vacuous ? `${total} (vacuous: the bound is ≥ 1)` : `${boundCount}`} of ${total}.`,
-      `Interpolant: degree ${interpolant.length - 1}, agrees with the honest s<sub>1</sub> on ${agreement} of ${field.p} points, rejected on the degree bound ${attack.degree} of ${attack.total} times.`,
+      `Carried lie accepted ${lie.accepted}; its constructed root counts are [${rootCounts.join(', ')}], so the closed form p<sup>v</sup> − Π<sub>j</sub>(p − roots<sub>j</sub>) = ${field.p}<sup>${polynomial.variables}</sup> − ${rootCounts.map((roots) => `(${field.p} − ${roots})`).join('·')} = ${expectedLie}. The degree-based bound v·d / |F| = ${bound.numerator}/${bound.denominator} allows at most ${bound.vacuous ? `${total} (vacuous: the bound is ≥ 1)` : `${boundCount}`} of ${total}.`,
+      attackReadout,
     ].join(' ');
     const consistent = honest.accepted === honest.total
       && BigInt(lie.accepted) === expectedLie
       && BigInt(lie.accepted) <= boundCount
       && lie.degree === 0 && lie.recurrence === 0
-      && attack.accepted === 0 && attack.degree === attack.total;
+      && (attackAboveBound
+        ? attack.accepted === 0 && attack.degree === attack.total
+        : BigInt(attack.accepted) === expectedAttackAccepted && attack.degree === 0);
+    const attackVerdict = attackAboveBound
+      ? `interpolant 0 accepted, ${attack.degree} refused on degree`
+      : `interpolant ${attack.accepted} accepted (= ${expectedAttackAccepted}); not a degree violation at bound ${degrees[0]}`;
     setVerdict('sc-census-verdict', consistent ? 'pass' : 'fail', consistent
-      ? `✓ CENSUS COMPLETE — ${honest.total} vectors each: honest ${honest.accepted} accepted; carried lie ${lie.accepted} accepted (= ${expectedLie}, within the bound's ${bound.vacuous ? 'vacuous ' : ''}${boundCount}); interpolant 0 accepted, ${attack.degree} refused on degree.`
-      : `✗ CENSUS DISAGREES — honest ${honest.accepted}/${honest.total}, lie ${lie.accepted} vs closed form ${expectedLie} and bound ${boundCount}, interpolant ${attack.accepted} accepted.`);
+      ? `✓ CENSUS COMPLETE — ${honest.total} vectors each: honest ${honest.accepted} accepted; carried lie ${lie.accepted} accepted (= ${expectedLie}, within the bound's ${bound.vacuous ? 'vacuous ' : ''}${boundCount}); ${attackVerdict}.`
+      : `✗ CENSUS DISAGREES — honest ${honest.accepted}/${honest.total}, lie ${lie.accepted} vs root-count formula ${expectedLie} and bound ${boundCount}, interpolant ${attack.accepted} vs expected ${expectedAttackAccepted}.`);
   } catch (error) {
     setVerdict('sc-census-verdict', 'fail', `✗ Census failed: ${error instanceof Error ? error.message : String(error)}`);
   }
@@ -545,12 +579,12 @@ let gkrInputs = [3n, 2n, 3n, 1n];
 
 const GKR_HINTS = {
   honest: 'The honest prover evaluates the circuit, sends its outputs, and answers every sum-check from the true tables.',
-  'wrong-output': 'The prover reports y0 + 1. Its layer-0 polynomial still sums to the true W̃0(r0), so the very first recurrence fails.',
-  'corrupt-gate': 'The prover adds 1 to gate (0,1) of layer 1 and recomputes the outputs from that table. Layer 0 is self-consistent with the lie; layer 1 is anchored to the public inputs and catches it at its first recurrence.',
-  'corrupt-wiring': 'The prover\'s private circuit copy wires gate (0,1) of layer 1 to inputs (0,1),(1,1). Every recurrence holds, because its polynomial is consistent with its own wiring; the verifier\'s own add̃/mult̃ evaluation at the final point disagrees.',
+  'wrong-output': 'The prover reports y0 + 1. The false output compression survives only if r0 hits the difference polynomial’s root (r0 = 1 here); otherwise the first layer-0 recurrence fails. That endpoint is the 1/|F| output-compression error event.',
+  'corrupt-gate': 'The prover adds 1 to gate (0,1) of layer 1 and recomputes the outputs from that table. Layer 0 is self-consistent with the lie. At layer 1 the public inputs usually expose it in the first recurrence, but a sampled root event can hide the changed gate and accept; the displayed verdict comes from this run.',
+  'corrupt-wiring': 'The prover\'s private circuit copy rewires gate (0,1) of layer 1. Its messages are consistent with that private wiring, while the verifier evaluates the public wiring at the sampled point. Those values usually disagree, but a root event can make them equal and accept; the displayed verdict comes from this run.',
   'invalid-line-degree': 'At layer 0 the prover sends q(t) of degree 3; W̃1 on a line has degree at most 2, so the degree check refuses it.',
-  'invalid-line-value': 'At layer 0 the prover sends q + t(t − 1): q(0) and q(1) are right, so layer 0 finishes, but the carried claim m1 is wrong and layer 1\'s first recurrence fails.',
-  'invalid-line-last': 'At layer 1 the prover sends q + t(t − 1). The carried claim m2 is wrong, and the verifier\'s own evaluation of W̃2 from the public inputs catches it at the terminal check.',
+  'invalid-line-value': 'At layer 0 the prover sends q + t(t − 1): q(0) and q(1) are right. If r* is 0 or 1 the edit vanishes and this reduction accepts; at any other r* the wrong carried claim makes layer 1’s first recurrence fail.',
+  'invalid-line-last': 'At layer 1 the prover sends q + t(t − 1). If r* is 0 or 1 the edit vanishes and the terminal check accepts; at any other r* the verifier’s own evaluation of W̃2 catches the wrong carried claim.',
 };
 
 /** @returns {GkrProverStrategy} */
@@ -587,11 +621,24 @@ function evaluateGkrInputs() {
   const describe = (/** @type {number} */ layer, /** @type {'add' | 'mult'} */ op) =>
     `${op}_${layer} = {${wiringTriples(DEMO_CIRCUIT, layer, op).map(([a, b, c]) => `(${a},${b},${c})`).join(', ')}}`;
   element('gkr-wiring').textContent = [describe(0, 'add'), describe(0, 'mult'), describe(1, 'add'), describe(1, 'mult')].join(' · ');
+  renderGkrBound();
+  retireGkr('The circuit inputs were evaluated; run the walk to prove them.');
+}
+
+function renderGkrBound() {
   const bound = gkrSoundnessBound(field, DEMO_CIRCUIT);
   const boundLine = element('gkr-bound');
-  boundLine.textContent = `Union bound for this walk: ${bound.terms.map((term) => `${term.numerator} (${term.label})`).join(' + ')} = ${bound.numerator} / ${bound.denominator} ≈ ${bound.value.toExponential(2)}.`;
+  const notes = [];
+  if (bound.vacuous) notes.push('The raw union sum is at least 1, so the probability bound is only ≤ 1 and is vacuous.');
+  if (randomness === 'seeded') {
+    notes.push('The deterministic teaching seed is predictable, so this theorem-based probability guarantee does not apply in seeded mode.');
+  } else if (!bound.vacuous) {
+    notes.push(`With fresh independent uniform challenges that remain unpredictable until each owning prover message is fixed, the soundness error is at most ${bound.numerator}/${bound.denominator}.`);
+  }
+  boundLine.textContent = `Raw union sum for this walk: ${bound.terms.map((term) => `${term.numerator} (${term.label})`).join(' + ')} = ${bound.numerator} / ${bound.denominator} ≈ ${bound.rawValue.toExponential(2)}. ${notes.join(' ')}`;
   boundLine.dataset.value = `${bound.numerator}/${bound.denominator}`;
-  retireGkr('The circuit inputs were evaluated; run the walk to prove them.');
+  boundLine.dataset.probabilityBound = bound.vacuous ? '1' : `${bound.numerator}/${bound.denominator}`;
+  boundLine.dataset.assumptions = randomness;
 }
 
 /** @param {string} reason */
@@ -698,7 +745,7 @@ function runGkrWalk() {
         ['b*', `[${list(line.bStar)}]`, dataList(line.bStar)],
         ['c*', `[${list(line.cStar)}]`, dataList(line.cStar)],
         ['prover sends q(t) = W̃ on ℓ(t) = b* + t·(c* − b*)', formatUnivariate(line.polynomial, 't'), dataList(line.polynomial)],
-        ['degree ≤ bound', `${line.degree} ≤ ${line.bound}${line.degree > line.bound ? ' ✗' : ' ✓'}`, `${line.degree}/${line.bound}`],
+        ['degree ≤ bound', `${degreeText(line.degree)} ≤ ${line.bound}${line.degree > line.bound ? ' ✗' : ' ✓'}`, `${line.degree}/${line.bound}`],
       ]);
       if (record.final) {
         rows.push(
@@ -745,12 +792,12 @@ function runGkrWalk() {
   if (run.accepted) {
     setVerdict('gkr-verdict', outputsTrue ? 'pass' : 'alarm', outputsTrue
       ? `✓ ACCEPTED — ${run.reason}.`
-      : `⚠ ACCEPTED — ${run.reason}; but the claimed outputs [${list(claimedOutputs)}] differ from the direct evaluation [${list(honestOutputs)}]. The challenges hit the bound's ${run.bound.numerator}/${run.bound.denominator} event.`);
+      : `⚠ ACCEPTED — ${run.reason}; but the claimed outputs [${list(claimedOutputs)}] differ from the direct evaluation [${list(honestOutputs)}]. The challenges hit a root event represented in the raw ${run.bound.numerator}/${run.bound.denominator} union calculation${randomness === 'seeded' ? '; seeded mode is predictable, so this is not a theorem-backed probability experiment' : ''}.`);
     element('gkr-narration').textContent = `The walk reduced the output claim through ${transcript.layers.length} layers to a single evaluation of W̃2 that the verifier made from the public inputs.`;
   } else {
     const where = run.failedAt ? `${run.failedAt.stage}${run.failedAt.round ? ` (round ${run.failedAt.round})` : ''} at layer ${run.failedAt.layer}` : 'an unknown stage';
     setVerdict('gkr-verdict', 'fail', `✗ REJECTED at ${where} — ${run.reason}.`);
-    element('gkr-narration').textContent = `The verifier stopped at ${where}. Layers before it were self-consistent; the public inputs and the verifier's own wiring are what the prover cannot talk around.`;
+    element('gkr-narration').textContent = `The verifier stopped at ${where}. On this sampled transcript, a recurrence, degree, wiring, or public-input check exposed the difference. Root events that accept a false claim are counted by the soundness analysis.`;
   }
 }
 

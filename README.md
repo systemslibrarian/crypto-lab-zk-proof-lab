@@ -27,7 +27,7 @@ There are no published known-answer vectors for the interactive Okamoto or GQ pr
 - Use it for replayable protocol walkthroughs when deterministic scenarios matter, because the scenario preset and transcript lab pages let teams compare runs and reason about verifier outcomes.
 - Use it to explain why Fiat-Shamir removes interactivity, because the dedicated exhibit derives the challenge from hashing transcript inputs and verifies the resulting non-interactive proof.
 - Use it to compare Sigma protocols beyond Schnorr: Okamoto proves knowledge of a representation, GQ proves knowledge of an RSA root, and both reveal their witness under a same-commitment rewind.
-- Use it to teach how a verifier checks a sum over 2^v points, or a circuit's evaluation, with one evaluation of its own, because the sum-check exhibit prints every round polynomial, every recurrence, every challenge and the soundness bound v·d/|F| from the run, and the GKR act reduces an output claim layer by layer down to the public inputs.
+- Use it to teach how a verifier checks a sum over 2^v points, or a circuit's evaluation, with one evaluation of its own, because the sum-check exhibit prints every round polynomial, every recurrence, every challenge and the soundness calculation from the run, and the GKR act reduces an output claim layer by layer down to the public inputs. The probability guarantees are labelled as requiring fresh, independent, uniformly sampled verifier challenges that remain unpredictable until the owning prover message is fixed; deterministic seeded mode is replayable but does not satisfy that assumption.
 - Do NOT use it for production security decisions, because the project explicitly uses toy parameters and small-scale models (and two clearly-labelled conceptual exhibits, cave and snark intuition) rather than deployment-grade cryptographic hardening.
 
 ## Live Demo
@@ -46,9 +46,11 @@ The demo lets users run eight exhibits, execute protocol rounds, simulate cheati
 - Failing to enforce reveal windows in commit-reveal protocols allows strategic non-reveal (griefing), which is a protocol-level failure even when hash checks are correct.
 - Reusing an Okamoto or GQ commitment across two different challenges exposes the representation or RSA root; the rewind panels compute that extraction rather than merely warning about it.
 - Choosing a tiny GQ exponent also creates a tiny challenge space. The deliberately broken e = 3 mode shows a prover with only public y passing about one time in three; e = 65537 is the default.
-- A sum-check verifier that drops the per-round degree bound can be beaten by a degree-(p − 1) interpolant that agrees with the honest message everywhere but one point; the exhibit's tiny-field census shows that polynomial rejected on degree at every one of the p^v challenge vectors, and the mutation suite kills a verifier that stops enforcing the bound.
+- A sum-check verifier that drops the per-round degree bound can be beaten by a full-field interpolant of degree at most p − 1 that agrees with the honest message everywhere but one point. The exhibit prints its actual degree and shows it rejected on degree only when that degree exceeds the statement's public X1 bound; when the public bound already permits it, the page labels the example as not a degree-bound violation and reports its actual acceptance count. The mutation suite kills a verifier that stops enforcing a genuinely exceeded bound.
 - A sum-check verifier's challenges must be drawn after the round's message is fixed. The exhibit's deterministic teaching seed exists so runs replay, and the page labels it as not cryptographically secure verifier randomness: a prover who knows the seed knows every challenge in advance.
-- A field of 13 elements makes the soundness bound v·d/|F| readable, not meaningful; the exhibit calls its census a complete teaching enumeration and not a security parameter, and marks the bound vacuous when it reaches 1.
+- Static transcript replay rechecks structure and arithmetic but carries no timestamps, so it cannot prove that a recorded challenge was historically sampled after its message or was unpredictable. Those properties come from the live phase guard and fresh-random mode, respectively.
+- Fields of 13, 7 or 5 elements make the soundness arithmetic readable, not meaningful. The census counts the constructed lie polynomial's actual roots rather than assuming every degree is attained, and the page caps probability bounds at 1 and marks raw union sums at least 1 as vacuous.
+- The wrong-output and altered-line controls are probabilistic soundness examples, not guaranteed rejection scripts: a wrong output can survive at a root of its difference polynomial, and q(t) + t(t − 1) is unchanged when the verifier's line challenge is 0 or 1.
 
 ## Real-World Usage
 
@@ -64,7 +66,7 @@ The demo lets users run eight exhibits, execute protocol rounds, simulate cheati
 - Goldwasser, S., Kalai, Y. T., Rothblum, G. N. “Delegating Computation: Interactive Proofs for Muggles.” STOC 2008, doi:10.1145/1374376.1374396; full version ECCC TR17-108, revision 1 (24 December 2017), 70 pages. Read: §2.5 “Interactive Sum-Check Protocol” (Figure 2, the protocol as executed in Act A, and Lemma 2.5 with soundness m·d/|F| and its proof); §3.1 (layered circuit of fan-in 2, add_i/mult_i as equations (4) and (5), the low-degree extensions Ṽ_i); §3.2 (the i'th phase — the sum-check over the wiring identity, the prover supplying Ṽ_i(ω₁), Ṽ_i(ω₂), and the line reduction steps 1–4 — and the final verification against the input's extension); §3.3 (soundness 7mdδ/|F|). GKR sum over H^m for an extension field H of GF(2) with low-degree extensions of degree δ and a β̃ factor; the exhibit takes H = {0,1} and the multilinear extensions, and reduces two claims to one on the line with ℓ(0) = b*, ℓ(1) = c* rather than GKR's fixed t₁, t₂. Both adaptations are stated on the page.
 - Thaler, J. *Proofs, Arguments, and Zero-Knowledge*, manuscript dated 18 July 2023, consulted for notation and as the source of the worked example: §3.5 (Fact 3.5, Lemma 3.6 — the multilinear Lagrange basis, equations 3.1–3.2 — and Lemma 3.7), §4.1 (the sum-check description, Proposition 4.1 with error vd/|F|, and the worked example g = 2X₁³ + X₁X₃ + X₂X₃ with H = 12, s₁ = 8X₁³ + 2X₁ + 1, s₂ = 34 + X₂ at r₁ = 2, s₃ = 16 + 5X₃ at r₂ = 3, which the unit tests reproduce exactly), §4.6.4 (Lemma 4.7, equations 4.17–4.18, Remark 4.4 on the multilinear simplification, and Figure 4.13, the self-contained description Act B follows). This is a secondary source; the protocol is attributed to the two papers above.
 
-No published known-answer vectors exist for either protocol beyond Thaler's worked example; the tests therefore recompute the hypercube sum, every round polynomial, every multilinear extension and every wiring predicate with independent code, and the tiny-field census compares the verifier's counts with a closed form derived in the test.
+The tests reproduce Thaler's published sum-check worked example. For the lab-specific bounded GKR circuit, they independently recompute the hypercube sum, every round polynomial, every multilinear extension and every wiring predicate; the tiny-field census compares the verifier's counts with a separately derived root-count formula.
 
 ## How to Run Locally
 
@@ -98,6 +100,6 @@ npm run dev
 The prover now rejects inputs outside the canonical unit range before computing a
 transcript. Rewinding preserves named membership errors and reports a nontrivial gcd
 as a discovered factor, rather than hiding it behind a generic transcript rejection.
-Retiring a result also disables its copy controls. The deploy gate replays all twelve
-source mutations — six for Exhibit 07 and six for Exhibit 08 — with structured reports;
+Retiring a result also disables its copy controls. The deploy gate replays all fifteen
+source mutations — six for Exhibit 07 and nine for Exhibit 08 — with structured reports;
 crashes, missing tests, and setup failures cannot count as kills.

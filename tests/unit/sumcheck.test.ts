@@ -9,6 +9,7 @@ import {
   interpolateUnivariate,
   parsePolynomial,
   partialSumUnivariate,
+  univariateDegree,
   variableDegrees,
 } from '../../js/polynomial.js';
 import {
@@ -185,6 +186,14 @@ describe('cheating provers against the same verifier', () => {
     for (const root of unit.roots) expect(evaluateUnivariate(field, unit.polynomial, root)).toBe(0n);
     expect(liePolynomialUnit(field, 0).polynomial).toEqual([field.inv(2n)]);
   });
+
+  it('finds all three permitted roots over F5 instead of silently falling back to one', () => {
+    const tiny = createField(5n);
+    const unit = liePolynomialUnit(tiny, 3);
+    expect(new Set(unit.roots).size).toBe(3);
+    expect(tiny.add(evaluateUnivariate(tiny, unit.polynomial, 0n), evaluateUnivariate(tiny, unit.polynomial, 1n))).toBe(1n);
+    for (const root of unit.roots) expect(evaluateUnivariate(tiny, unit.polynomial, root)).toBe(0n);
+  });
 });
 
 describe('verifier ordering and malformed transcripts', () => {
@@ -213,6 +222,14 @@ describe('verifier ordering and malformed transcripts', () => {
     expect(verifier.phase).toBe('rejected');
     expect(createSumcheckVerifier({ field, degreeBounds: [1], claimedSum: 0n, challengeSource: freshChallengeSource(field) }).receiveMessage([]).failedCheck).toBe('shape');
     expect(createSumcheckVerifier({ field, degreeBounds: [1], claimedSum: 0n, challengeSource: freshChallengeSource(field) }).receiveMessage('1,2').failedCheck).toBe('shape');
+  });
+
+  it('computes mathematical degree after ignoring trailing zero coefficients', () => {
+    const verifier = createSumcheckVerifier({ field, degreeBounds: [0], claimedSum: 0n, challengeSource: scriptedChallengeSource(field, [7n]) });
+    const check = verifier.receiveMessage([0n, 0n, 0n]);
+    expect(check).toMatchObject({ ok: true, degree: -1, bound: 0 });
+    expect(verifier.drawChallenge()).toBe(7n);
+    expect(verifier.finish(() => 0n).ok).toBe(true);
   });
 
   const honestTranscript = () => {
@@ -302,5 +319,30 @@ describe('tiny-field exhaustive census (a teaching control, not a security param
     expect(univariateAgreement(tiny, attack, honest)).toBe(12);
     expect(tiny.add(evaluateUnivariate(tiny, attack, 0n), evaluateUnivariate(tiny, attack, 1n))).toBe(tiny.add(hypercubeSum(tiny, h), 4n));
     expect(census({ kind: 'lagrange-degree-attack', offset: 4n })).toMatchObject({ total: 169, accepted: 0, degree: 169 });
+  });
+
+  it('matches the advertised F5 default census and labels a full-field degree-4 interpolant as permitted by a degree-4 statement', () => {
+    const tiny5 = createField(5n);
+    const defaultPolynomial = parsePolynomial(tiny5, THALER_TEXT);
+    const carried = sumcheckCensus({
+      field: tiny5,
+      polynomial: defaultPolynomial,
+      makeProver: () => createSumcheckProver({ field: tiny5, polynomial: defaultPolynomial, strategy: { kind: 'wrong-sum-carried', offset: 1n } }),
+    });
+    expect(carried).toMatchObject({ total: 125, accepted: 93, final: 32, degree: 0, recurrence: 0 });
+
+    // With x1^4 and offset 1, the five interpolation values are all 1 and the
+    // polynomial collapses to a constant. The coefficient 2 keeps the intended
+    // full-field interpolant at its actual degree p−1.
+    const degreeFour = parsePolynomial(tiny5, '2*x1^4');
+    const attackMessage = createSumcheckProver({ field: tiny5, polynomial: degreeFour, strategy: { kind: 'lagrange-degree-attack', offset: 1n } }).message(1, []);
+    expect(univariateDegree(attackMessage)).toBe(4);
+    const interpolant = sumcheckCensus({
+      field: tiny5,
+      polynomial: degreeFour,
+      makeProver: () => createSumcheckProver({ field: tiny5, polynomial: degreeFour, strategy: { kind: 'lagrange-degree-attack', offset: 1n } }),
+    });
+    // p−1 equals the public degree bound, so this is not a degree violation.
+    expect(interpolant).toMatchObject({ total: 5, accepted: 4, degree: 0, recurrence: 0, final: 1 });
   });
 });

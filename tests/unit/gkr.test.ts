@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createField, freshChallengeSource, seededChallengeSource } from '../../js/field.js';
+import { createField, freshChallengeSource, scriptedChallengeSource, seededChallengeSource } from '../../js/field.js';
 import { evaluateMultilinearFromValues, evaluatePolynomial, hypercubeSum, multilinearExtension, restrictToLine, variableDegrees } from '../../js/polynomial.js';
 import {
   DEMO_CIRCUIT,
@@ -18,6 +18,9 @@ import {
 const P = 2147483647n;
 const field = createField(P);
 const INPUTS = [3n, 2n, 3n, 1n];
+
+/** One r0, four layer-0 challenges, r*0, four layer-1 challenges, r*1. */
+const gkrChallenges = (r0 = 2n, rStar0 = 10n, rStar1 = 15n) => [r0, 3n, 5n, 7n, 9n, rStar0, 4n, 6n, 8n, 11n, rStar1];
 
 /** The circuit written out by hand, independently of the gate table. */
 function handEvaluate(p: bigint, [x0, x1, x2, x3]: bigint[]) {
@@ -104,6 +107,11 @@ describe('the walkthrough circuit', () => {
     const bound = gkrSoundnessBound(field, DEMO_CIRCUIT);
     expect(bound.numerator).toBe(21n);
     expect(bound.terms.map((term) => term.numerator)).toEqual([1, 8, 2, 8, 2]);
+    expect(bound).toMatchObject({ vacuous: false, probabilityBound: 21 / Number(P) });
+
+    const tiny = gkrSoundnessBound(createField(13n), DEMO_CIRCUIT);
+    expect(tiny).toMatchObject({ numerator: 21n, denominator: 13n, vacuous: true, probabilityBound: 1 });
+    expect(tiny.rawValue).toBeCloseTo(21 / 13);
   });
 });
 
@@ -186,6 +194,100 @@ describe('the GKR layer walk', () => {
     expect(last.failedAt).toEqual({ stage: 'terminal', layer: 2 });
     expect(last.reason).toMatch(/^terminal check: W̃2\(\d+, \d+\) computed from the public inputs is \d+ but the carried claim is \d+$/);
     expect(last.transcript.terminal?.evaluated).toBe(handMle2(P, INPUTS, last.transcript.terminal!.point));
+  });
+
+  it('exhibits the exact endpoint soundness events instead of promising deterministic rejection', () => {
+    for (const endpoint of [0n, 1n]) {
+      const wrongOutput = runGkr({
+        field,
+        circuit: DEMO_CIRCUIT,
+        inputs: INPUTS,
+        prover: createGkrProver({ field, circuit: DEMO_CIRCUIT, inputs: INPUTS, strategy: { kind: 'wrong-output', gate: 0, offset: 1n } }),
+        challengeSource: scriptedChallengeSource(field, gkrChallenges(1n)),
+      });
+      expect(wrongOutput.accepted).toBe(true);
+      expect(wrongOutput.transcript.outputs?.claimed).not.toEqual(evaluateCircuit(field, DEMO_CIRCUIT, INPUTS)[0]);
+
+      const middleLine = runGkr({
+        field,
+        circuit: DEMO_CIRCUIT,
+        inputs: INPUTS,
+        prover: createGkrProver({ field, circuit: DEMO_CIRCUIT, inputs: INPUTS, strategy: { kind: 'invalid-line', layer: 0, mode: 'value', offset: 1n } }),
+        challengeSource: scriptedChallengeSource(field, gkrChallenges(2n, endpoint)),
+      });
+      expect(middleLine.accepted).toBe(true);
+      expect(middleLine.transcript.layers[0].rStar).toBe(endpoint);
+
+      const lastLine = runGkr({
+        field,
+        circuit: DEMO_CIRCUIT,
+        inputs: INPUTS,
+        prover: createGkrProver({ field, circuit: DEMO_CIRCUIT, inputs: INPUTS, strategy: { kind: 'invalid-line', layer: 1, mode: 'value', offset: 1n } }),
+        challengeSource: scriptedChallengeSource(field, gkrChallenges(2n, 10n, endpoint)),
+      });
+      expect(lastLine.accepted).toBe(true);
+      expect(lastLine.transcript.layers[1].rStar).toBe(endpoint);
+    }
+  });
+
+  it('admits explicit root-event transcripts for corrupted gates and private wiring', () => {
+    const honestOutputs = evaluateCircuit(field, DEMO_CIRCUIT, INPUTS)[0];
+    const allZeroChallenges = new Array<bigint>(11).fill(0n);
+    const strategies = [
+      { kind: 'corrupt-gate', layer: 1, gate: 1, offset: 1n } as const,
+      { kind: 'corrupt-wiring', layer: 1, gate: 1, in1: 1, in2: 3 } as const,
+    ];
+    for (const strategy of strategies) {
+      const run = runGkr({
+        field,
+        circuit: DEMO_CIRCUIT,
+        inputs: INPUTS,
+        prover: createGkrProver({ field, circuit: DEMO_CIRCUIT, inputs: INPUTS, strategy }),
+        challengeSource: scriptedChallengeSource(field, allZeroChallenges),
+      });
+      expect(run.transcript.outputs?.claimed).not.toEqual(honestOutputs);
+      expect(run.accepted).toBe(true);
+      expect(run.failedAt).toBeNull();
+      expect(run.transcript.terminal).toMatchObject({ point: [0n, 0n], claim: 3n, evaluated: 3n, ok: true });
+    }
+  });
+
+  it('reports the zero line polynomial with mathematical degree minus infinity', () => {
+    const zeros = [0n, 0n, 0n, 0n];
+    const run = runGkr({
+      field,
+      circuit: DEMO_CIRCUIT,
+      inputs: zeros,
+      prover: createGkrProver({ field, circuit: DEMO_CIRCUIT, inputs: zeros }),
+      challengeSource: scriptedChallengeSource(field, gkrChallenges()),
+    });
+    expect(run.accepted).toBe(true);
+    expect(run.transcript.layers.map((layer) => layer.line?.degree)).toEqual([-1, -1]);
+  });
+
+  it('refuses a verifier challenge source that leaves the selected field', () => {
+    const uncheckedSource = (values: bigint[]) => {
+      let index = 0;
+      return {
+        kind: 'scripted' as const,
+        label: 'deliberately invalid test source',
+        draw() {
+          if (index >= values.length) throw new RangeError('test source exhausted');
+          const value = values[index];
+          index += 1;
+          return value;
+        },
+      };
+    };
+    const honest = () => createGkrProver({ field, circuit: DEMO_CIRCUIT, inputs: INPUTS });
+    expect(() => runGkr({ field, circuit: DEMO_CIRCUIT, inputs: INPUTS, prover: honest(), challengeSource: uncheckedSource([P]) })).toThrow('outside the field');
+    expect(() => runGkr({
+      field,
+      circuit: DEMO_CIRCUIT,
+      inputs: INPUTS,
+      prover: honest(),
+      challengeSource: uncheckedSource([2n, 3n, 5n, 7n, 9n, P]),
+    })).toThrow('outside the field');
   });
 
   it('refuses strategies that name a gate or layer outside the circuit', () => {

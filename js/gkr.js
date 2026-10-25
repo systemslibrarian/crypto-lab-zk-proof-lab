@@ -23,6 +23,7 @@ import {
   multiplyPolynomials,
   restrictToLine,
   scalePolynomial,
+  univariateDegree,
 } from './polynomial.js';
 
 /** @typedef {import('./field.js').PrimeField} PrimeField */
@@ -194,9 +195,12 @@ export function evaluateLine(field, line, t) {
 }
 
 /**
- * The union bound this walk actually incurs: k_0/|F| for the output claim, then per
- * layer 2·(2k_{i+1})/|F| for the degree-2 sum-check over 2k_{i+1} variables and
- * k_{i+1}/|F| for the degree-k_{i+1} line polynomial.
+ * The raw union sum this walk incurs under fresh independent uniform challenges,
+ * each unpredictable until its owning prover message has been fixed:
+ * k_0/|F| for the output claim, then per layer 2·(2k_{i+1})/|F| for the degree-2
+ * sum-check over 2k_{i+1} variables and k_{i+1}/|F| for the degree-k_{i+1} line
+ * polynomial. The probability upper bound is min(1, that sum); a raw sum ≥ 1 is
+ * vacuous, and predictable seeded challenges do not satisfy the theorem's premise.
  * @param {PrimeField} field
  * @param {LayeredCircuit} circuit
  */
@@ -208,7 +212,15 @@ export function gkrSoundnessBound(field, circuit) {
     terms.push({ label: `layer ${layer} line polynomial of degree ≤ ${bits[layer + 1]}`, numerator: bits[layer + 1] });
   }
   const numerator = BigInt(terms.reduce((sum, term) => sum + term.numerator, 0));
-  return { terms, numerator, denominator: field.p, value: Number(numerator) / Number(field.p) };
+  const rawValue = Number(numerator) / Number(field.p);
+  return {
+    terms,
+    numerator,
+    denominator: field.p,
+    rawValue,
+    probabilityBound: Math.min(1, rawValue),
+    vacuous: numerator >= field.p,
+  };
 }
 
 /**
@@ -351,6 +363,11 @@ export function createGkrVerifier({ field, circuit, inputs, challengeSource }) {
   const requirePhase = (wanted, action) => {
     if (phase !== wanted) throw new Error(`protocol order: cannot ${action} in phase "${phase}"`);
   };
+  const drawVerifierChallenge = () => {
+    const challenge = challengeSource.draw();
+    if (!field.isCanonical(challenge)) throw new RangeError('the challenge source returned a value outside the field');
+    return challenge;
+  };
 
   return {
     get phase() { return phase; },
@@ -371,7 +388,7 @@ export function createGkrVerifier({ field, circuit, inputs, challengeSource }) {
         return { ok: false, reason: rejection };
       }
       claimedOutputs = /** @type {bigint[]} */ (message.slice());
-      const r0 = Array.from({ length: bits[0] }, () => challengeSource.draw());
+      const r0 = Array.from({ length: bits[0] }, drawVerifierChallenge);
       point = r0;
       claim = evaluateMultilinearFromValues(field, claimedOutputs, r0);
       outputs = { claimed: claimedOutputs.slice(), r0: r0.slice(), m0: claim };
@@ -448,7 +465,7 @@ export function createGkrVerifier({ field, circuit, inputs, challengeSource }) {
         return { ok: false, reason: record.reason };
       }
       const q = /** @type {bigint[]} */ (message.slice());
-      const degree = q.length - 1;
+      const degree = univariateDegree(q);
       if (degree > bound) {
         record.checks = active.checks();
         record.sumcheck = active.transcript();
@@ -479,14 +496,15 @@ export function createGkrVerifier({ field, circuit, inputs, challengeSource }) {
         reject(record.reason);
         return { ok: false, reason: record.reason };
       }
-      const rStar = challengeSource.draw();
+      const rStar = drawVerifierChallenge();
       point = evaluateLine(field, line, rStar);
       claim = evaluateUnivariate(field, q, rStar);
       record.rStar = rStar;
       record.nextPoint = point.slice();
       record.nextClaim = claim;
       record.ok = true;
-      record.reason = `layer ${layer}: sum-check accepted; q has degree ${degree} ≤ ${bound}; r* = ${rStar} gives the layer-${layer + 1} claim W̃${layer + 1}(${point.join(', ')}) = ${claim}`;
+      const degreeDescription = degree < 0 ? '−∞ (zero polynomial)' : String(degree);
+      record.reason = `layer ${layer}: sum-check accepted; q has degree ${degreeDescription} ≤ ${bound}; r* = ${rStar} gives the layer-${layer + 1} claim W̃${layer + 1}(${point.join(', ')}) = ${claim}`;
       sumcheck = null;
       if (layer + 1 === depth) {
         phase = 'await-terminal';

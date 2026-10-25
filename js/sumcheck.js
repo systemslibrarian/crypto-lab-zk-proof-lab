@@ -19,6 +19,7 @@ import {
   mulUnivariate,
   partialSumUnivariate,
   scaleUnivariate,
+  univariateDegree,
   variableDegrees,
 } from './polynomial.js';
 
@@ -129,7 +130,7 @@ export function createSumcheckVerifier({ field, degreeBounds, claimedSum, challe
         return check;
       }
       const polynomial = /** @type {bigint[]} */ (message.slice());
-      const degree = polynomial.length - 1;
+      const degree = univariateDegree(polynomial);
       const sumAt01 = field.add(evaluateUnivariate(field, polynomial, 0n), evaluateUnivariate(field, polynomial, 1n));
       /** @type {RoundCheck['failedCheck']} */
       let failedCheck = null;
@@ -143,6 +144,7 @@ export function createSumcheckVerifier({ field, degreeBounds, claimedSum, challe
         reason = `round ${round}: s${round}(0) + s${round}(1) = ${sumAt01} but the verifier expected ${expected} (${origin})`;
       }
       const ok = failedCheck === null;
+      const degreeDescription = degree < 0 ? '−∞ (zero polynomial)' : String(degree);
       /** @type {RoundCheck} */
       const check = {
         round,
@@ -153,7 +155,7 @@ export function createSumcheckVerifier({ field, degreeBounds, claimedSum, challe
         expected,
         ok,
         failedCheck,
-        reason: ok ? `round ${round}: degree ${degree} ≤ ${bound} and s${round}(0) + s${round}(1) = ${expected}` : reason,
+        reason: ok ? `round ${round}: degree ${degreeDescription} ≤ ${bound} and s${round}(0) + s${round}(1) = ${expected}` : reason,
       };
       checks.push(check);
       if (ok) {
@@ -242,25 +244,57 @@ export function createSumcheckVerifier({ field, degreeBounds, claimedSum, challe
  */
 
 /**
- * A degree-≤d polynomial u with u(0) + u(1) = 1 and as many roots as the field
- * allows, so a carried lie debt·u(X) survives the recurrence and is caught only
- * when the challenge misses every root. With d roots at 2, …, d+1 the cheater
- * passes a round with probability d/|F|: the bound in Lemma 2.5 is tight.
+ * A degree-≤d polynomial u with u(0) + u(1) = 1 and as many distinct roots as
+ * the degree and field allow. A carried lie debt·u(X) survives the recurrence
+ * and is caught only when the challenge misses every root. When d < |F| this
+ * realizes d roots, making the d/|F| round bound tight. The returned root list
+ * is authoritative when d ≥ |F|, where no non-zero function can vanish at all
+ * field elements.
  * @param {PrimeField} field
  * @param {number} degree
  */
 export function liePolynomialUnit(field, degree) {
-  if (degree >= 1 && field.p >= BigInt(degree + 3)) {
-    let product = [1n];
-    const roots = [];
-    for (let root = 2; root <= degree + 1; root += 1) {
-      roots.push(BigInt(root));
-      product = mulUnivariate(field, product, [field.neg(BigInt(root)), 1n]);
+  if (!Number.isInteger(degree) || degree < 0) throw new RangeError('a degree bound must be a non-negative integer');
+  if (degree >= 1) {
+    const rootCount = field.p <= BigInt(degree) ? Number(field.p - 1n) : degree;
+    /** @param {bigint[]} roots */
+    const fromRoots = (roots) => {
+      let product = [1n];
+      for (const root of roots) product = mulUnivariate(field, product, [field.neg(root), 1n]);
+      const denominator = field.add(evaluateUnivariate(field, product, 0n), evaluateUnivariate(field, product, 1n));
+      return denominator === 0n ? null : { polynomial: scaleUnivariate(field, product, field.inv(denominator)), roots: roots.slice() };
+    };
+
+    // Keep the readable roots 2, …, d+1 whenever they work. F_5 at d=3 is
+    // the instructive exception: that product has u(0)+u(1)=0, so search a
+    // small deterministic set of alternatives instead of silently dropping
+    // from three roots to one.
+    const preferred = Array.from({ length: rootCount }, (_, index) => BigInt(index + 2));
+    if (preferred.every((root) => root < field.p)) {
+      const candidate = fromRoots(preferred);
+      if (candidate) return candidate;
     }
-    const denominator = field.add(evaluateUnivariate(field, product, 0n), evaluateUnivariate(field, product, 1n));
-    if (denominator !== 0n) return { polynomial: scaleUnivariate(field, product, field.inv(denominator)), roots };
+
+    const poolSize = field.p <= BigInt(rootCount + 2) ? Number(field.p) : rootCount + 2;
+    const pool = Array.from({ length: poolSize }, (_, index) => BigInt(index));
+    /** @type {{ polynomial: bigint[], roots: bigint[] } | null} */
+    let found = null;
+    /** @param {number} start @param {bigint[]} roots */
+    const choose = (start, roots) => {
+      if (found) return;
+      if (roots.length === rootCount) {
+        found = fromRoots(roots);
+        return;
+      }
+      for (let index = start; index <= pool.length - (rootCount - roots.length); index += 1) {
+        choose(index + 1, [...roots, pool[index]]);
+        if (found) return;
+      }
+    };
+    choose(0, []);
+    if (found) return found;
+    throw new RangeError(`could not construct a normalized lie polynomial of degree at most ${degree} over F_${field.p}`);
   }
-  if (degree >= 1) return { polynomial: [1n, field.neg(1n)], roots: [1n] };
   if (field.p === 2n) throw new RangeError('over F_2 a constant round cannot carry a lie');
   return { polynomial: [field.inv(2n)], roots: [] };
 }

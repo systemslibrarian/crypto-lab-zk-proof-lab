@@ -7,10 +7,10 @@ import {
   createSumcheckVerifier,
   replaySumcheckTranscript,
 } from '../js/sumcheck.js';
-import { DEMO_CIRCUIT, createGkrProver, runGkr } from '../js/gkr.js';
+import { DEMO_CIRCUIT, createGkrProver, createGkrVerifier, runGkr } from '../js/gkr.js';
 
 /**
- * Fast, named owners for Exhibit 08's six source mutations. The replayable
+ * Fast, named owners for Exhibit 08's nine source mutations. The replayable
  * mutation runner invokes one at a time with --retries=0 and requires the kill
  * to be an assertion in exactly this test. Each fixture is scripted or seeded,
  * so the verdict a mutation changes is deterministic.
@@ -19,6 +19,8 @@ import { DEMO_CIRCUIT, createGkrProver, runGkr } from '../js/gkr.js';
 const field = createField(2147483647n);
 const g = parsePolynomial(field, '2*x1^3 + x1*x3 + x2*x3');
 const oracle = (point: bigint[]) => evaluatePolynomial(field, g, point);
+/** r0; four layer-0 sum-check coins; r*; four layer-1 coins; r*. */
+const fullGkrChallenges = [2n, 3n, 5n, 7n, 9n, 10n, 4n, 6n, 8n, 11n, 15n];
 
 test('mutation oracle · sum-check verifier enforces the recurrence', () => {
   const prover = createSumcheckProver({ field, polynomial: g, strategy: { kind: 'wrong-sum-naive', offset: 1n } });
@@ -59,6 +61,55 @@ test('mutation oracle · GKR verifier evaluates the wiring it derived itself', (
   expect(run.failedAt).toBeNull();
   expect(run.transcript.layers.map((layer) => layer.final?.ok)).toEqual([true, true]);
   expect(run.transcript.terminal?.ok).toBe(true);
+});
+
+test('mutation oracle · GKR verifier enforces the line-polynomial degree bound', () => {
+  const inputs = [3n, 2n, 3n, 1n];
+  const run = runGkr({
+    field,
+    circuit: DEMO_CIRCUIT,
+    inputs,
+    prover: createGkrProver({ field, circuit: DEMO_CIRCUIT, inputs, strategy: { kind: 'invalid-line', layer: 0, mode: 'degree' } }),
+    // Keep enough verifier coins for the mutated guard to run through the
+    // later semantic checks; source exhaustion must never masquerade as a kill.
+    challengeSource: scriptedChallengeSource(field, fullGkrChallenges),
+  });
+  expect(run.accepted).toBe(false);
+  expect(run.failedAt).toEqual({ stage: 'line-degree', layer: 0 });
+  expect(run.reason).toBe('layer 0 line: q has degree 3 but W̃1 restricted to a line has degree at most 2');
+});
+
+test('mutation oracle · GKR terminal check is anchored to the public inputs', () => {
+  const inputs = [3n, 2n, 3n, 1n];
+  const challenges = [2n, 3n, 5n, 7n, 9n, 10n, 4n, 6n, 8n, 11n, 15n];
+  const run = runGkr({
+    field,
+    circuit: DEMO_CIRCUIT,
+    inputs,
+    prover: createGkrProver({ field, circuit: DEMO_CIRCUIT, inputs, strategy: { kind: 'invalid-line', layer: 1, mode: 'value', offset: 1n } }),
+    challengeSource: scriptedChallengeSource(field, challenges),
+  });
+  expect(run.accepted).toBe(false);
+  expect(run.failedAt).toEqual({ stage: 'terminal', layer: 2 });
+  expect(run.transcript.terminal?.ok).toBe(false);
+  expect(run.transcript.terminal?.claim).not.toBe(run.transcript.terminal?.evaluated);
+});
+
+test('mutation oracle · GKR refuses verifier challenges outside its field', () => {
+  const invalidSource = {
+    kind: 'scripted' as const,
+    label: 'invalid mutation fixture',
+    draw: () => field.p,
+  };
+  const verifier = createGkrVerifier({
+    field,
+    circuit: DEMO_CIRCUIT,
+    inputs: [3n, 2n, 3n, 1n],
+    challengeSource: invalidSource,
+  });
+  // Exercise GKR's own r0 guard directly. If that guard is removed, this call
+  // succeeds; a downstream sum-check guard cannot accidentally kill the mutant.
+  expect(() => verifier.receiveOutputs([18n, 4n])).toThrow('the challenge source returned a value outside the field');
 });
 
 test('mutation oracle · a challenge cannot be drawn before its prover message', () => {

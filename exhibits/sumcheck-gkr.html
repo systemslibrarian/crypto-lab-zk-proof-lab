@@ -50,7 +50,7 @@
       </div>
       <div class="props">
         <span class="prop prop-c">✓ Completeness</span>
-        <span class="prop prop-s">✓ Soundness error ≤ v·d / |F|</span>
+        <span class="prop prop-s">✓ Act A error ≤ v·d / |F| under fresh uniform challenges unpredictable until each message is fixed</span>
         <span class="prop prop-z">✗ Not zero-knowledge · not a SNARK</span>
       </div>
 
@@ -134,7 +134,7 @@
                 <option value="wrong-sum-carried">wrong sum, lie carried through every recurrence</option>
                 <option value="inconsistent-round">inconsistent message at round j</option>
                 <option value="excessive-degree">message above the degree bound at round j</option>
-                <option value="lagrange-degree-attack">degree-(p−1) interpolant (tiny fields only)</option>
+                <option value="lagrange-degree-attack">full-field interpolant (degree ≤ p−1; tiny fields only)</option>
               </select>
               <label for="sc-strategy-round">round j</label>
               <input id="sc-strategy-round" class="txa" style="min-height:44px;width:auto;flex:0 1 90px" type="number" min="1" value="2">
@@ -171,7 +171,7 @@
         <div class="panel" style="margin-bottom:14px">
           <div class="ph">BREAK IT YOURSELF · REPLAY A TRANSCRIPT, THEN DAMAGE IT</div>
           <div class="pb">
-            <p>A finished run is recorded as messages and challenges only. Replaying it re-runs every verifier check; a transcript with a missing round, swapped rounds, a challenge recorded before its message, a value outside the field, or a message edited after its challenge was drawn is refused by name.</p>
+            <p>A finished run records each round's message and challenge, but not event timestamps. Replaying it re-runs structural and algebraic checks: a missing or swapped round, a challenge with no message, a value outside the field, or an edited message is refused by name. Replay cannot prove that a recorded challenge was historically sampled after the message or was unpredictable; the live verifier's phase guard and fresh-random mode enforce those separate requirements.</p>
             <label for="sc-transcript-json" class="hash-label">Transcript JSON (editable)</label>
             <textarea id="sc-transcript-json" class="txa" rows="6" spellcheck="false" placeholder="Run the protocol to record a transcript here."></textarea>
             <div class="controls">
@@ -180,7 +180,7 @@
               <button class="bd" id="sc-mutate-swap" type="button">Swap rounds 1 and 2</button>
               <button class="bd" id="sc-mutate-coefficient" type="button">Edit s<sub>1</sub> after r<sub>1</sub> was drawn, keeping s<sub>1</sub>(0)+s<sub>1</sub>(1)</button>
               <button class="bd" id="sc-mutate-noncanonical" type="button">Set a coefficient to p</button>
-              <button class="bd" id="sc-mutate-challenge-first" type="button">Record a challenge before its message</button>
+              <button class="bd" id="sc-mutate-challenge-first" type="button">Delete a message but retain its challenge</button>
               <button class="bd" id="sc-mutate-bounds" type="button">Loosen the degree bounds</button>
             </div>
             <div id="sc-replay-verdict" class="sigma-verdict" data-verdict="replay" data-state="pending" role="status" aria-live="polite">No transcript replayed yet.</div>
@@ -200,12 +200,12 @@
                 <thead><tr><th>Prover</th><th>Accepted</th><th>Rejected by degree</th><th>Rejected by recurrence</th><th>Rejected at final evaluation</th><th>Of</th></tr></thead>
                 <tbody>
                   <tr><td>honest</td><td id="census-honest-accepted">—</td><td id="census-honest-degree">—</td><td id="census-honest-recurrence">—</td><td id="census-honest-final">—</td><td id="census-honest-total">—</td></tr>
-                  <tr><td>wrong sum, carried lie with d roots per round</td><td id="census-lie-accepted">—</td><td id="census-lie-degree">—</td><td id="census-lie-recurrence">—</td><td id="census-lie-final">—</td><td id="census-lie-total">—</td></tr>
-                  <tr><td>degree-(p−1) interpolant for s<sub>1</sub></td><td id="census-attack-accepted">—</td><td id="census-attack-degree">—</td><td id="census-attack-recurrence">—</td><td id="census-attack-final">—</td><td id="census-attack-total">—</td></tr>
+                  <tr><td>wrong sum, carried lie with explicitly counted roots</td><td id="census-lie-accepted">—</td><td id="census-lie-degree">—</td><td id="census-lie-recurrence">—</td><td id="census-lie-final">—</td><td id="census-lie-total">—</td></tr>
+                  <tr><td>full-field interpolant for s<sub>1</sub> (degree ≤ p−1)</td><td id="census-attack-accepted">—</td><td id="census-attack-degree">—</td><td id="census-attack-recurrence">—</td><td id="census-attack-final">—</td><td id="census-attack-total">—</td></tr>
                 </tbody>
               </table>
             </div>
-            <div class="vl" id="census-readout"><strong>Readout:</strong> no census yet. The carried lie succeeds exactly when some r<sub>j</sub> lands on a root of that round's lie polynomial, so its accepted count is p<sup>v</sup> − Π<sub>j</sub>(p − deg<sub>j</sub>(g)), and the bound v·d / |F| counts it with the largest degree in every round. The interpolant agrees with the honest s<sub>1</sub> on p − 1 of the p points yet has degree p − 1, which the degree check refuses every time.</div>
+            <div class="vl" id="census-readout"><strong>Readout:</strong> no census yet. The carried lie succeeds exactly when some r<sub>j</sub> lands on one of that round's explicitly constructed roots, so its accepted count is p<sup>v</sup> − Π<sub>j</sub>(p − roots<sub>j</sub>). The v·d / |F| theorem uses degree bounds, not an assumed root count. The interpolant agrees with the honest s<sub>1</sub> on p − 1 field points; it is refused on degree only when p − 1 exceeds the public X<sub>1</sub> bound.</div>
             <div id="sc-census-verdict" class="sigma-verdict" data-verdict="census" data-state="pending" role="status" aria-live="polite">Run the census to compare the counts with the bound.</div>
           </div>
         </div>
@@ -241,7 +241,7 @@
               </table>
             </div>
             <p class="hint">Wiring predicates the verifier derives for itself: <code id="gkr-wiring">—</code></p>
-            <p class="hint" id="gkr-bound" data-value="">Union bound for this walk: —</p>
+            <p class="hint" id="gkr-bound" data-value="">Raw union sum for this walk: —</p>
           </div>
         </div>
 
@@ -281,7 +281,7 @@
       <section class="prose" aria-labelledby="sources-heading">
         <h2 id="sources-heading">Sources, and what is adapted</h2>
         <p>The sum-check technique is Lund, Fortnow, Karloff and Nisan, “Algebraic Methods for Interactive Proof Systems,” J. ACM 39(4), 1992 (author version read here: §3 “The Protocol” — Theorem 1, Lemma 4 and the formal Expand/Shrink protocol — and §4 “Extensions”). That paper states the protocol for the permanent; the one-variable-per-round sum over {0,1}<sup>v</sup> executed here is the form in which Shamir and Babai–Fortnow applied it, which Goldwasser, Kalai and Rothblum restate as Figure 2 and prove as Lemma 2.5 (error m·d/|F|) in the full version of “Delegating Computation: Interactive Proofs for Muggles,” ECCC TR17-108 (revision 1, 2017; STOC 2008 extended abstract). Act B follows that full version's §3.1 (layered circuit, add<sub>i</sub>/mult<sub>i</sub> as equations (4) and (5), Ṽ<sub>i</sub>), §3.2 (the i'th phase: sum-check, then the line step 1–4, then the final verification) and §3.3 (soundness 7mdδ/|F|).</p>
-        <p>Two adaptations are deliberate. GKR's bare-bones protocol sums over H<sup>m</sup> for an extension field H of GF(2) with low-degree extensions of degree δ and an extra β̃ factor; this page takes H = {0,1} and the multilinear extensions, the simplification Thaler attributes to his own 2015 work and to Cormode–Mitzenmacher–Thaler (Thaler, <em>Proofs, Arguments, and Zero-Knowledge</em>, 18 July 2023, §3.5 Lemma 3.6, §4.1 Proposition 4.1, §4.6.4 Lemma 4.7, Remark 4.4 and Figure 4.13). GKR's line reduction uses two fixed distinct points t<sub>1</sub>, t<sub>2</sub>; this page uses ℓ(0) = b*, ℓ(1) = c*. The union bound printed in Act B is computed for this circuit from those adapted degrees, not copied from either paper.</p>
+        <p>Two adaptations are deliberate. GKR's bare-bones protocol sums over H<sup>m</sup> for an extension field H of GF(2) with low-degree extensions of degree δ and an extra β̃ factor; this page takes H = {0,1} and the multilinear extensions, the simplification Thaler attributes to his own 2015 work and to Cormode–Mitzenmacher–Thaler (Thaler, <em>Proofs, Arguments, and Zero-Knowledge</em>, 18 July 2023, §3.5 Lemma 3.6, §4.1 Proposition 4.1, §4.6.4 Lemma 4.7, Remark 4.4 and Figure 4.13). GKR's line reduction uses two fixed distinct points t<sub>1</sub>, t<sub>2</sub>; this page uses ℓ(0) = b*, ℓ(1) = c*. The raw union sum printed in Act B is computed for this circuit from those adapted degrees, not copied from either paper. It is a probability bound only with fresh, independent, uniformly sampled verifier challenges that remain unpredictable until the owning prover message is fixed; it is capped at 1 and labelled vacuous when the raw sum reaches 1. Predictable seeded runs do not inherit that theorem.</p>
         <p>Related demos: <a href="fiat-shamir.html">Exhibit 05</a> shows how a hash would replace the verifier's coins — this page never does that; <a href="snark.html">Exhibit 06</a> is the conceptual SNARK pipeline this protocol is not; <a href="https://systemslibrarian.github.io/crypto-lab-stark-tower/" target="_blank" rel="noopener noreferrer">STARK Tower</a> builds the FRI side of transparent proofs; <a href="https://systemslibrarian.github.io/crypto-lab-zk-arena/" target="_blank" rel="noopener noreferrer">ZK Arena</a> compares proof systems that put sum-check and its relatives to work.</p>
         <!-- [extension] Fiat–Shamir the sum-check verifier's coins and show the resulting non-interactive transcript; link Exhibit 05. -->
         <!-- [extension] A deeper or data-parallel circuit with the verifier evaluating add̃/mult̃ from a wiring formula rather than by enumeration. -->

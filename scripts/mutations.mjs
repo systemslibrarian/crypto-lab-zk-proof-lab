@@ -1,5 +1,5 @@
-// Twelve concrete, replayable patches: six own Exhibit 07's rendered verdicts
-// (js/sigma.js) and six own Exhibit 08's sum-check and GKR checks (js/sumcheck.js,
+// Fifteen concrete, replayable patches: six own Exhibit 07's rendered verdicts
+// (js/sigma.js) and nine own Exhibit 08's sum-check and GKR checks (js/sumcheck.js,
 // js/gkr.js). Every run proves the five §4.1c observations and restores the
 // source in a finally block. Run from the repository root with
 // `npm run test:mutations`, or name one mutation as the first argument.
@@ -82,6 +82,27 @@ const mutations = [
     anchor: 'total = field.add(total, field.mul(field.mul(chi(field, a, here, z), chi(field, in1, below, b)), chi(field, in2, below, c)));',
     replacement: 'total = field.add(total, field.mul(field.mul(chi(field, a, here, z), chi(field, in2, below, b)), chi(field, in1, below, c)));',
     test: 'mutation oracle · GKR verifier evaluates the wiring it derived itself',
+  },
+  {
+    ...GKR,
+    name: 'GKR line-polynomial degree enforcement',
+    anchor: 'if (degree > bound) {',
+    replacement: 'if (degree > bound + 1000) {',
+    test: 'mutation oracle · GKR verifier enforces the line-polynomial degree bound',
+  },
+  {
+    ...GKR,
+    name: 'GKR terminal public-input check',
+    anchor: 'const ok = evaluated === claim;',
+    replacement: 'const ok = evaluated === evaluated;',
+    test: 'mutation oracle · GKR terminal check is anchored to the public inputs',
+  },
+  {
+    ...GKR,
+    name: 'GKR canonical verifier challenge',
+    anchor: "if (!field.isCanonical(challenge)) throw new RangeError('the challenge source returned a value outside the field');",
+    replacement: "if (false) throw new RangeError('the challenge source returned a value outside the field');",
+    test: 'mutation oracle · GKR refuses verifier challenges outside its field',
   },
   {
     ...SUMCHECK,

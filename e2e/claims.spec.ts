@@ -1163,6 +1163,8 @@ test.describe('Sum-check and GKR: computed claims', () => {
   });
 
   test('transcript replay accepts the recorded run and fails closed on every damaged variant', async ({ page }) => {
+    await expect(page.getByText(/Replay cannot prove that a recorded challenge was historically sampled after the message/)).toBeVisible();
+    await expect(page.locator('#sc-mutate-challenge-first')).toHaveText('Delete a message but retain its challenge');
     await page.locator('#sc-run').click();
     await expect(page.locator('#sc-verdict')).toHaveAttribute('data-state', 'pass');
     const recorded = JSON.parse(await page.locator('#sc-transcript-json').inputValue());
@@ -1222,6 +1224,43 @@ test.describe('Sum-check and GKR: computed claims', () => {
     await page.locator('#sc-strategy').selectOption('lagrange-degree-attack');
     await page.locator('#sc-run').click();
     await expect(page.locator('#sc-verdict')).toHaveText('✗ REJECTED — round 1: the message has degree 12 but the degree bound for X1 is 2.');
+  });
+
+  test('the advertised F5 census uses three actual roots and does not mislabel a permitted full-field degree-4 interpolant', async ({ page }) => {
+    await page.locator('#sc-field').selectOption('5');
+    await expect(page.locator('#sc-degrees')).toHaveAttribute('data-value', '3,1,1');
+    await page.locator('#sc-census').click();
+    await expect(page.locator('#sc-census-verdict')).toHaveAttribute('data-state', 'pass', { timeout: 60_000 });
+    await expect(page.locator('#census-lie-accepted')).toHaveText('93');
+    await expect(page.locator('#census-lie-final')).toHaveText('32');
+    await expect(page.locator('#census-readout')).toContainText('constructed root counts are [3, 1, 1]');
+
+    await page.locator('#sc-custom').fill('2*x1^4');
+    await page.locator('#sc-parse').click();
+    await expect(page.locator('#sc-degrees')).toHaveAttribute('data-value', '4');
+    await page.locator('#sc-census').click();
+    await expect(page.locator('#sc-census-verdict')).toHaveAttribute('data-state', 'pass', { timeout: 60_000 });
+    await expect(page.locator('#census-attack-accepted')).toHaveText('4');
+    await expect(page.locator('#census-attack-degree')).toHaveText('0');
+    await expect(page.locator('#census-readout')).toContainText('degree 4 is within the public X1 bound 4');
+    await expect(page.locator('#census-readout')).toContainText('not a degree-bound violation');
+    await page.locator('#sc-strategy').selectOption('lagrange-degree-attack');
+    await expect(page.locator('#sc-strategy-hint')).toContainText('can pass when r1 ≠ 0');
+  });
+
+  test('soundness displays state the randomness assumptions and cap vacuous GKR union sums', async ({ page }) => {
+    await expect(page.locator('#sc-bound')).toHaveAttribute('data-assumptions', 'seeded');
+    await expect(page.locator('#sc-bound')).toContainText('theorem not applicable to predictable seeded challenges');
+    await expect(page.locator('#gkr-bound')).toHaveAttribute('data-assumptions', 'seeded');
+    await expect(page.locator('#gkr-bound')).toContainText('probability guarantee does not apply in seeded mode');
+
+    await page.locator('#sc-field').selectOption('13');
+    await expect(page.locator('#gkr-bound')).toHaveAttribute('data-value', '21/13');
+    await expect(page.locator('#gkr-bound')).toHaveAttribute('data-probability-bound', '1');
+    await expect(page.locator('#gkr-bound')).toContainText('probability bound is only ≤ 1 and is vacuous');
+    await page.locator('#sc-random-fresh').check();
+    await expect(page.locator('#gkr-bound')).toHaveAttribute('data-assumptions', 'fresh');
+    await expect(page.locator('#gkr-bound')).toContainText('probability bound is only ≤ 1 and is vacuous');
   });
 
   test('the GKR walk is recomputed by hand: gate values, wiring extensions, line endpoints and the terminal MLE', async ({ page }) => {
@@ -1305,7 +1344,7 @@ test.describe('Sum-check and GKR: computed claims', () => {
     await expect(page.locator('[data-claim="gkr-scope"]')).toContainText('Not executed: the log-space-uniformity machinery, the sublinear verifier, Fiat–Shamir, or any general theorem');
   });
 
-  test('each GKR cheating strategy is rejected at the stage the verdict names', async ({ page }) => {
+  test('the named seeded GKR run rejects each cheating strategy at the stage the verdict names', async ({ page }) => {
     const p = 2147483647n;
     const cases: Array<[string, RegExp]> = [
       ['wrong-output', /^✗ REJECTED at recurrence \(round 1\) at layer 0 — layer 0: round 1: s1\(0\) \+ s1\(1\) = \d+ but the verifier expected \d+ \(the claimed sum\)\.$/],
@@ -1336,6 +1375,25 @@ test.describe('Sum-check and GKR: computed claims', () => {
     expect(BigInt(terminal[2])).toBe(mle2([3n, 2n, 3n, 1n], bigList(terminal[0]), p));
     expect(BigInt(terminal[2])).not.toBe(BigInt(terminal[1]));
     expect(terminal[3]).toBe('false');
+    await page.locator('#gkr-strategy').selectOption('wrong-output');
+    await expect(page.locator('#gkr-strategy-hint')).toContainText('survives only if r0 hits');
+    await page.locator('#gkr-strategy').selectOption('invalid-line-value');
+    await expect(page.locator('#gkr-strategy-hint')).toContainText('If r* is 0 or 1');
+    await page.locator('#gkr-strategy').selectOption('corrupt-gate');
+    await expect(page.locator('#gkr-strategy-hint')).toContainText('a sampled root event can hide the changed gate and accept');
+    await page.locator('#gkr-strategy').selectOption('corrupt-wiring');
+    await expect(page.locator('#gkr-strategy-hint')).toContainText('a root event can make them equal and accept');
+  });
+
+  test('zero line polynomials are displayed with degree minus infinity, not their padded array length', async ({ page }) => {
+    for (const index of [0, 1, 2, 3]) await page.locator(`#gkr-x${index}`).fill('0');
+    await page.locator('#gkr-evaluate').click();
+    await page.locator('#gkr-run').click();
+    await expect(page.locator('#gkr-verdict')).toHaveAttribute('data-state', 'pass');
+    for (const layer of [0, 1]) {
+      const degreeRow = page.locator(`#gkr-layer-${layer}-line code[data-value="-1/2"]`);
+      await expect(degreeRow).toContainText('−∞ (zero polynomial)');
+    }
   });
 
   test('changing the field, the randomness or the inputs retires every stale result', async ({ page }) => {
@@ -1372,5 +1430,22 @@ test.describe('Sum-check and GKR: computed claims', () => {
     await page.locator('#gkr-evaluate').click();
     await expect(page.locator('#sc-input-error')).toContainText('Circuit inputs must be non-negative integers');
     await expect(page.locator('#gkr-val-1-0')).toHaveText('8');
+  });
+
+  test('an invalid polynomial cannot leave a newly selected field paired with old visible evidence', async ({ page }) => {
+    await page.locator('#sc-run').click();
+    await expect(page.locator('#sc-verdict')).toHaveAttribute('data-state', 'pass');
+    const oldField = await page.locator('#sc-field').inputValue();
+    const oldSum = await textOf(page, '#sc-sum');
+    await page.locator('#sc-custom').fill('x1 + *');
+    await page.locator('#sc-parse').click();
+    await expect(page.locator('#sc-input-error')).toContainText('Polynomial not applied');
+
+    await page.locator('#sc-field').selectOption('101');
+    await expect(page.locator('#sc-input-error')).toContainText('The previous field and statement stay in force');
+    await expect(page.locator('#sc-field')).toHaveValue(oldField);
+    await expect(page.locator('#sc-p')).toHaveText(oldField);
+    await expect(page.locator('#sc-sum')).toHaveText(oldSum);
+    await expect(page.locator('#sc-verdict')).toHaveAttribute('data-state', 'pass');
   });
 });
