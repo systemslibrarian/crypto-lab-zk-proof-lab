@@ -10,6 +10,7 @@ const pages = [
   '/exhibits/fiat-shamir.html',
   '/exhibits/snark.html',
   '/exhibits/sigma-family.html',
+  '/exhibits/sumcheck-gkr.html',
   '/exhibits/transcript-lab.html',
   '/exhibits/scenario-presets.html'
 ];
@@ -23,6 +24,7 @@ const trustExpected = new Set([
   '/exhibits/fiat-shamir.html',
   '/exhibits/snark.html',
   '/exhibits/sigma-family.html',
+  '/exhibits/sumcheck-gkr.html',
   '/exhibits/transcript-lab.html',
   '/exhibits/scenario-presets.html'
 ]);
@@ -205,6 +207,59 @@ async function runExtractorBenchCheck(page) {
   assertPass(clearedRecon === '—' && clearedStrong === '—', 'Reset Bench clears every computed extractor cell');
 }
 
+// Exhibit 08: the sum-check recurrence is re-derived from the rendered transcript
+// and the final evaluation from its data attributes, then a carried wrong-sum lie
+// is run through the same verifier and must be rejected by the final evaluation.
+async function runSumcheckInvariantCheck(page) {
+  await page.goto(`${baseUrl}/exhibits/sumcheck-gkr.html?seed=ci-sumcheck`, { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => document.getElementById('sc-sum')?.textContent === '12');
+  await page.click('#sc-run');
+  await page.waitForFunction(() => document.getElementById('sc-verdict')?.dataset.state === 'pass');
+  const check = await page.evaluate(() => {
+    const p = BigInt(document.getElementById('sc-p').dataset.value);
+    const horner = (coefficients, x) => coefficients.reduceRight((acc, coefficient) => (acc * x + coefficient) % p, 0n);
+    const rows = [...document.querySelectorAll('#sc-rounds-body tr[data-round]')].map((row) => ({
+      polynomial: row.querySelector('.sc-poly').dataset.value.split(',').map((entry) => BigInt(entry)),
+      challenge: BigInt(row.querySelector('.sc-challenge').dataset.value),
+      expected: BigInt(row.querySelector('.sc-expected').dataset.value),
+    }));
+    let expected = BigInt(document.getElementById('sc-claim-line').dataset.value);
+    let consistent = true;
+    for (const row of rows) {
+      if (row.expected !== expected || (horner(row.polynomial, 0n) + horner(row.polynomial, 1n)) % p !== expected) consistent = false;
+      expected = horner(row.polynomial, row.challenge);
+    }
+    const finalLine = document.getElementById('sc-final-line');
+    return { rows: rows.length, consistent, last: expected.toString(), claimed: finalLine.dataset.claimed, evaluated: finalLine.dataset.evaluated };
+  });
+  assertPass(check.rows === 3 && check.consistent, 'Sum-check recurrence re-derived from the rendered transcript');
+  assertPass(check.claimed === check.last && check.claimed === check.evaluated, 'Sum-check final evaluation equals the last message at its challenge');
+  await page.selectOption('#sc-strategy', 'wrong-sum-carried');
+  await page.click('#sc-run');
+  await page.waitForFunction(() => document.getElementById('sc-verdict')?.dataset.state === 'fail');
+  const reason = await page.locator('#sc-verdict').textContent();
+  assertPass(/final check: s3\(r3\) = \d+ but the direct evaluation g\(r\) = \d+/.test(reason || ''), 'Carried wrong-sum lie is rejected by the final evaluation with its numbers');
+}
+
+// Exhibit 08, Act B: the honest walk ends with the verifier's own input-layer
+// evaluation equal to the carried claim, and a prover with one wrong wire is
+// caught at the final evaluation of the layer anchored to the public inputs.
+async function runGkrWalkCheck(page) {
+  await page.goto(`${baseUrl}/exhibits/sumcheck-gkr.html?seed=ci-gkr`, { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => document.getElementById('gkr-val-0-0')?.textContent === '30');
+  await page.click('#gkr-run');
+  await page.waitForFunction(() => document.getElementById('gkr-verdict')?.dataset.state === 'pass');
+  const terminal = await page.$$eval('#gkr-terminal code[data-value]', (nodes) => nodes.map((node) => node.dataset.value));
+  assertPass(terminal.length === 4 && terminal[1] === terminal[2] && terminal[3] === 'true', 'GKR terminal check: carried claim equals the verifier\'s own input-layer evaluation');
+  const outputs = await page.$eval('#gkr-outputs code[data-value]', (node) => node.dataset.value);
+  assertPass(outputs === '30,7', 'GKR claimed outputs equal the direct circuit evaluation (30, 7)');
+  await page.selectOption('#gkr-strategy', 'corrupt-wiring');
+  await page.click('#gkr-run');
+  await page.waitForFunction(() => document.getElementById('gkr-verdict')?.dataset.state === 'fail');
+  const verdict = await page.locator('#gkr-verdict').textContent();
+  assertPass(Boolean(verdict && verdict.includes('REJECTED at final at layer 1')), 'GKR corrupted-wiring prover is caught at the layer-1 final evaluation');
+}
+
 async function runScenarioPresetLinkCheck(page) {
   await page.goto(`${baseUrl}/exhibits/scenario-presets.html`, { waitUntil: 'domcontentloaded' });
   const links = await page.$$eval('section[aria-label="Preset selector"] a.card', nodes => nodes.map(node => node.getAttribute('href')).filter(Boolean));
@@ -261,6 +316,8 @@ await runCommitInvariantCheck(page);
 await runSnarkTamperCheck(page);
 await runGraphCommitmentCheck(page);
 await runExtractorBenchCheck(page);
+await runSumcheckInvariantCheck(page);
+await runGkrWalkCheck(page);
 await runScenarioPresetLinkCheck(page);
 
 await browser.close();

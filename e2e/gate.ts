@@ -454,7 +454,7 @@ export async function runPage(
  * `.cl-skip-link` can be measured, and the only page with
  * the guided tour — which builds a `position: fixed` `.tour-bar` over the
  * content and moves a `.tour-active` outline from card to card. Every one of
- * its seven stops is a separate rendering (the Back button is disabled on the
+ * its eight stops is a separate rendering (the Back button is disabled on the
  * first, the Next button reads "Finish" on the last), so each is scanned.
  */
 const LOBBY: PageSpec = {
@@ -463,7 +463,7 @@ const LOBBY: PageSpec = {
   firstPaint: async (page) => {
     await expect(page.locator('.cl-topbar')).toBeVisible();
     await expect(page.locator('.cl-hero-title')).toHaveText('ZK Proof Lab');
-    await expect(page.locator('.lobby-grid .card')).toHaveCount(7);
+    await expect(page.locator('.lobby-grid .card')).toHaveCount(8);
     await expect(page.locator('#tour-btn')).toHaveAttribute('aria-expanded', 'false');
     // The tour bar is built on demand and is genuinely absent here.
     await expect(page.locator('.tour-bar')).toHaveCount(0);
@@ -479,15 +479,15 @@ const LOBBY: PageSpec = {
     await page.locator('#tour-btn').click();
     await expect(page.locator('.tour-bar')).toBeVisible();
     await expect(page.locator('#tour-btn')).toHaveAttribute('aria-expanded', 'true');
-    for (let stop = 1; stop <= 7; stop++) {
-      await expect(page.locator('.tour-counter')).toHaveText(`Stop ${stop} of 7`);
+    for (let stop = 1; stop <= 8; stop++) {
+      await expect(page.locator('.tour-counter')).toHaveText(`Stop ${stop} of 8`);
       await expect(page.locator('.tour-active')).toHaveCount(1);
       // First stop has Back disabled; last reads "Finish" rather than "Next".
       if (stop === 1) await expect(page.locator('.tour-prev')).toBeDisabled();
       else await expect(page.locator('.tour-prev')).toBeEnabled();
-      await expect(page.locator('.tour-next')).toHaveText(stop === 7 ? 'Finish' : 'Next ▷');
-      await scan(page, at(`guided tour, stop ${stop} of 7`));
-      if (stop < 7) await page.locator('.tour-next').click();
+      await expect(page.locator('.tour-next')).toHaveText(stop === 8 ? 'Finish' : 'Next ▷');
+      await scan(page, at(`guided tour, stop ${stop} of 8`));
+      if (stop < 8) await page.locator('.tour-next').click();
     }
 
     // "Finish" on the last stop closes the tour and returns focus to the launcher.
@@ -918,6 +918,126 @@ const SIGMA_FAMILY: PageSpec = {
 };
 
 /**
+ * Exhibit 08 — sum-check and the GKR layer walk.
+ *
+ * Every verdict the page renders is a distinct state and each is scanned: the
+ * honest run, the stepped run (whose intermediate `busy` verdict and half-filled
+ * transcript row exist only between steps), each refused prover, the replay of a
+ * recorded transcript and two damaged variants, the input-validation alert, the
+ * tiny-field census (reachable only after the field select changes), and the GKR
+ * walk for the honest prover and three cheating strategies. The page is loaded
+ * with `?seed=…` so the deterministic teaching randomness keeps every state in
+ * the same place; the page labels that mode as not secure, and the gate asserts
+ * the seeded radio is what the URL selected.
+ */
+const SUMCHECK_GKR: PageSpec = {
+  path: 'exhibits/sumcheck-gkr.html?seed=zk-gate',
+  label: 'sumcheck-gkr',
+  firstPaint: async (page) => {
+    await expect(page.locator('[data-verdict]')).toHaveCount(4);
+    await expect(page.locator('#sc-verdict')).toHaveAttribute('data-state', 'pending');
+    await expect(page.locator('#sc-rounds-body tr[data-round]')).toHaveCount(0);
+    await expect(page.locator('#sc-rounds-body .sc-placeholder')).toHaveCount(1);
+    await expect(page.locator('#sc-sum')).toHaveText('12');
+    await expect(page.locator('#sc-input-error')).toBeHidden();
+    await expect(page.locator('#sc-census')).toBeDisabled();
+    await expect(page.locator('#sc-random-seeded')).toBeChecked();
+    await expect(page.locator('#gkr-verdict')).toHaveAttribute('data-state', 'pending');
+    await expect(page.locator('#gkr-val-0-0')).toHaveText('30');
+    await expect(page.locator('.gkr-layer')).toHaveCount(0);
+  },
+  drive: async (page, at) => {
+    await page.locator('#sc-run').click();
+    await expect(page.locator('#sc-verdict')).toHaveAttribute('data-state', 'pass');
+    await expect(page.locator('#sc-rounds-body tr[data-round]')).toHaveCount(3);
+    await scan(page, at('honest sum-check accepted, transcript recorded'));
+
+    // Stepping: the claim, then round 1's message (checked, challenge pending), then its challenge.
+    await page.locator('#sc-reset').click();
+    await expect(page.locator('#sc-rounds-body tr[data-round]')).toHaveCount(0);
+    await page.locator('#sc-step').click();
+    await page.locator('#sc-step').click();
+    await expect(page.locator('#sc-verdict')).toHaveAttribute('data-state', 'busy');
+    await expect(page.locator('#sc-rounds-body tr[data-round]')).toHaveCount(1);
+    await expect(page.locator('#sc-rounds-body tr[data-round] .sc-challenge')).toHaveAttribute('data-value', '');
+    await scan(page, at('stepped: round-1 message checked, challenge not yet drawn'));
+    await page.locator('#sc-step').click();
+    await expect(page.locator('#sc-rounds-body tr[data-round] .sc-challenge')).not.toHaveAttribute('data-value', '');
+    await scan(page, at('stepped: round-1 challenge drawn'));
+
+    for (const [strategy, label] of [
+      ['wrong-sum-naive', 'wrong sum refused at round 1'],
+      ['wrong-sum-carried', 'carried lie refused at the final evaluation'],
+      ['inconsistent-round', 'inconsistent round refused'],
+      ['excessive-degree', 'over-degree message refused'],
+    ] as const) {
+      await page.locator('#sc-strategy').selectOption(strategy);
+      await expect(page.locator('#sc-verdict')).toHaveAttribute('data-state', 'pending');
+      await page.locator('#sc-run').click();
+      await expect(page.locator('#sc-verdict')).toHaveAttribute('data-state', 'fail');
+      await scan(page, at(label));
+    }
+
+    await page.locator('#sc-strategy').selectOption('honest');
+    await page.locator('#sc-run').click();
+    await expect(page.locator('#sc-verdict')).toHaveAttribute('data-state', 'pass');
+    await page.locator('#sc-replay').click();
+    await expect(page.locator('#sc-replay-verdict')).toHaveAttribute('data-state', 'pass');
+    await scan(page, at('honest transcript replayed'));
+    for (const [id, label] of [
+      ['sc-mutate-truncate', 'truncated transcript refused'],
+      ['sc-mutate-challenge-first', 'challenge-before-message transcript refused'],
+    ] as const) {
+      await page.locator('#sc-run').click();
+      await page.locator(`#${id}`).click();
+      await expect(page.locator('#sc-replay-verdict')).toHaveAttribute('data-state', 'fail');
+      await scan(page, at(label));
+    }
+
+    await page.locator('#sc-custom').fill('x1 $');
+    await page.locator('#sc-parse').click();
+    await expect(page.locator('#sc-input-error')).toBeVisible();
+    await scan(page, at('malformed polynomial refused by name'));
+    await page.locator('#sc-preset').selectOption('x1*x2 + 3*x1^2');
+    await expect(page.locator('#sc-input-error')).toBeHidden();
+
+    await page.locator('#sc-field').selectOption('13');
+    await expect(page.locator('#sc-census')).toBeEnabled();
+    await page.locator('#sc-census').click();
+    await expect(page.locator('#sc-census-verdict')).toHaveAttribute('data-state', 'pass', { timeout: 60_000 });
+    await scan(page, at('tiny-field census complete'));
+    await page.locator('#sc-strategy').selectOption('lagrange-degree-attack');
+    await page.locator('#sc-run').click();
+    await expect(page.locator('#sc-verdict')).toHaveAttribute('data-state', 'fail');
+    await scan(page, at('degree-(p−1) interpolant refused'));
+    await page.locator('#sc-field').selectOption('2147483647');
+    await expect(page.locator('#sc-census')).toBeDisabled();
+    await page.locator('#sc-strategy').selectOption('honest');
+
+    await page.locator('#gkr-run').click();
+    await expect(page.locator('#gkr-verdict')).toHaveAttribute('data-state', 'pass');
+    await expect(page.locator('.gkr-layer')).toHaveCount(2);
+    await scan(page, at('GKR walk accepted'));
+    for (const [strategy, label] of [
+      ['wrong-output', 'wrong output refused at layer 0'],
+      ['corrupt-wiring', 'corrupted wiring refused at the final evaluation'],
+      ['invalid-line-last', 'wrong line polynomial refused at the terminal check'],
+    ] as const) {
+      await page.locator('#gkr-strategy').selectOption(strategy);
+      await expect(page.locator('#gkr-verdict')).toHaveAttribute('data-state', 'pending');
+      await page.locator('#gkr-run').click();
+      await expect(page.locator('#gkr-verdict')).toHaveAttribute('data-state', 'fail');
+      await scan(page, at(label));
+    }
+    await page.locator('#gkr-x0').fill('9');
+    await page.locator('#gkr-evaluate').click();
+    await expect(page.locator('#gkr-verdict')).toHaveAttribute('data-state', 'pending');
+    await expect(page.locator('#gkr-val-0-0')).toHaveText('66');
+    await scan(page, at('circuit inputs changed, walk retired'));
+  },
+};
+
+/**
  * The transcript replay lab.
  *
  * Four states the exhibits themselves never produce: the "no transcript stored"
@@ -1042,6 +1162,7 @@ export const PAGES: PageSpec[] = [
   FIAT_SHAMIR,
   SNARK,
   SIGMA_FAMILY,
+  SUMCHECK_GKR,
   TRANSCRIPT_LAB,
   SCENARIO_PRESETS,
 ];

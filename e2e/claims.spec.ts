@@ -963,3 +963,414 @@ test.describe('Graph 3-coloring', () => {
     await expect(page.locator('#x-broken-guess')).toHaveText(`${(100 / RELABELINGS).toFixed(2)}%`);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Exhibit 08: sum-check and the GKR layer walk
+// ---------------------------------------------------------------------------
+
+type Term = { coefficient: bigint; exponents: number[] };
+
+/** Independent parser for the exhibit's canonical form: terms joined by " + ", factors joined by "*". */
+function parseTerms(text: string, variables: number): Term[] {
+  return text.split(' + ').map((term) => {
+    const exponents = new Array(variables).fill(0);
+    let coefficient = 1n;
+    for (const factor of term.split('*')) {
+      const variable = factor.match(/^x(\d+)(?:\^(\d+))?$/);
+      if (variable) exponents[Number(variable[1]) - 1] += variable[2] ? Number(variable[2]) : 1;
+      else coefficient *= BigInt(factor);
+    }
+    return { coefficient, exponents };
+  });
+}
+
+function evalTerms(terms: Term[], point: bigint[], p: bigint): bigint {
+  let total = 0n;
+  for (const term of terms) {
+    let value = term.coefficient % p;
+    term.exponents.forEach((exponent, index) => { value = (value * modpow(point[index], BigInt(exponent), p)) % p; });
+    total = (total + value) % p;
+  }
+  return total;
+}
+
+/** Σ over every Boolean suffix of g(prefix, t, suffix): the honest round message evaluated at t. */
+function honestPartial(terms: Term[], prefix: bigint[], t: bigint, variables: number, p: bigint): bigint {
+  const free = variables - prefix.length - 1;
+  let total = 0n;
+  for (let label = 0; label < 1 << free; label += 1) {
+    const suffix = Array.from({ length: free }, (_, i) => BigInt((label >> (free - 1 - i)) & 1));
+    total = (total + evalTerms(terms, [...prefix, t, ...suffix], p)) % p;
+  }
+  return total;
+}
+
+const horner = (coefficients: bigint[], x: bigint, p: bigint): bigint =>
+  coefficients.reduceRight((acc, coefficient) => (acc * x + coefficient) % p, 0n);
+
+const bigList = (value: string | null): bigint[] => (value ?? '').split(',').filter(Boolean).map((entry) => BigInt(entry));
+
+/** Multilinear extension of a 4-entry table at a 2-coordinate point, written out term by term. */
+function mle2(table: bigint[], [a, b]: bigint[], p: bigint): bigint {
+  const na = (1n - a + p) % p;
+  const nb = (1n - b + p) % p;
+  return (table[0] * na % p * nb + table[1] * na % p * b + table[2] * a % p * nb + table[3] * a % p * b) % p;
+}
+
+/** χ_w at a point for a label w of `bits` bits, most significant first. */
+function chi(label: number, bits: number, point: bigint[], p: bigint): bigint {
+  let value = 1n;
+  for (let i = 0; i < bits; i += 1) {
+    const bit = (label >> (bits - 1 - i)) & 1;
+    value = (value * (bit ? point[i] : (1n - point[i] + p) % p)) % p;
+  }
+  return value;
+}
+
+// The walkthrough circuit as the page states it: (gate, in1, in2) triples per predicate.
+const WIRING: Record<string, Array<[number, number, number]>> = {
+  add_0: [[1, 2, 3]], mult_0: [[0, 0, 1]], add_1: [[0, 0, 1], [2, 2, 3]], mult_1: [[1, 1, 2], [3, 0, 3]],
+};
+const wiringTilde = (name: string, z: bigint[], b: bigint[], c: bigint[], p: bigint): bigint =>
+  WIRING[name].reduce((sum, [a, in1, in2]) => (sum + chi(a, z.length, z, p) * chi(in1, 2, b, p) % p * chi(in2, 2, c, p)) % p, 0n);
+
+interface RenderedRound { round: number; polynomial: bigint[]; degree: number; bound: number; sumAt01: bigint; expected: bigint; ok: boolean; challenge: bigint | null }
+
+async function readRounds(page: Page, bodySelector: string): Promise<RenderedRound[]> {
+  return page.locator(`${bodySelector} tr[data-round]`).evaluateAll((rows) => rows.map((row) => {
+    const read = (selector: string) => (row.querySelector(selector) as HTMLElement).dataset;
+    const challenge = read('.sc-challenge').value ?? '';
+    return {
+      round: Number(read('.sc-round').value),
+      polynomial: (read('.sc-poly').value ?? '').split(',').filter(Boolean),
+      degree: Number(read('.sc-degree').degree),
+      bound: Number(read('.sc-degree').bound),
+      sumAt01: read('.sc-sum01').value ?? '',
+      expected: read('.sc-expected').value ?? '',
+      ok: read('.sc-check').ok === 'true',
+      challenge: challenge === '' ? null : challenge,
+    };
+  })).then((rows) => rows.map((row) => ({
+    ...row,
+    polynomial: row.polynomial.map((entry) => BigInt(entry)),
+    sumAt01: BigInt(row.sumAt01),
+    expected: BigInt(row.expected),
+    challenge: row.challenge === null ? null : BigInt(row.challenge),
+  })));
+}
+
+/** Re-run every verifier check on a rendered transcript, with the honest partial sums recomputed from g. */
+function checkTranscript(rounds: RenderedRound[], claimed: bigint, terms: Term[], degrees: number[], p: bigint, variables: number) {
+  let expected = claimed;
+  const challenges: bigint[] = [];
+  for (const row of rounds) {
+    expect(row.degree).toBe(row.polynomial.length - 1);
+    expect(row.bound).toBe(degrees[row.round - 1]);
+    expect(row.degree).toBeLessThanOrEqual(row.bound);
+    expect(row.sumAt01).toBe((horner(row.polynomial, 0n, p) + horner(row.polynomial, 1n, p)) % p);
+    expect(row.expected).toBe(expected);
+    expect(row.sumAt01).toBe(expected);
+    expect(row.ok).toBe(true);
+    // The message really is the honest partial sum: it agrees with brute force at 0, 1, 2 and 3.
+    for (const t of [0n, 1n, 2n, 3n]) expect(horner(row.polynomial, t, p)).toBe(honestPartial(terms, challenges, t, variables, p));
+    expect(row.challenge).not.toBeNull();
+    challenges.push(row.challenge!);
+    expected = horner(row.polynomial, row.challenge!, p);
+  }
+  return { challenges, lastValue: expected };
+}
+
+test.describe('Sum-check and GKR: computed claims', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('exhibits/sumcheck-gkr.html?seed=ci-sumcheck');
+    await expect(page.locator('#sc-sum')).toHaveText('12');
+  });
+
+  test('the printed hypercube sum, the honest transcript and the final evaluation are all recomputed from g', async ({ page }) => {
+    const claimIds = await page.locator('[data-claim]').evaluateAll((nodes) => nodes.map((node) => (node as HTMLElement).dataset.claim));
+    expect(claimIds).toEqual(['sumcheck-intro', 'sumcheck-statement', 'sum-derivation', 'census-scope', 'gkr-statement', 'gkr-scope']);
+    await expect(page.locator('#sc-randomness-label')).toContainText('not cryptographically secure');
+
+    const p = BigInt(await textOf(page, '#sc-p'));
+    const variables = Number(await textOf(page, '#sc-v'));
+    const degrees = (await page.locator('#sc-degrees').getAttribute('data-value'))!.split(',').map(Number);
+    const terms = parseTerms(await page.locator('#sc-custom').inputValue(), variables);
+    expect(p).toBe(2147483647n);
+    expect(variables).toBe(3);
+    expect(degrees).toEqual([3, 1, 1]);
+    const independentSum = honestPartial(terms, [], 0n, variables, p) + honestPartial(terms, [], 1n, variables, p);
+    expect(independentSum % p).toBe(12n);
+    expect(BigInt(await textOf(page, '#sc-sum'))).toBe(12n);
+    expect(await page.locator('#sc-bound').getAttribute('data-value')).toBe(`9/${p}`);
+
+    await page.locator('#sc-run').click();
+    await expect(page.locator('#sc-verdict')).toHaveAttribute('data-state', 'pass');
+    const claimed = BigInt((await page.locator('#sc-claim-line').getAttribute('data-value'))!);
+    expect(claimed).toBe(12n);
+    const rounds = await readRounds(page, '#sc-rounds-body');
+    expect(rounds).toHaveLength(3);
+    expect(rounds[0].polynomial).toEqual([1n, 2n, 0n, 8n]); // 8X^3 + 2X + 1, as in Thaler §4.1
+    const { challenges, lastValue } = checkTranscript(rounds, claimed, terms, degrees, p, variables);
+    const finalLine = page.locator('#sc-final-line');
+    expect(bigList(await finalLine.getAttribute('data-point'))).toEqual(challenges);
+    expect(BigInt((await finalLine.getAttribute('data-claimed'))!)).toBe(lastValue);
+    expect(BigInt((await finalLine.getAttribute('data-evaluated'))!)).toBe(evalTerms(terms, challenges, p));
+    expect(lastValue).toBe(evalTerms(terms, challenges, p));
+    await expect(page.locator('#sc-verdict')).toContainText('✓ ACCEPTED');
+  });
+
+  test('each refused prover is rejected for the reason the numbers show', async ({ page }) => {
+    const p = 2147483647n;
+    const terms = parseTerms(await page.locator('#sc-custom').inputValue(), 3);
+
+    await page.locator('#sc-strategy').selectOption('wrong-sum-naive');
+    await page.locator('#sc-run').click();
+    await expect(page.locator('#sc-verdict')).toHaveAttribute('data-state', 'fail');
+    await expect(page.locator('#sc-verdict')).toHaveText('✗ REJECTED — round 1: s1(0) + s1(1) = 12 but the verifier expected 13 (the claimed sum).');
+    expect(await page.locator('#sc-rounds-body tr[data-round]').count()).toBe(1);
+    await expect(page.locator('#sc-rounds-body tr .sc-challenge')).toContainText('never drawn');
+
+    await page.locator('#sc-strategy').selectOption('wrong-sum-carried');
+    await page.locator('#sc-run').click();
+    await expect(page.locator('#sc-verdict')).toHaveAttribute('data-state', 'fail');
+    const rounds = await readRounds(page, '#sc-rounds-body');
+    expect(rounds).toHaveLength(3);
+    expect(rounds.every((row) => row.ok)).toBe(true);
+    const point = rounds.map((row) => row.challenge!);
+    const lastValue = horner(rounds[2].polynomial, point[2], p);
+    const evaluated = evalTerms(terms, point, p);
+    expect(lastValue).not.toBe(evaluated);
+    await expect(page.locator('#sc-verdict')).toHaveText(`✗ REJECTED — final check: s3(r3) = ${lastValue} but the direct evaluation g(r) = ${evaluated}.`);
+    expect(BigInt((await page.locator('#sc-final-line').getAttribute('data-evaluated'))!)).toBe(evaluated);
+
+    await page.locator('#sc-strategy').selectOption('inconsistent-round');
+    await page.locator('#sc-run').click();
+    await expect(page.locator('#sc-verdict')).toHaveAttribute('data-state', 'fail');
+    const partial = await readRounds(page, '#sc-rounds-body');
+    expect(partial).toHaveLength(2);
+    const expectedAtRound2 = horner(partial[0].polynomial, partial[0].challenge!, p);
+    // δ = 1 added to the constant term shifts s2(0) + s2(1) by 2δ.
+    expect(partial[1].sumAt01).toBe((expectedAtRound2 + 2n) % p);
+    await expect(page.locator('#sc-verdict')).toHaveText(`✗ REJECTED — round 2: s2(0) + s2(1) = ${partial[1].sumAt01} but the verifier expected ${expectedAtRound2} (s1(r1)).`);
+
+    await page.locator('#sc-strategy').selectOption('excessive-degree');
+    await page.locator('#sc-run').click();
+    await expect(page.locator('#sc-verdict')).toHaveAttribute('data-state', 'fail');
+    await expect(page.locator('#sc-verdict')).toHaveText('✗ REJECTED — round 2: the message has degree 3 but the degree bound for X2 is 1.');
+    const overDegree = await readRounds(page, '#sc-rounds-body');
+    expect(overDegree[1].polynomial).toHaveLength(4);
+    expect(overDegree[1].sumAt01).toBe(horner(overDegree[0].polynomial, overDegree[0].challenge!, p));
+  });
+
+  test('transcript replay accepts the recorded run and fails closed on every damaged variant', async ({ page }) => {
+    await page.locator('#sc-run').click();
+    await expect(page.locator('#sc-verdict')).toHaveAttribute('data-state', 'pass');
+    const recorded = JSON.parse(await page.locator('#sc-transcript-json').inputValue());
+    expect(recorded.protocol).toBe('sum-check');
+    expect(recorded.rounds).toHaveLength(3);
+    expect(recorded.rounds.map((round: { round: number }) => round.round)).toEqual([1, 2, 3]);
+    await page.locator('#sc-replay').click();
+    await expect(page.locator('#sc-replay-verdict')).toHaveAttribute('data-state', 'pass');
+    await expect(page.locator('#sc-replay-verdict')).toContainText('3 rounds re-checked');
+
+    const damaged: Array<[string, string]> = [
+      ['sc-mutate-truncate', '2 rounds recorded but the statement has 3 variables'],
+      ['sc-mutate-swap', 'entry 1 is labelled round 2: rounds are out of order'],
+      ['sc-mutate-coefficient', 'round 2: s2(0) + s2(1) ='],
+      ['sc-mutate-noncanonical', 'round 1 has a coefficient that is not a canonical field element'],
+      ['sc-mutate-challenge-first', 'round 1 records a challenge without a prover message'],
+      ['sc-mutate-bounds', 'degree bounds [5, 3, 3] do not match the statement\'s [3, 1, 1]'],
+    ];
+    for (const [id, reason] of damaged) {
+      await page.locator('#sc-run').click();
+      await page.locator(`#${id}`).click();
+      await expect(page.locator('#sc-replay-verdict')).toHaveAttribute('data-state', 'fail');
+      await expect(page.locator('#sc-replay-verdict')).toContainText('✗ REPLAY REFUSED');
+      await expect(page.locator('#sc-replay-verdict')).toContainText(reason);
+    }
+
+    // Hand-typed garbage is refused as malformed JSON, not run.
+    await page.locator('#sc-transcript-json').fill('{ not json');
+    await page.locator('#sc-replay').click();
+    await expect(page.locator('#sc-replay-verdict')).toContainText('malformed transcript: invalid JSON');
+  });
+
+  test('the tiny-field census counts match an independent closed form and the printed bound', async ({ page }) => {
+    await page.locator('#sc-field').selectOption('13');
+    await page.locator('#sc-preset').selectOption('x1*x2 + 3*x1^2');
+    await expect(page.locator('#sc-degrees')).toHaveAttribute('data-value', '2,1');
+    await expect(page.locator('#sc-bound')).toHaveAttribute('data-value', '4/13');
+    await expect(page.locator('#sc-census')).toBeEnabled();
+    await page.locator('#sc-census').click();
+    await expect(page.locator('#sc-census-verdict')).toHaveAttribute('data-state', 'pass', { timeout: 60_000 });
+    const total = 13 * 13;
+    const closedForm = total - (13 - 2) * (13 - 1);
+    const boundCount = Math.floor((4 * total) / 13);
+    expect(closedForm).toBe(37);
+    expect(boundCount).toBe(52);
+    expect(await intOf(page, '#census-honest-accepted')).toBe(total);
+    expect(await intOf(page, '#census-honest-total')).toBe(total);
+    expect(await intOf(page, '#census-lie-accepted')).toBe(closedForm);
+    expect(await intOf(page, '#census-lie-final')).toBe(total - closedForm);
+    expect(await intOf(page, '#census-lie-degree')).toBe(0);
+    expect(await intOf(page, '#census-lie-recurrence')).toBe(0);
+    expect(await intOf(page, '#census-attack-accepted')).toBe(0);
+    expect(await intOf(page, '#census-attack-degree')).toBe(total);
+    await expect(page.locator('#sc-census-verdict')).toContainText(`carried lie ${closedForm} accepted (= ${closedForm}, within the bound's ${boundCount})`);
+    await expect(page.locator('#census-readout')).toContainText('degree 12, agrees with the honest s1 on 12 of 13 points');
+
+    await page.locator('#sc-strategy').selectOption('lagrange-degree-attack');
+    await page.locator('#sc-run').click();
+    await expect(page.locator('#sc-verdict')).toHaveText('✗ REJECTED — round 1: the message has degree 12 but the degree bound for X1 is 2.');
+  });
+
+  test('the GKR walk is recomputed by hand: gate values, wiring extensions, line endpoints and the terminal MLE', async ({ page }) => {
+    const p = 2147483647n;
+    const inputs = bigList(await page.locator('#gkr-val-2').getAttribute('data-value'));
+    expect(inputs).toEqual([3n, 2n, 3n, 1n]);
+    const layer1 = [(inputs[0] + inputs[1]) % p, (inputs[1] * inputs[2]) % p, (inputs[2] + inputs[3]) % p, (inputs[0] * inputs[3]) % p];
+    const layer0 = [(layer1[0] * layer1[1]) % p, (layer1[2] + layer1[3]) % p];
+    for (let gate = 0; gate < 4; gate += 1) await expect(page.locator(`#gkr-val-1-${gate}`)).toHaveText(String(layer1[gate]));
+    for (let gate = 0; gate < 2; gate += 1) await expect(page.locator(`#gkr-val-0-${gate}`)).toHaveText(String(layer0[gate]));
+    await expect(page.locator('#gkr-wiring')).toHaveText('add_0 = {(1,2,3)} · mult_0 = {(0,0,1)} · add_1 = {(0,0,1), (2,2,3)} · mult_1 = {(1,1,2), (3,0,3)}');
+    await expect(page.locator('#gkr-bound')).toHaveAttribute('data-value', `21/${p}`);
+
+    await page.locator('#gkr-run').click();
+    await expect(page.locator('#gkr-verdict')).toHaveAttribute('data-state', 'pass');
+    const facts = async (selector: string) => page.locator(`${selector} code[data-value]`).evaluateAll((nodes) => nodes.map((node) => (node as HTMLElement).dataset.value ?? ''));
+    const outputs = await facts('#gkr-outputs');
+    expect(bigList(outputs[0])).toEqual(layer0);
+    const r0 = bigList(outputs[1]);
+    expect(r0).toHaveLength(1);
+    const m0 = BigInt(outputs[2]);
+    expect(m0).toBe((layer0[0] * ((1n - r0[0] + p) % p) + layer0[1] * r0[0]) % p);
+
+    const tables = [layer0, layer1, inputs];
+    let point = r0;
+    let claim = m0;
+    for (const layer of [0, 1]) {
+      const heading = page.locator(`#gkr-layer-${layer} h3`);
+      expect(bigList(await heading.getAttribute('data-point'))).toEqual(point);
+      expect(BigInt((await heading.getAttribute('data-claim'))!)).toBe(claim);
+      const rounds = await readRounds(page, `#gkr-layer-${layer}-rounds-body`);
+      expect(rounds).toHaveLength(4);
+      let expected = claim;
+      for (const row of rounds) {
+        expect(row.bound).toBe(2);
+        expect(row.degree).toBeLessThanOrEqual(2);
+        expect(row.ok).toBe(true);
+        expect(row.sumAt01).toBe((horner(row.polynomial, 0n, p) + horner(row.polynomial, 1n, p)) % p);
+        expect(row.sumAt01).toBe(expected);
+        expected = horner(row.polynomial, row.challenge!, p);
+      }
+      const line = await facts(`#gkr-layer-${layer}-line`);
+      const bStar = bigList(line[0]);
+      const cStar = bigList(line[1]);
+      expect([...bStar, ...cStar]).toEqual(rounds.map((row) => row.challenge!));
+      const q = bigList(line[2]);
+      expect(line[3]).toBe(`${q.length - 1}/2`);
+      expect(q.length - 1).toBeLessThanOrEqual(2);
+      const [q0, q1] = bigList(line[4]);
+      expect(q0).toBe(horner(q, 0n, p));
+      expect(q1).toBe(horner(q, 1n, p));
+      // The prover's line polynomial really is W̃_{i+1} on the line: both endpoints match the hand MLE.
+      expect(q0).toBe(mle2(tables[layer + 1], bStar, p));
+      expect(q1).toBe(mle2(tables[layer + 1], cStar, p));
+      const addTilde = BigInt(line[5]);
+      const multTilde = BigInt(line[6]);
+      expect(addTilde).toBe(wiringTilde(`add_${layer}`, point, bStar, cStar, p));
+      expect(multTilde).toBe(wiringTilde(`mult_${layer}`, point, bStar, cStar, p));
+      const oracleValue = BigInt(line[7]);
+      expect(oracleValue).toBe((addTilde * ((q0 + q1) % p) + multTilde * (q0 * q1 % p)) % p);
+      expect(BigInt(line[8])).toBe(expected);
+      expect(oracleValue).toBe(expected);
+      expect(line[9]).toBe('true');
+      const rStar = BigInt(line[10]);
+      const nextPoint = bigList(line[11]);
+      const nextClaim = BigInt(line[12]);
+      expect(nextPoint).toEqual(bStar.map((value, index) => (value + rStar * ((cStar[index] - value + p) % p)) % p));
+      expect(nextClaim).toBe(horner(q, rStar, p));
+      expect(nextClaim).toBe(mle2(tables[layer + 1], nextPoint, p));
+      await expect(page.locator(`#gkr-layer-${layer}-status`)).toHaveAttribute('data-ok', 'true');
+      point = nextPoint;
+      claim = nextClaim;
+    }
+    const terminal = await facts('#gkr-terminal');
+    expect(bigList(terminal[0])).toEqual(point);
+    expect(BigInt(terminal[1])).toBe(claim);
+    expect(BigInt(terminal[2])).toBe(mle2(inputs, point, p));
+    expect(BigInt(terminal[2])).toBe(claim);
+    expect(terminal[3]).toBe('true');
+    await expect(page.locator('#gkr-verdict')).toContainText('✓ ACCEPTED — terminal check');
+    await expect(page.locator('[data-claim="gkr-scope"]')).toContainText('Not executed: the log-space-uniformity machinery, the sublinear verifier, Fiat–Shamir, or any general theorem');
+  });
+
+  test('each GKR cheating strategy is rejected at the stage the verdict names', async ({ page }) => {
+    const p = 2147483647n;
+    const cases: Array<[string, RegExp]> = [
+      ['wrong-output', /^✗ REJECTED at recurrence \(round 1\) at layer 0 — layer 0: round 1: s1\(0\) \+ s1\(1\) = \d+ but the verifier expected \d+ \(the claimed sum\)\.$/],
+      ['corrupt-gate', /^✗ REJECTED at recurrence \(round 1\) at layer 1 — layer 1: round 1: /],
+      ['corrupt-wiring', /^✗ REJECTED at final at layer 1 — layer 1: final check: s4\(r4\) = \d+ but the direct evaluation g\(r\) = \d+ — the verifier evaluated add̃ and mult̃ from its own wiring/],
+      ['invalid-line-degree', /^✗ REJECTED at line-degree at layer 0 — layer 0 line: q has degree 3 but W̃1 restricted to a line has degree at most 2\.$/],
+      ['invalid-line-value', /^✗ REJECTED at recurrence \(round 1\) at layer 1 — /],
+      ['invalid-line-last', /^✗ REJECTED at terminal at layer 2 — terminal check: W̃2\(\d+, \d+\) computed from the public inputs is (\d+) but the carried claim is (\d+)\.$/],
+    ];
+    for (const [strategy, pattern] of cases) {
+      await page.locator('#gkr-strategy').selectOption(strategy);
+      await expect(page.locator('#gkr-verdict')).toHaveAttribute('data-state', 'pending');
+      await page.locator('#gkr-run').click();
+      await expect(page.locator('#gkr-verdict')).toHaveAttribute('data-state', 'fail');
+      const verdict = await textOf(page, '#gkr-verdict');
+      expect(verdict).toMatch(pattern);
+    }
+    // The corrupted-gate prover's claimed outputs differ from the direct evaluation, and layer 0 still passed.
+    await page.locator('#gkr-strategy').selectOption('corrupt-gate');
+    await page.locator('#gkr-run').click();
+    const claimed = bigList(await page.locator('#gkr-outputs code[data-value]').first().getAttribute('data-value'));
+    expect(claimed).not.toEqual([30n, 7n]);
+    await expect(page.locator('#gkr-layer-0-status')).toHaveAttribute('data-ok', 'true');
+    // The terminal rejection's evaluated value is the hand MLE of the public inputs.
+    await page.locator('#gkr-strategy').selectOption('invalid-line-last');
+    await page.locator('#gkr-run').click();
+    const terminal = await page.locator('#gkr-terminal code[data-value]').evaluateAll((nodes) => nodes.map((node) => (node as HTMLElement).dataset.value ?? ''));
+    expect(BigInt(terminal[2])).toBe(mle2([3n, 2n, 3n, 1n], bigList(terminal[0]), p));
+    expect(BigInt(terminal[2])).not.toBe(BigInt(terminal[1]));
+    expect(terminal[3]).toBe('false');
+  });
+
+  test('changing the field, the randomness or the inputs retires every stale result', async ({ page }) => {
+    await page.locator('#sc-run').click();
+    await page.locator('#sc-replay').click();
+    await page.locator('#gkr-run').click();
+    await expect(page.locator('#sc-verdict')).toHaveAttribute('data-state', 'pass');
+    await expect(page.locator('#sc-replay-verdict')).toHaveAttribute('data-state', 'pass');
+    await expect(page.locator('#gkr-verdict')).toHaveAttribute('data-state', 'pass');
+
+    await page.locator('#sc-field').selectOption('101');
+    await expect(page.locator('#sc-p')).toHaveText('101');
+    await expect(page.locator('#sc-verdict')).toHaveAttribute('data-state', 'pending');
+    await expect(page.locator('#sc-rounds-body tr[data-round]')).toHaveCount(0);
+    await expect(page.locator('#sc-transcript-json')).toHaveValue('');
+    await expect(page.locator('#sc-replay-verdict')).toHaveAttribute('data-state', 'pending');
+    await expect(page.locator('#gkr-verdict')).toHaveAttribute('data-state', 'pending');
+    await expect(page.locator('.gkr-layer')).toHaveCount(0);
+    await expect(page.locator('#sc-narration')).toContainText('the previous transcript was retired');
+
+    await page.locator('#sc-run').click();
+    await expect(page.locator('#sc-verdict')).toHaveAttribute('data-state', 'pass');
+    await page.locator('#sc-random-fresh').check();
+    await expect(page.locator('#sc-verdict')).toHaveAttribute('data-state', 'pending');
+    await expect(page.locator('#sc-randomness-label')).toContainText('fresh verifier randomness');
+
+    await page.locator('#gkr-run').click();
+    await expect(page.locator('#gkr-verdict')).toHaveAttribute('data-state', 'pass');
+    await page.locator('#gkr-x1').fill('5');
+    await page.locator('#gkr-evaluate').click();
+    await expect(page.locator('#gkr-verdict')).toHaveAttribute('data-state', 'pending');
+    await expect(page.locator('#gkr-val-1-0')).toHaveText('8');
+    await page.locator('#gkr-x1').fill('-1');
+    await page.locator('#gkr-evaluate').click();
+    await expect(page.locator('#sc-input-error')).toContainText('Circuit inputs must be non-negative integers');
+    await expect(page.locator('#gkr-val-1-0')).toHaveText('8');
+  });
+});
