@@ -76,7 +76,7 @@ function initTour() {
       '<div class="tour-actions">' +
       '<button type="button" class="bs tour-prev">◁ Back</button>' +
       '<button type="button" class="bp tour-next">Next ▷</button>' +
-      '<button type="button" class="bs tour-close" aria-label="End tour">✕</button>' +
+      '<button type="button" class="bs tour-close" aria-label="End tour"></button>' +
       '</div>';
     document.body.appendChild(bar);
     bar.querySelector('.tour-prev').addEventListener('click', () => {

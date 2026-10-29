@@ -243,3 +243,10 @@ button:active{transform:translateY(1px)}
 #sc-rounds td{vertical-align:top}
 #sc-transcript-json,#sc-custom{font-size:12px}
 @media(max-width:640px){.gkr-facts{grid-template-columns:1fr}#sc-transcript-json,#sc-custom{font-size:16px}}
+
+/* The tour close mark, drawn here rather than written as DOM text. axe 4.14's
+   label-content-name-mismatch (WCAG 2.5.3 Label in Name) compares the
+   accessible name against everything a SIGHTED user sees while excluding
+   aria-hidden content from the NAME, so hiding the glyph would not satisfy it.
+   CSS generated content is not DOM text, so "End tour" is the whole name. */
+.tour-close::before{content:"\2715"}
