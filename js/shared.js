@@ -473,3 +473,29 @@ export async function copyTextToClipboard(text) {
   document.body.removeChild(textarea);
   return copied;
 }
+
+/**
+ * Escape the five characters that change the meaning of HTML.
+ *
+ * Three CodeQL alerts on this lab are the same defect: a value that came from
+ * outside the source — a URL query parameter, a pasted transcript, a select —
+ * interpolated into a template that is then assigned to innerHTML. Where the
+ * template's own markup is fixed, DOM APIs are the better fix and that is what
+ * commit.js now does. Where the lines legitimately carry markup of their own
+ * (<strong> labels joined by <br>), the value is escaped here instead.
+ *
+ * Ampersand goes first: escaping it after the others would rewrite the
+ * ampersands they just introduced. Both quote characters are included because a
+ * value escaped here may also land inside an attribute.
+ *
+ * @param {unknown} value
+ * @returns {string}
+ */
+export function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}

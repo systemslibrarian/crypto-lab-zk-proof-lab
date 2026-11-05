@@ -149,8 +149,14 @@ async function runChecks() {
     if (typeof fetch !== 'undefined' && typeof window !== 'undefined') {
       return await fetch(p).then(r => r.text());
     } else {
-      let resolvedPath = p.replace('../', '');
-      return fs.readFileSync(path.resolve(process.cwd(), resolvedPath), 'utf8');
+      // Resolve the path instead of stripping a prefix off it. The old form did
+      // `p.replace('../', '')`, which removes only the FIRST occurrence — CodeQL
+      // flagged it as incomplete sanitisation (js/incomplete-sanitization), and it
+      // would also have mis-resolved any '../../' path. These paths are relative to
+      // this file, so resolve them against this file's own directory and let
+      // path.resolve do the work.
+      const here = path.dirname(new URL(import.meta.url).pathname);
+      return fs.readFileSync(path.resolve(here, p), 'utf8');
     }
   }
 

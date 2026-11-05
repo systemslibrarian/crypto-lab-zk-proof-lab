@@ -1449,3 +1449,46 @@ test.describe('Sum-check and GKR: computed claims', () => {
     await expect(page.locator('#sc-verdict')).toHaveAttribute('data-state', 'pass');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Rendered values that came from outside the source
+// ---------------------------------------------------------------------------
+
+test.describe('values from outside the source render as text', () => {
+  const PAYLOAD = '<img src=x onerror="document.title=\'xss\'">';
+
+  test('a seed in the URL cannot inject markup into the commit panel', async ({ page }) => {
+    // ?seed= is attacker-supplied: a link is all it takes. CodeQL flagged the old
+    // `innerHTML +=` as js/xss (reflected), and this is that link.
+    await page.goto(`exhibits/commit-reveal.html?seed=${encodeURIComponent(PAYLOAD)}`);
+    await page.locator('#c-btn-commit').click();
+    await expect(page.locator('#commit-result')).toContainText('Both commitments published');
+
+    // The seed is shown, as text, and nothing was built from it.
+    await expect(page.locator('#commit-result')).toContainText(`Seeded run: ${PAYLOAD}`);
+    await expect(page.locator('#commit-result img')).toHaveCount(0);
+    await expect(page.locator('#commit-result [onerror]')).toHaveCount(0);
+    await expect(page).not.toHaveTitle('xss');
+  });
+
+  test('a pasted transcript cannot inject markup into the comparison', async ({ page }) => {
+    await page.goto('exhibits/transcript-lab.html');
+    const transcript = JSON.stringify({
+      protocol: `Fiat-Shamir ${PAYLOAD}`,
+      mode: PAYLOAD,
+      transcript: { R: PAYLOAD, c: PAYLOAD, s: PAYLOAD, verified: true },
+    });
+    await page.locator('#left-input').fill(transcript);
+    await page.locator('#right-input').fill(transcript);
+    await page.locator('#compare-btn').click();
+
+    await expect(page.locator('#compare-result')).toContainText('Protocol:');
+    // The label markup still renders — these lines are HTML by design — while the
+    // values from the pasted JSON do not.
+    await expect(page.locator('#compare-result strong').first()).toBeVisible();
+    await expect(page.locator('#compare-result img')).toHaveCount(0);
+    await expect(page.locator('#compare-result [onerror]')).toHaveCount(0);
+    await expect(page.locator('#compare-result')).toContainText('img src=x onerror=');
+    await expect(page).not.toHaveTitle('xss');
+  });
+});
