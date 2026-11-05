@@ -1,3 +1,5 @@
+import { escapeHtml as esc } from './shared.js';
+
 function readJson(id) {
   const raw = document.getElementById(id).value.trim();
   if (!raw) {
@@ -38,11 +40,11 @@ function semanticDiffLines(left, right) {
   const checks = [];
   const leftProtocol = left.protocol || 'Unknown';
   const rightProtocol = right.protocol || 'Unknown';
-  checks.push(`<strong>Protocol:</strong> ${leftProtocol} vs ${rightProtocol}`);
+  checks.push(`<strong>Protocol:</strong> ${esc(leftProtocol)} vs ${esc(rightProtocol)}`);
 
   const leftMode = left.mode || left.phase || 'n/a';
   const rightMode = right.mode || right.phase || 'n/a';
-  checks.push(`<strong>Mode/Phase:</strong> ${leftMode} vs ${rightMode}`);
+  checks.push(`<strong>Mode/Phase:</strong> ${esc(leftMode)} vs ${esc(rightMode)}`);
 
   const leftVerified = left.transcript && typeof left.transcript.verified === 'boolean'
     ? left.transcript.verified
@@ -54,7 +56,7 @@ function semanticDiffLines(left, right) {
     : right.verification && right.verification.bidderA !== undefined
       ? right.verification.bidderA && right.verification.bidderB
       : 'n/a';
-  checks.push(`<strong>Verification outcome:</strong> ${leftVerified} vs ${rightVerified}`);
+  checks.push(`<strong>Verification outcome:</strong> ${esc(leftVerified)} vs ${esc(rightVerified)}`);
 
   if (left.transcript && right.transcript) {
     const fields = ['R', 'c', 's', 'lhs', 'rhs'];
@@ -62,7 +64,7 @@ function semanticDiffLines(left, right) {
       if (left.transcript[field] !== undefined || right.transcript[field] !== undefined) {
         const lv = left.transcript[field] ?? 'n/a';
         const rv = right.transcript[field] ?? 'n/a';
-        checks.push(`<strong>${field}:</strong> ${lv} vs ${rv}`);
+        checks.push(`<strong>${esc(field)}:</strong> ${esc(lv)} vs ${esc(rv)}`);
       }
     }
   }
@@ -72,29 +74,29 @@ function semanticDiffLines(left, right) {
 
 async function challengeRederivationLine(transcript, label) {
   if (!transcript || !transcript.protocol || !String(transcript.protocol).includes('Fiat-Shamir')) {
-    return `<strong>${label} challenge re-derivation:</strong> n/a`;
+    return `<strong>${esc(label)} challenge re-derivation:</strong> n/a`;
   }
   if (!transcript.transcript || transcript.transcript.R === undefined || transcript.parameters?.y === undefined || transcript.message === undefined) {
-    return `<strong>${label} challenge re-derivation:</strong> insufficient fields`;
+    return `<strong>${esc(label)} challenge re-derivation:</strong> insufficient fields`;
   }
   const { c } = await deriveChallengeFromDigestInput(transcript.transcript.R, transcript.parameters.y, transcript.message);
   const matches = c === transcript.transcript.c;
-  return `<strong>${label} challenge re-derivation:</strong> computed ${c}, transcript ${transcript.transcript.c} (${matches ? 'match' : 'mismatch'})`;
+  return `<strong>${esc(label)} challenge re-derivation:</strong> computed ${esc(c)}, transcript ${esc(transcript.transcript.c)} (${matches ? 'match' : 'mismatch'})`;
 }
 
 function tamperTimelineLines(transcript, label) {
   if (!transcript) {
-    return [`<strong>${label} tamper timeline:</strong> n/a`];
+    return [`<strong>${esc(label)} tamper timeline:</strong> n/a`];
   }
   const out = [];
   if (transcript.cheatAttempt) {
-    out.push(`<strong>${label} tamper timeline:</strong> commitment tamper attempt detected (${transcript.cheatAttempt.detected ? 'detected' : 'undetected'})`);
+    out.push(`<strong>${esc(label)} tamper timeline:</strong> commitment tamper attempt detected (${transcript.cheatAttempt.detected ? 'detected' : 'undetected'})`);
   } else if (transcript.mode === 'cheat-simulation') {
-    out.push(`<strong>${label} tamper timeline:</strong> Schnorr cheat simulation present`);
+    out.push(`<strong>${esc(label)} tamper timeline:</strong> Schnorr cheat simulation present`);
   } else if (transcript.note && String(transcript.note).toLowerCase().includes('tamper')) {
-    out.push(`<strong>${label} tamper timeline:</strong> note includes tamper path`);
+    out.push(`<strong>${esc(label)} tamper timeline:</strong> note includes tamper path`);
   } else {
-    out.push(`<strong>${label} tamper timeline:</strong> no tamper events recorded`);
+    out.push(`<strong>${esc(label)} tamper timeline:</strong> no tamper events recorded`);
   }
   return out;
 }

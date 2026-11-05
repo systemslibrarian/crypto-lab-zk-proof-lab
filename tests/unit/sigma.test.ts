@@ -168,7 +168,11 @@ describe('Okamoto witness independence in the complete toy space', () => {
 });
 
 describe('Guillou–Quisquater', () => {
-  const { publicKey } = generateKeyPairSync('rsa', { modulusLength: 1024, publicExponent: 65537 });
+  // 2048, not 1024: CodeQL's js/insufficient-key-size is right that a 1024-bit RSA
+  // modulus is below the floor, and nothing in these Guillou-Quisquater assertions
+  // depends on the modulus size — they check that the verifier binds y^c into the
+  // equation, over whatever N the fixture provides.
+  const { publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048, publicExponent: 65537 });
   const publicJwk = publicKey.export({ format: 'jwk' });
   if (!publicJwk.n) throw new Error('Node RSA fixture omitted n');
   const N = base64UrlToBigInt(publicJwk.n);

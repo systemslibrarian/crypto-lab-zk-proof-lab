@@ -90,7 +90,14 @@ export async function commitPhase() {
     lastCommitTranscript = buildCommitTranscript({ note: 'Commitments published; bids intentionally still hidden in the UI.' });
     persistCommitTranscript(lastCommitTranscript);
     if (scenarioSeed) {
-      document.getElementById('commit-result').innerHTML += ` <br><span style="color:var(--acc2)">Seeded run: ${scenarioSeed}</span>`;
+      // The seed comes from ?seed= in the URL, so it is attacker-supplied: CodeQL
+      // flagged this as js/xss (reflected). Built with DOM APIs rather than escaped
+      // into a template, because the markup here is fixed and the value is not.
+      const result = document.getElementById('commit-result');
+      const seedLine = document.createElement('span');
+      seedLine.style.color = 'var(--acc2)';
+      seedLine.textContent = `Seeded run: ${scenarioSeed}`;
+      result.append(' ', document.createElement('br'), seedLine);
     }
   } finally {
     commitBusy = false;

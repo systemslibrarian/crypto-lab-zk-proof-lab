@@ -4,6 +4,7 @@
 // tallies and the GKR transcript. Nothing is derived from a strategy label.
 
 import { readSeedFromUrl } from './shared.js';
+import { escapeHtml as esc } from './shared.js';
 import { MAX_ENUMERABLE_MODULUS, createField, freshChallengeSource, seededChallengeSource } from './field.js';
 import { evaluatePolynomial, formatPolynomial, formatUnivariate, hypercubeSum, parsePolynomial, partialSumUnivariate, univariateDegree, variableDegrees } from './polynomial.js';
 import {
@@ -369,7 +370,10 @@ function renderSession() {
 function renderOmniscient() {
   if (!session || !sessionProver) return;
   const strategy = sessionProver.strategy;
-  const parts = [`<strong>Prover-side narration</strong> (the verifier never reads this): strategy <code>${strategy.kind}</code>; true sum H = ${sessionProver.trueSum}; claimed ${session.claimedSum}.`];
+  // strategy.kind is read back off a <select>, so CodeQL flags the round trip
+  // (js/xss-through-dom). The option values carry no meta-characters today; escaping
+  // the value is what keeps that true of the rendering rather than of the markup.
+  const parts = [`<strong>Prover-side narration</strong> (the verifier never reads this): strategy <code>${esc(strategy.kind)}</code>; true sum H = ${sessionProver.trueSum}; claimed ${session.claimedSum}.`];
   if (strategy.kind === 'wrong-sum-carried') {
     for (const correction of sessionProver.corrections()) {
       parts.push(correction.debt === 0n
