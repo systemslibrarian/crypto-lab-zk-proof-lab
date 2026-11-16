@@ -700,6 +700,32 @@ test.describe('Hash commit-reveal', () => {
     expect(result).toContain(fakeHash.slice(0, 16));
     expect(result).toContain(publishedHash.slice(0, 16));
   });
+
+  /* The exhibit called a hash commitment "perfectly binding", which its own
+     verdict text contradicts: commit.js says finding a colliding (bid, nonce)
+     pair is "computationally infeasible", not impossible. It cannot be
+     impossible — SHA-256 maps arbitrarily long inputs to 256 bits, so for
+     inputs longer than the digest, colliding pairs exist by counting. Binding
+     is therefore computational, resting on collision resistance, exactly as
+     hiding rests on one-wayness. Perfect binding belongs to Pedersen's mirror
+     image: Pedersen is perfectly HIDING and computationally binding, so it is
+     not "the reverse" of a hash commitment on both axes, only on hiding. */
+  test('the security properties on the page match the verdict the code computes', async ({
+    page,
+  }) => {
+    const prose = clean(await page.locator('.vl').first().textContent());
+    expect(prose).toContain('computationally binding');
+    expect(prose).toContain('perfect hiding, computational binding');
+    expect(prose).not.toContain('perfectly binding');
+    expect(prose).not.toContain('Pedersen is the reverse');
+
+    await page.locator('#c-btn-commit').click();
+    await expect(page.locator('#ca-hash')).toHaveText(/^[0-9a-f]{64}$/, { timeout: 15_000 });
+    await page.locator('#c-btn-cheat').click();
+    await expect(page.locator('#ca-verify')).toContainText('CAUGHT', { timeout: 15_000 });
+    // The verdict the run produces is the computational claim, not a perfect one.
+    expect(await textOf(page, '#commit-result')).toContain('computationally infeasible');
+  });
 });
 
 // ---------------------------------------------------------------------------

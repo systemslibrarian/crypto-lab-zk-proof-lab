@@ -95,6 +95,17 @@ npm run dev
 
 *"So whether you eat or drink or whatever you do, do it all for the glory of God." — 1 Corinthians 10:31*
 
+### Commitment property correction
+
+The commit-reveal exhibit called a hash commitment "perfectly binding and computationally
+hiding", which its own cheat verdict contradicted by reporting that finding a colliding
+(bid, nonce) pair is *computationally infeasible*. A 256-bit digest cannot be injective on
+longer inputs, so colliding pairs exist and binding rests on their being infeasible to
+find: a hash commitment is computationally binding and computationally hiding. Pedersen is
+not its reverse on both axes — only on hiding, which it makes perfect while its binding
+stays computational. The exhibit and `js/commit.js` now say the same thing, and the primer
+in `docs/zkp-primer.md` already did.
+
 ### GQ input verification correction
 
 The prover now rejects inputs outside the canonical unit range before computing a
