@@ -1,6 +1,74 @@
 import { chromium } from 'playwright';
+import { spawn } from 'node:child_process';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const baseUrl = process.env.ZKPL_BASE_URL || 'http://127.0.0.1:8000';
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+
+/* Own the server this suite tests.
+ *
+ * The default was http://127.0.0.1:8000 -- python3's http.server default, and
+ * one of the most commonly occupied ports on any workstation -- with a server
+ * assumed to be running already and no check of whose. Anything listening
+ * there answers the goto, and every check after it then describes someone
+ * else's page. The fleet registry (crypto-lab/tools/playwright-ports.json)
+ * assigns 8000 to no lab; this lab's port is 4342.
+ *
+ * ZKPL_BASE_URL still points this at an already-running server, which is what
+ * CI sets. With it unset this starts its own static server on 4342, serving
+ * the repository root exactly as CI's `python3 -m http.server` does, and stops
+ * it by its own pid -- never by pattern.
+ */
+const OWN_PORT = 4342;
+const baseUrl = process.env.ZKPL_BASE_URL || `http://127.0.0.1:${OWN_PORT}`;
+let ownServer = null;
+
+async function reachable(u) {
+  try {
+    return (await fetch(u, { redirect: 'follow' })).ok;
+  } catch {
+    return false;
+  }
+}
+
+async function startOwnServer() {
+  const child = spawn('python3', ['-m', 'http.server', String(OWN_PORT), '--bind', '127.0.0.1'], {
+    cwd: REPO_ROOT,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  let log = '';
+  child.stdout.on('data', (d) => (log += d));
+  child.stderr.on('data', (d) => (log += d));
+  for (let i = 0; i < 60; i++) {
+    if (await reachable(baseUrl)) return child;
+    if (child.exitCode !== null) break;
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  console.error(`FAIL: static server did not come up on port ${OWN_PORT} within 30s.`);
+  console.error('      Most likely something else already holds it:');
+  console.error(log.trim() || '      (the server printed nothing)');
+  try {
+    if (child.exitCode === null) process.kill(child.pid);
+  } catch {
+    /* already gone */
+  }
+  process.exit(1);
+}
+
+/* By pid, and only the child this process started -- never by pattern. */
+function stopOwnServer() {
+  if (ownServer?.exitCode === null) {
+    try {
+      process.kill(ownServer.pid);
+    } catch {
+      /* already gone */
+    }
+  }
+}
+
+if (!process.env.ZKPL_BASE_URL) ownServer = await startOwnServer();
+
+
 const pages = [
   '/',
   '/exhibits/cave.html',
@@ -324,7 +392,10 @@ await browser.close();
 
 if (failures > 0) {
   console.error(`\n${failures} browser quality checks failed.`);
+  stopOwnServer();
   process.exit(1);
 }
+
+stopOwnServer();
 
 console.log('\nAll browser quality checks passed.');
