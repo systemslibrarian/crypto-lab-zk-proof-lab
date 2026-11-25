@@ -646,11 +646,11 @@ test.describe('Hash commit-reveal', () => {
 
     const hashA = await textOf(page, '#ca-hash');
     const hashB = await textOf(page, '#cb-hash');
-    const nonceA = await textOf(page, '#ca-nonce');
-    const nonceB = await textOf(page, '#cb-nonce');
-    expect(nonceA).toMatch(/^[0-9a-f]{64}$/); // 32 random bytes
-    expect(nonceB).toMatch(/^[0-9a-f]{64}$/);
-    expect(nonceA).not.toBe(nonceB);
+    await expect(page.locator('#ca-nonce')).toHaveText('Withheld until opening');
+    await expect(page.locator('#cb-nonce')).toHaveText('Withheld until opening');
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('zkpl:last:commit')!));
+    expect(saved.bidderA).toEqual({ hash: hashA });
+    expect(saved.bidderB).toEqual({ hash: hashB });
     // Hiding: nothing about the bid is on screen before the reveal.
     await expect(page.locator('#ca-bid')).toHaveText('*** (hidden)');
     await expect(page.locator('#cb-bid')).toHaveText('*** (hidden)');
@@ -659,6 +659,11 @@ test.describe('Hash commit-reveal', () => {
     await expect(page.locator('#ca-verify')).toContainText('matches commitment', { timeout: 15_000 });
     await expect(page.locator('#cb-verify')).toContainText('matches commitment');
 
+    const nonceA = await textOf(page, '#ca-nonce');
+    const nonceB = await textOf(page, '#cb-nonce');
+    expect(nonceA).toMatch(/^[0-9a-f]{64}$/); // 32 random bytes
+    expect(nonceB).toMatch(/^[0-9a-f]{64}$/);
+    expect(nonceA).not.toBe(nonceB);
     const bidA = Number(match(await textOf(page, '#ca-bid'), /\$(\d+)/));
     const bidB = Number(match(await textOf(page, '#cb-bid'), /\$(\d+)/));
     // The binding check, redone here: the commitment published BEFORE the
@@ -676,15 +681,37 @@ test.describe('Hash commit-reveal', () => {
     }
   });
 
+  test('a failed opening leaves the auction without a winner', async ({ page }) => {
+    await page.locator('#c-btn-commit').click();
+    await expect(page.locator('#c-btn-reveal')).toBeEnabled();
+    await page.evaluate(() => {
+      const digest = crypto.subtle.digest.bind(crypto.subtle);
+      const subtle = crypto.subtle;
+      subtle.digest = async () => {
+        subtle.digest = digest;
+        return new ArrayBuffer(32);
+      };
+    });
+    await page.locator('#c-btn-reveal').click();
+    await expect(page.locator('#commit-result')).toContainText('No winner');
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('zkpl:last:commit')!));
+    expect(saved.verification).toEqual({ bidderA: false, bidderB: true });
+    expect(saved.winner).toBeNull();
+  });
+
   test('changing a bid after committing is caught by the published digest', async ({ page }) => {
     await page.locator('#c-btn-commit').click();
     await expect(page.locator('#ca-hash')).toHaveText(/^[0-9a-f]{64}$/, { timeout: 15_000 });
     const publishedHash = await textOf(page, '#ca-hash');
-    const nonceA = await textOf(page, '#ca-nonce');
 
     await page.locator('#c-btn-cheat').click();
     await expect(page.locator('#ca-verify')).toContainText('CAUGHT', { timeout: 15_000 });
 
+    const nonceA = await textOf(page, '#ca-nonce');
+    await expect(page.locator('#cb-nonce')).toHaveText('Withheld until opening');
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('zkpl:last:commit')!));
+    expect(saved.bidderB).toEqual({ hash: await textOf(page, '#cb-hash') });
+    expect(saved.cheatAttempt.nonce).toBe(nonceA);
     const fakeBid = Number(match(await textOf(page, '#ca-bid'), /\$(\d+) ← changed!/));
     const verify = await textOf(page, '#ca-verify');
     const fakeHash = match(verify, /([0-9a-f]{64})/);

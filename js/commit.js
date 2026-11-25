@@ -51,8 +51,8 @@ function buildCommitTranscript(extra = {}) {
     educationalScenario: 'sealed-bid auction',
     seed: scenarioSeed,
     phase: cs.phase,
-    bidderA: { bid: cs.bidA, nonce: cs.nA, hash: cs.hA },
-    bidderB: { bid: cs.bidB, nonce: cs.nB, hash: cs.hB },
+    bidderA: { hash: cs.hA },
+    bidderB: { hash: cs.hB },
     ...extra
   };
 }
@@ -74,8 +74,8 @@ export async function commitPhase() {
     cs.nB = nextHex(32);
     document.getElementById('ca-bid').textContent = '*** (hidden)';
     document.getElementById('cb-bid').textContent = '*** (hidden)';
-    document.getElementById('ca-nonce').textContent = cs.nA;
-    document.getElementById('cb-nonce').textContent = cs.nB;
+    document.getElementById('ca-nonce').textContent = 'Withheld until opening';
+    document.getElementById('cb-nonce').textContent = 'Withheld until opening';
     document.getElementById('ca-hash').textContent = 'Computing SHA-256…';
     document.getElementById('cb-hash').textContent = 'Computing SHA-256…';
     document.getElementById('ca-verify').textContent = '';
@@ -84,10 +84,10 @@ export async function commitPhase() {
     cs.hB = await sha256hex(`$${cs.bidB}|${cs.nB}`);
     document.getElementById('ca-hash').textContent = cs.hA;
     document.getElementById('cb-hash').textContent = cs.hB;
-    document.getElementById('commit-result').innerHTML = '<strong style="color:var(--ok)">Both commitments published.</strong> Neither bidder can see the other\'s bid. Neither can change their bid without detection.';
+    document.getElementById('commit-result').innerHTML = '<strong style="color:var(--ok)">Both commitments published.</strong> Each bidder’s public record contains only a digest.';
     cs.phase = 'committed';
-    narrate('commit-narration', 'Each bid is hashed with a secret nonce and published. The values stay hidden, yet are now locked — no one can change a bid undetected.');
-    lastCommitTranscript = buildCommitTranscript({ note: 'Commitments published; bids intentionally still hidden in the UI.' });
+    narrate('commit-narration', 'Each bidder keeps the bid and nonce until opening. The public transcript now contains the two SHA-256 commitments.');
+    lastCommitTranscript = buildCommitTranscript();
     persistCommitTranscript(lastCommitTranscript);
     if (scenarioSeed) {
       // The seed comes from ?seed= in the URL, so it is attacker-supplied: CodeQL
@@ -96,7 +96,7 @@ export async function commitPhase() {
       const result = document.getElementById('commit-result');
       const seedLine = document.createElement('span');
       seedLine.style.color = 'var(--acc2)';
-      seedLine.textContent = `Seeded run: ${scenarioSeed}`;
+      seedLine.textContent = `Seeded run: ${scenarioSeed}. This public seed reproduces both openings.`;
       result.append(' ', document.createElement('br'), seedLine);
     }
   } finally {
@@ -115,22 +115,34 @@ export async function revealPhase() {
     cs.phase = 'revealed';
     document.getElementById('ca-bid').textContent = `$${cs.bidA}`;
     document.getElementById('cb-bid').textContent = `$${cs.bidB}`;
+    document.getElementById('ca-nonce').textContent = cs.nA;
+    document.getElementById('cb-nonce').textContent = cs.nB;
     const vA = await sha256hex(`$${cs.bidA}|${cs.nA}`);
     const vB = await sha256hex(`$${cs.bidB}|${cs.nB}`);
     const okA = vA === cs.hA;
     const okB = vB === cs.hB;
     document.getElementById('ca-verify').innerHTML = `SHA-256 recomputed: <span style="color:${okA ? 'var(--ok)' : 'var(--err)'}">${okA ? '✓ matches commitment' : '✗ MISMATCH'}</span>`;
     document.getElementById('cb-verify').innerHTML = `SHA-256 recomputed: <span style="color:${okB ? 'var(--ok)' : 'var(--err)'}">${okB ? '✓ matches commitment' : '✗ MISMATCH'}</span>`;
-    const winner = cs.bidA > cs.bidB ? 'A' : cs.bidB > cs.bidA ? 'B' : 'TIE';
-    document.getElementById('commit-result').innerHTML = winner === 'TIE'
-      ? `<strong style="color:var(--warn)">Tie — $${cs.bidA} = $${cs.bidB}.</strong> Both commitments verified.`
-      : `<strong style="color:var(--ok)">Bidder ${winner} wins</strong> — $${winner === 'A' ? cs.bidA : cs.bidB} vs $${winner === 'A' ? cs.bidB : cs.bidA}. Both bids cryptographically verified.`;
-    narrate('commit-narration', 'Bids are opened and re-hashed. Matching the published commitments proves nobody altered their bid after seeing the other.');
-    lastCommitTranscript = buildCommitTranscript({ verification: { bidderA: okA, bidderB: okB }, winner });
-    persistCommitTranscript(lastCommitTranscript);
+    let winner = null;
     if (okA && okB) {
+      winner = cs.bidA > cs.bidB ? 'A' : cs.bidB > cs.bidA ? 'B' : 'TIE';
+      document.getElementById('commit-result').innerHTML = winner === 'TIE'
+        ? `<strong style="color:var(--warn)">Tie — $${cs.bidA} = $${cs.bidB}.</strong> Both commitments verified.`
+        : `<strong style="color:var(--ok)">Bidder ${winner} wins</strong> — $${winner === 'A' ? cs.bidA : cs.bidB} vs $${winner === 'A' ? cs.bidB : cs.bidA}. Both bids cryptographically verified.`;
+      narrate('commit-narration', 'Both openings match the commitments published before the bids were revealed.');
       celebrate('commit-result');
+    } else {
+      document.getElementById('commit-result').textContent = 'Opening rejected. No winner can be declared.';
+      narrate('commit-narration', 'At least one opening failed to match its published commitment.');
+      flashFail('commit-result');
     }
+    lastCommitTranscript = buildCommitTranscript({
+      bidderA: { hash: cs.hA, bid: cs.bidA, nonce: cs.nA },
+      bidderB: { hash: cs.hB, bid: cs.bidB, nonce: cs.nB },
+      verification: { bidderA: okA, bidderB: okB },
+      winner
+    });
+    persistCommitTranscript(lastCommitTranscript);
   } finally {
     commitBusy = false;
     commitSetControls();
@@ -146,6 +158,7 @@ export async function cheatPhase() {
   try {
     const fake = cs.bidA + 100;
     document.getElementById('ca-bid').textContent = `$${fake} ← changed!`;
+    document.getElementById('ca-nonce').textContent = cs.nA;
     const fakeHash = await sha256hex(`$${fake}|${cs.nA}`);
     // The verdict is the verifier's own comparison, not a foregone conclusion:
     // the tamper is "caught" precisely when the recomputed digest differs from
@@ -161,7 +174,7 @@ export async function cheatPhase() {
       ? 'Bidder A tries to change their bid — but the new value hashes to something completely different, so the tamper is caught.'
       : 'Bidder A changed their bid and the hash still matched, which is what a broken commitment scheme looks like.');
     cs.phase = 'cheated';
-    lastCommitTranscript = buildCommitTranscript({ cheatAttempt: { fakeBid: fake, fakeHash, publishedHash: cs.hA, detected } });
+    lastCommitTranscript = buildCommitTranscript({ cheatAttempt: { fakeBid: fake, nonce: cs.nA, fakeHash, publishedHash: cs.hA, detected } });
     persistCommitTranscript(lastCommitTranscript);
     flashFail('commit-result');
   } finally {
@@ -179,7 +192,7 @@ export function commitReset() {
   ['ca-bid', 'cb-bid', 'ca-nonce', 'cb-nonce', 'ca-hash', 'cb-hash', 'ca-verify', 'cb-verify'].forEach(id => {
     document.getElementById(id).textContent = '—';
   });
-  document.getElementById('commit-result').textContent = 'Commitments lock bids before revelation — neither bidder can see or change the other\'s bid once committed.';
+  document.getElementById('commit-result').textContent = 'Submit both bids to publish their commitments.';
   narrate('commit-narration', 'Two bidders lock in hidden bids as SHA-256 hashes, then reveal them later. The hash binds each bid so it cannot be changed after the fact.');
   commitSetControls();
 }
